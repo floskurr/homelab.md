@@ -855,7 +855,7 @@
           <label class="form-label">System</label>
           <input type="text" class="form-input" id="fSystem" placeholder="e.g. Dell PowerEdge R730">
         </div>
-        <div class="form-group">
+        <div class="form-group" id="fOsGroup">
           <label class="form-label">Operating System</label>
           <input type="text" class="form-input" id="fOs" placeholder="e.g. Proxmox VE 8.1">
         </div>
@@ -883,7 +883,7 @@
         </div>
       </div>
 
-      <div class="form-row">
+      <div class="form-row" id="fCpuRamRow">
         <div class="form-group">
           <label class="form-label">CPU</label>
           <input type="text" class="form-input" id="fCpu" placeholder="e.g. Intel i7-12700K / 8 cores">
@@ -1595,6 +1595,8 @@ function syncPowerFieldVisibility() {
   const isUps = type === 'ups';
   const storageRow = document.getElementById('fStorageRow');
   const servicesRow = document.getElementById('fServicesRow');
+  const cpuRamRow = document.getElementById('fCpuRamRow');
+  const osGroup = document.getElementById('fOsGroup');
   if (storageRow) {
     storageRow.hidden = isUps;
     if (isUps) { storageRowData = []; renderStorageRows(); }
@@ -1602,6 +1604,17 @@ function syncPowerFieldVisibility() {
   if (servicesRow) {
     servicesRow.hidden = isUps;
     if (isUps) { serviceRowData = []; renderServiceRows(); }
+  }
+  if (cpuRamRow) {
+    cpuRamRow.hidden = isUps;
+    if (isUps) {
+      document.getElementById('fCpu').value = '';
+      document.getElementById('fRam').value = '';
+    }
+  }
+  if (osGroup) {
+    osGroup.hidden = isUps;
+    if (isUps) document.getElementById('fOs').value = '';
   }
 }
 
@@ -1729,10 +1742,10 @@ function saveDevice() {
     parentId: document.getElementById('fParent').value || null,
     poweredById: noPowerSource ? null : (document.getElementById('fPower').value || null),
     system: document.getElementById('fSystem').value.trim(),
-    os: document.getElementById('fOs').value.trim(),
+    os: isUps ? '' : document.getElementById('fOs').value.trim(),
     status: document.getElementById('fStatus').value,
-    cpu: document.getElementById('fCpu').value.trim(),
-    ram: document.getElementById('fRam').value.trim(),
+    cpu: isUps ? '' : document.getElementById('fCpu').value.trim(),
+    ram: isUps ? '' : document.getElementById('fRam').value.trim(),
     storage,
     location: document.getElementById('fLocation').value.trim(),
     services,
