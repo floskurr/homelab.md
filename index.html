@@ -569,6 +569,7 @@
     margin: -8px 0 20px;
   }
   .toolbar-secondary[hidden] { display: none; }
+  .toolbar-secondary .topo-mode-toggle .view-btn { flex: 1; text-align: center; justify-content: center; }
 
   /* Topology view */
   .topology-view { display: none; }
@@ -1231,6 +1232,7 @@ function applyViewUI() {
   document.getElementById('topologyView').classList.toggle('active', currentView === 'topology');
   const modeRow = document.getElementById('topoModeRow');
   if (modeRow) modeRow.hidden = currentView !== 'topology';
+  syncTopoToggleWidth();
   document.querySelectorAll('[data-topo-mode]').forEach(btn => {
     const active = btn.dataset.topoMode === topoMode;
     btn.classList.toggle('active', active);
@@ -1244,6 +1246,19 @@ function setView(v) {
   applyViewUI();
   if (v === 'topology') renderTopology();
 }
+
+function syncTopoToggleWidth() {
+  const primary = document.querySelector('.toolbar .view-toggle');
+  const secondary = document.getElementById('topoModeToggle');
+  if (!primary || !secondary) return;
+  if (window.innerWidth > 640) {
+    secondary.style.width = primary.offsetWidth + 'px';
+  } else {
+    secondary.style.width = '';
+  }
+}
+
+window.addEventListener('resize', syncTopoToggleWidth);
 
 function setTopoMode(m) {
   topoMode = m;
@@ -2396,6 +2411,7 @@ const PUBLIC_HTML_TEMPLATE = '<!DOCTYPE html>\n'
 + '.topo-mode-toggle[hidden]{display:none;}\n'
 + '.toolbar-secondary{display:flex;justify-content:flex-end;margin:-8px 0 20px;}\n'
 + '.toolbar-secondary[hidden]{display:none;}\n'
++ '.toolbar-secondary .topo-mode-toggle .view-btn{flex:1;text-align:center;justify-content:center;}\n'
 + '@media (max-width:640px){.header{padding:12px 16px;}.main{padding:16px;}.device-grid{grid-template-columns:1fr;}.detail-grid{grid-template-columns:1fr;}.toolbar{flex-direction:column;align-items:stretch;}.search-wrap{display:block;}.search-box{width:100%;}.stats-bar{flex-wrap:wrap;gap:16px;}.view-toggle{display:flex;}.view-toggle .view-btn{flex:1;text-align:center;justify-content:center;}.toolbar-secondary{margin:0 0 16px;}.toolbar-secondary .topo-mode-toggle{flex:1;}.topology-clusters{grid-template-columns:1fr;max-width:320px;margin:0 auto;justify-content:center;}.topo-cluster{width:100%;height:auto;}.filter-group{display:none;}.filter-select{display:block;}}\n'
 + '</style>\n'
 + '</head>\n'
@@ -2636,6 +2652,7 @@ const PUBLIC_HTML_TEMPLATE = '<!DOCTYPE html>\n'
 + '  document.getElementById("topologyView").classList.toggle("active",currentView==="topology");\n'
 + '  var modeRow=document.getElementById("topoModeRow");\n'
 + '  if(modeRow)modeRow.hidden=currentView!=="topology";\n'
++ '  syncTopoToggleWidth();\n'
 + '  var mbtns=document.querySelectorAll("[data-topo-mode]");\n'
 + '  for(var j=0;j<mbtns.length;j++){var a=mbtns[j].getAttribute("data-topo-mode")===topoMode;mbtns[j].classList.toggle("active",a);mbtns[j].setAttribute("aria-selected",a?"true":"false");}\n'
 + '}\n'
@@ -2645,6 +2662,14 @@ const PUBLIC_HTML_TEMPLATE = '<!DOCTYPE html>\n'
 + '  applyViewUI();\n'
 + '  if(v==="topology")renderTopology();\n'
 + '}\n'
++ 'function syncTopoToggleWidth(){\n'
++ '  var primary=document.querySelector(".toolbar .view-toggle");\n'
++ '  var secondary=document.getElementById("topoModeToggle");\n'
++ '  if(!primary||!secondary)return;\n'
++ '  if(window.innerWidth>640)secondary.style.width=primary.offsetWidth+"px";\n'
++ '  else secondary.style.width="";\n'
++ '}\n'
++ 'window.addEventListener("resize",syncTopoToggleWidth);\n'
 + 'function setTopoMode(m){\n'
 + '  topoMode=m;\n'
 + '  try{localStorage.setItem(TOPO_MODE_KEY,m);}catch(_){}\n'
