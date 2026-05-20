@@ -2248,10 +2248,10 @@ function exportPublic() {
   const devices = loadDevices();
   if (!devices.length) { toast('No devices to export', 'error'); return; }
 
-  const typeOrder = ['server', 'network', 'storage', 'vm', 'container', 'other'];
+  const typeOrder = ['server', 'network', 'storage', 'ups', 'vm', 'container', 'other'];
   const typeLabels = {
     server: 'Servers', vm: 'Virtual Machines', container: 'Containers / LXC',
-    network: 'Network Devices', storage: 'Storage', other: 'Other',
+    network: 'Network Devices', storage: 'Storage', ups: 'UPS / Power', other: 'Other',
   };
 
   const date = new Date().toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' });
@@ -2259,19 +2259,20 @@ function exportPublic() {
   let md = `*Last updated: ${date}*\n\n`;
   md += `**${devices.length} device${devices.length !== 1 ? 's' : ''}**\n\n---\n\n`;
 
-  const topLevel = devices.filter(d => !d.parentId);
+  const sortByName = (a, b) => (a.name || '').localeCompare(b.name || '', undefined, { sensitivity: 'base' });
+
   const handled = new Set();
   typeOrder.forEach(type => {
-    const group = topLevel.filter(d => d.type === type);
+    const group = devices.filter(d => d.type === type).sort(sortByName);
     if (!group.length) return;
     handled.add(type);
     md += `## ${typeLabels[type]}\n\n`;
     group.forEach(d => { md += deviceToPublicSection(d, devices) + '---\n\n'; });
   });
 
-  const remaining = [...new Set(topLevel.map(d => d.type).filter(t => !handled.has(t)))];
+  const remaining = [...new Set(devices.map(d => d.type).filter(t => !handled.has(t)))];
   remaining.forEach(type => {
-    const group = topLevel.filter(d => d.type === type);
+    const group = devices.filter(d => d.type === type).sort(sortByName);
     if (!group.length) return;
     const label = type ? type.charAt(0).toUpperCase() + type.slice(1) : 'Other';
     md += `## ${label}\n\n`;
