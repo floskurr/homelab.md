@@ -1581,14 +1581,15 @@ function selectFormSelect(id, optionEl) {
 
 // VMs and containers can't physically have their own power cord — their
 // power comes from the host they run on. Hide the Power Source field for
-// those types so users don't enter physically impossible state.
+// those types so users don't enter physically impossible state. UPS devices
+// are themselves the power source, so they don't get one either.
 function syncPowerFieldVisibility() {
   const row = document.getElementById('fPowerRow');
   if (!row) return;
   const type = document.getElementById('fType').value;
-  const virtual = type === 'vm' || type === 'container';
-  row.hidden = virtual;
-  if (virtual) setFormSelectValue('fPower', '');
+  const hide = type === 'vm' || type === 'container' || type === 'ups';
+  row.hidden = hide;
+  if (hide) setFormSelectValue('fPower', '');
 }
 
 function setFormSelectValue(id, value) {
@@ -1706,13 +1707,13 @@ function saveDevice() {
   }));
 
   const type = document.getElementById('fType').value;
-  const virtual = type === 'vm' || type === 'container';
+  const noPowerSource = type === 'vm' || type === 'container' || type === 'ups';
   const device = {
     name,
     type,
     ip: document.getElementById('fIp').value.trim(),
     parentId: document.getElementById('fParent').value || null,
-    poweredById: virtual ? null : (document.getElementById('fPower').value || null),
+    poweredById: noPowerSource ? null : (document.getElementById('fPower').value || null),
     system: document.getElementById('fSystem').value.trim(),
     os: document.getElementById('fOs').value.trim(),
     status: document.getElementById('fStatus').value,
