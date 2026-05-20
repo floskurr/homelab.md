@@ -1218,38 +1218,62 @@ function topoBoxSvg(d, x, y, w, h, isParent, opts) {
   </g>`;
 }
 
-function topologyClusterSvg(parent, children, opts) {
+function topologyClusterSvg(rootNode, opts) {
   const w = 280;
   const parentH = 60;
   const childH = 50;
   const childIndent = 26;
   const childGap = 10;
   const childTopGap = 20;
-  const childW = w - childIndent;
   const pad = 6;
 
-  let svg = topoBoxSvg(parent, 0, 0, w, parentH, true, opts);
+  let descendantCount = 0;
+  function countDescendants(n) {
+    if (!n.children) return;
+    descendantCount += n.children.length;
+    n.children.forEach(countDescendants);
+  }
+  countDescendants(rootNode);
 
-  if (children.length) {
-    const trunkX = 11;
-    const trunkTop = parentH;
-    const lastChildCenter = parentH + childTopGap + (children.length - 1) * (childH + childGap) + childH / 2;
-    svg += `<line x1="${trunkX}" y1="${trunkTop}" x2="${trunkX}" y2="${lastChildCenter}" class="topo-edge"/>`;
-    children.forEach((c, i) => {
-      const y = parentH + childTopGap + i * (childH + childGap);
-      const cy = y + childH / 2;
-      svg += `<line x1="${trunkX}" y1="${cy}" x2="${childIndent}" y2="${cy}" class="topo-edge"/>`;
-      svg += topoBoxSvg(c, childIndent, y, childW, childH, false, opts);
-    });
+  function layout(node, startY, depth) {
+    const nodeH = depth === 0 ? parentH : childH;
+    const x = depth * childIndent;
+    const boxW = Math.max(120, w - x);
+    let svg = topoBoxSvg(node.device, x, startY, boxW, nodeH, depth === 0, opts);
+    let y = startY + nodeH;
+
+    const kids = node.children || [];
+    if (kids.length) {
+      const trunkX = x + 11;
+      const trunkTop = startY + nodeH;
+      const childX = (depth + 1) * childIndent;
+      const childCenters = [];
+      y += childTopGap;
+      let childSvg = '';
+      kids.forEach((c, i) => {
+        if (i > 0) y += childGap;
+        const cy = y + childH / 2;
+        childCenters.push(cy);
+        childSvg += `<line x1="${trunkX}" y1="${cy}" x2="${childX}" y2="${cy}" class="topo-edge"/>`;
+        const sub = layout(c, y, depth + 1);
+        childSvg += sub.svg;
+        y = sub.endY;
+      });
+      const trunkBottom = childCenters[childCenters.length - 1];
+      svg += `<line x1="${trunkX}" y1="${trunkTop}" x2="${trunkX}" y2="${trunkBottom}" class="topo-edge"/>`;
+      svg += childSvg;
+    }
+
+    return { svg, endY: y };
   }
 
-  const contentH = children.length
-    ? parentH + childTopGap + children.length * (childH + childGap) - childGap
-    : parentH;
+  const result = layout(rootNode, 0, 0);
+  const contentH = result.endY;
   const svgW = w + pad * 2;
   const svgH = contentH + pad * 2;
+  const parent = rootNode.device;
 
-  return `<svg class="topo-cluster" viewBox="${-pad} ${-pad} ${svgW} ${svgH}" width="${svgW}" height="${svgH}" xmlns="http://www.w3.org/2000/svg" role="group" aria-label="${esc(parent.name)}${children.length ? ' with ' + children.length + ' child device' + (children.length === 1 ? '' : 's') : ''}">${svg}</svg>`;
+  return `<svg class="topo-cluster" viewBox="${-pad} ${-pad} ${svgW} ${svgH}" width="${svgW}" height="${svgH}" xmlns="http://www.w3.org/2000/svg" role="group" aria-label="${esc(parent.name)}${descendantCount ? ' with ' + descendantCount + ' descendant device' + (descendantCount === 1 ? '' : 's') : ''}">${result.svg}</svg>`;
 }
 
 function renderTopology() {
@@ -1266,18 +1290,21 @@ function renderTopology() {
   const roots = filtered.filter(d => !d.parentId);
   const orphans = filtered.filter(d => d.parentId && !filteredIds.has(d.parentId));
 
-  const clusters = [];
-  roots.forEach(p => {
-    clusters.push({ parent: p, children: filtered.filter(c => c.parentId === p.id) });
-  });
-  orphans.forEach(o => clusters.push({ parent: o, children: [] }));
+  function buildSubtree(device) {
+    const kids = filtered
+      .filter(c => c.parentId === device.id)
+      .sort((a, b) => (a.name || '').localeCompare(b.name || '', undefined, { sensitivity: 'base' }));
+    return { device, children: kids.map(buildSubtree) };
+  }
 
-  // Alphabetical by parent name.
-  clusters.sort((a, b) =>
-    (a.parent.name || '').localeCompare(b.parent.name || '', undefined, { sensitivity: 'base' })
+  const trees = roots.concat(orphans).map(buildSubtree);
+
+  // Alphabetical by root name.
+  trees.sort((a, b) =>
+    (a.device.name || '').localeCompare(b.device.name || '', undefined, { sensitivity: 'base' })
   );
 
-  container.innerHTML = `<div class="topology-clusters">${clusters.map(c => topologyClusterSvg(c.parent, c.children, { showStatus: true })).join('')}</div>`;
+  container.innerHTML = `<div class="topology-clusters">${trees.map(t => topologyClusterSvg(t, { showStatus: true })).join('')}</div>`;
 }
 
 function esc(str) {
@@ -1350,9 +1377,12 @@ function populateParentDropdown(excludeId = null) {
   const devices = loadDevices();
   const current = document.getElementById('fParent').value || '';
   const opts = [{ value: '', label: '— None (standalone) —' }];
-  devices.filter(d => d.id !== excludeId).forEach(d => {
-    opts.push({ value: d.id, label: `${d.name} (${d.type})` });
-  });
+  devices
+    .filter(d => d.id !== excludeId)
+    .sort((a, b) => (a.name || '').localeCompare(b.name || '', undefined, { sensitivity: 'base' }))
+    .forEach(d => {
+      opts.push({ value: d.id, label: `${d.name} (${d.type})` });
+    });
   menu.innerHTML = opts.map(o =>
     `<li class="form-select-option" role="option" aria-selected="false" data-value="${esc(o.value)}" onclick="selectFormSelect('fParent', this)">${esc(o.label)}</li>`
   ).join('');
@@ -2315,25 +2345,42 @@ const PUBLIC_HTML_TEMPLATE = '<!DOCTYPE html>\n'
 + '    \'<title>\'+esc(d.name)+(d.type?" (\'+esc(d.type)+\')":"")+\'</title>\'+\n'
 + '  \'</g>\';\n'
 + '}\n'
-+ 'function topologyClusterSvg(parent,children){\n'
++ 'function topologyClusterSvg(rootNode){\n'
 + '  var w=280,parentH=60,childH=50,childIndent=26,childGap=10,childTopGap=20,pad=6;\n'
-+ '  var childW=w-childIndent;\n'
-+ '  var svg=topoBoxSvg(parent,0,0,w,parentH,true);\n'
-+ '  if(children.length){\n'
-+ '    var trunkX=11,trunkTop=parentH;\n'
-+ '    var lastChildCenter=parentH+childTopGap+(children.length-1)*(childH+childGap)+childH/2;\n'
-+ '    svg+=\'<line x1="\'+trunkX+\'" y1="\'+trunkTop+\'" x2="\'+trunkX+\'" y2="\'+lastChildCenter+\'" class="topo-edge"/>\';\n'
-+ '    children.forEach(function(c,i){\n'
-+ '      var y=parentH+childTopGap+i*(childH+childGap);\n'
-+ '      var cy=y+childH/2;\n'
-+ '      svg+=\'<line x1="\'+trunkX+\'" y1="\'+cy+\'" x2="\'+childIndent+\'" y2="\'+cy+\'" class="topo-edge"/>\';\n'
-+ '      svg+=topoBoxSvg(c,childIndent,y,childW,childH,false);\n'
-+ '    });\n'
++ '  var descendantCount=0;\n'
++ '  function countDescendants(n){if(!n.children)return;descendantCount+=n.children.length;n.children.forEach(countDescendants);}\n'
++ '  countDescendants(rootNode);\n'
++ '  function layout(node,startY,depth){\n'
++ '    var nodeH=depth===0?parentH:childH;\n'
++ '    var x=depth*childIndent;\n'
++ '    var boxW=Math.max(120,w-x);\n'
++ '    var svg=topoBoxSvg(node.device,x,startY,boxW,nodeH,depth===0);\n'
++ '    var y=startY+nodeH;\n'
++ '    var kids=node.children||[];\n'
++ '    if(kids.length){\n'
++ '      var trunkX=x+11,trunkTop=startY+nodeH,childX=(depth+1)*childIndent;\n'
++ '      var childCenters=[],childSvg="";\n'
++ '      y+=childTopGap;\n'
++ '      kids.forEach(function(c,i){\n'
++ '        if(i>0)y+=childGap;\n'
++ '        var cy=y+childH/2;\n'
++ '        childCenters.push(cy);\n'
++ '        childSvg+=\'<line x1="\'+trunkX+\'" y1="\'+cy+\'" x2="\'+childX+\'" y2="\'+cy+\'" class="topo-edge"/>\';\n'
++ '        var sub=layout(c,y,depth+1);\n'
++ '        childSvg+=sub.svg;\n'
++ '        y=sub.endY;\n'
++ '      });\n'
++ '      var trunkBottom=childCenters[childCenters.length-1];\n'
++ '      svg+=\'<line x1="\'+trunkX+\'" y1="\'+trunkTop+\'" x2="\'+trunkX+\'" y2="\'+trunkBottom+\'" class="topo-edge"/>\';\n'
++ '      svg+=childSvg;\n'
++ '    }\n'
++ '    return {svg:svg,endY:y};\n'
 + '  }\n'
-+ '  var contentH=children.length?parentH+childTopGap+children.length*(childH+childGap)-childGap:parentH;\n'
-+ '  var svgW=w+pad*2,svgH=contentH+pad*2;\n'
-+ '  var ariaLabel=esc(parent.name)+(children.length?" with "+children.length+" child device"+(children.length===1?"":"s"):"");\n'
-+ '  return \'<svg class="topo-cluster" viewBox="\'+(-pad)+\' \'+(-pad)+\' \'+svgW+\' \'+svgH+\'" width="\'+svgW+\'" height="\'+svgH+\'" xmlns="http://www.w3.org/2000/svg" role="group" aria-label="\'+ariaLabel+\'">\'+svg+\'</svg>\';\n'
++ '  var result=layout(rootNode,0,0);\n'
++ '  var contentH=result.endY,svgW=w+pad*2,svgH=contentH+pad*2;\n'
++ '  var parent=rootNode.device;\n'
++ '  var ariaLabel=esc(parent.name)+(descendantCount?" with "+descendantCount+" descendant device"+(descendantCount===1?"":"s"):"");\n'
++ '  return \'<svg class="topo-cluster" viewBox="\'+(-pad)+\' \'+(-pad)+\' \'+svgW+\' \'+svgH+\'" width="\'+svgW+\'" height="\'+svgH+\'" xmlns="http://www.w3.org/2000/svg" role="group" aria-label="\'+ariaLabel+\'">\'+result.svg+\'</svg>\';\n'
 + '}\n'
 + 'function renderTopology(){\n'
 + '  var filtered=getFilteredDevices();\n'
@@ -2342,11 +2389,14 @@ const PUBLIC_HTML_TEMPLATE = '<!DOCTYPE html>\n'
 + '  var filteredIds={};filtered.forEach(function(d){filteredIds[d.id]=1;});\n'
 + '  var roots=filtered.filter(function(d){return !d.parentId;});\n'
 + '  var orphans=filtered.filter(function(d){return d.parentId&&!filteredIds[d.parentId];});\n'
-+ '  var clusters=[];\n'
-+ '  roots.forEach(function(p){clusters.push({parent:p,children:filtered.filter(function(c){return c.parentId===p.id;})});});\n'
-+ '  orphans.forEach(function(o){clusters.push({parent:o,children:[]});});\n'
-+ '  clusters.sort(function(a,b){return (a.parent.name||"").localeCompare(b.parent.name||"",undefined,{sensitivity:"base"});});\n'
-+ '  container.innerHTML=\'<div class="topology-clusters">\'+clusters.map(function(c){return topologyClusterSvg(c.parent,c.children);}).join("")+\'</div>\';\n'
++ '  function buildSubtree(device){\n'
++ '    var kids=filtered.filter(function(c){return c.parentId===device.id;})\n'
++ '      .sort(function(a,b){return (a.name||"").localeCompare(b.name||"",undefined,{sensitivity:"base"});});\n'
++ '    return {device:device,children:kids.map(buildSubtree)};\n'
++ '  }\n'
++ '  var trees=roots.concat(orphans).map(buildSubtree);\n'
++ '  trees.sort(function(a,b){return (a.device.name||"").localeCompare(b.device.name||"",undefined,{sensitivity:"base"});});\n'
++ '  container.innerHTML=\'<div class="topology-clusters">\'+trees.map(function(t){return topologyClusterSvg(t);}).join("")+\'</div>\';\n'
 + '}\n'
 + 'var VIEW_KEY="homelab_view";\n'
 + 'try{var savedView=localStorage.getItem(VIEW_KEY);if(savedView==="topology"||savedView==="grid")currentView=savedView;}catch(_){}\n'
