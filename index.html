@@ -1594,13 +1594,14 @@ function syncPowerFieldVisibility() {
     if (hidePower) setFormSelectValue('fPower', '');
   }
   const isUps = type === 'ups';
+  const hideStorage = isUps || type === 'network';
   const storageRow = document.getElementById('fStorageRow');
   const servicesRow = document.getElementById('fServicesRow');
   const cpuRamRow = document.getElementById('fCpuRamRow');
   const osGroup = document.getElementById('fOsGroup');
   if (storageRow) {
-    storageRow.hidden = isUps;
-    if (isUps) { storageRowData = []; renderStorageRows(); }
+    storageRow.hidden = hideStorage;
+    if (hideStorage) { storageRowData = []; renderStorageRows(); }
   }
   if (servicesRow) {
     servicesRow.hidden = isUps;
@@ -1734,7 +1735,7 @@ function saveDevice() {
     name: s.name.trim(), port: s.port.trim(), notes: s.notes.trim(), url: s.url.trim()
   }));
 
-  const storage = isUps ? [] : storageRowData.filter(s => s.type.trim()).map(s => ({
+  const storage = (isUps || type === 'network') ? [] : storageRowData.filter(s => s.type.trim()).map(s => ({
     type: s.type.trim(), size: s.size.trim(), notes: s.notes.trim()
   }));
   const device = {
@@ -1804,23 +1805,30 @@ function showDetail(id) {
       <button class="btn btn-ghost btn-sm" onclick="closeDetail()">✕</button>
     </div>
     <div class="detail-body">
-      <div class="detail-section">
-        <div class="detail-section-title">Overview</div>
-        <div class="detail-grid">
-          <div><div class="detail-field-label">IP Address</div><div class="detail-field-value">${esc(d.ip) || '—'}</div></div>
-          <div><div class="detail-field-label">System</div><div class="detail-field-value">${esc(d.system) || '—'}</div></div>
-          <div><div class="detail-field-label">OS</div><div class="detail-field-value">${esc(d.os) || '—'}</div></div>
-          <div><div class="detail-field-label">Status</div><div class="detail-field-value">${esc(d.status) || '—'}</div></div>
-        </div>
-      </div>
-      <div class="detail-section">
-        <div class="detail-section-title">Hardware</div>
-        <div class="detail-grid">
-          <div><div class="detail-field-label">CPU</div><div class="detail-field-value">${esc(d.cpu) || '—'}</div></div>
-          <div><div class="detail-field-label">RAM</div><div class="detail-field-value">${esc(d.ram) || '—'}</div></div>
-          <div><div class="detail-field-label">Location</div><div class="detail-field-value">${esc(d.location) || '—'}</div></div>
-        </div>
-      </div>
+      ${(() => {
+        const field = (label, val) => val ? `<div><div class="detail-field-label">${label}</div><div class="detail-field-value">${esc(val)}</div></div>` : '';
+        const overview = [
+          field('IP Address', d.ip),
+          field('System', d.system),
+          field('OS', d.os),
+          field('Status', d.status),
+        ].filter(Boolean).join('');
+        const hardware = [
+          field('CPU', d.cpu),
+          field('RAM', d.ram),
+          field('Location', d.location),
+        ].filter(Boolean).join('');
+        return `
+          ${overview ? `<div class="detail-section">
+            <div class="detail-section-title">Overview</div>
+            <div class="detail-grid">${overview}</div>
+          </div>` : ''}
+          ${hardware ? `<div class="detail-section">
+            <div class="detail-section-title">Hardware</div>
+            <div class="detail-grid">${hardware}</div>
+          </div>` : ''}
+        `;
+      })()}
       ${(Array.isArray(d.storage) && d.storage.length) || (!Array.isArray(d.storage) && d.storage) ? (() => { const storage = sortedStorage(d.storage); return `
         <div class="detail-section">
           <div class="detail-section-title">Storage (${Array.isArray(storage) ? storage.length : 1})</div>
