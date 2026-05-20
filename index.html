@@ -894,7 +894,7 @@
         </div>
       </div>
 
-      <div class="form-row full">
+      <div class="form-row full" id="fStorageRow">
         <div class="form-group">
           <label class="form-label">Storage</label>
           <div class="services-editor">
@@ -910,7 +910,7 @@
         </div>
       </div>
 
-      <div class="form-row full">
+      <div class="form-row full" id="fServicesRow">
         <div class="form-group">
           <label class="form-label">Services</label>
           <div class="services-editor">
@@ -1582,14 +1582,27 @@ function selectFormSelect(id, optionEl) {
 // VMs and containers can't physically have their own power cord — their
 // power comes from the host they run on. Hide the Power Source field for
 // those types so users don't enter physically impossible state. UPS devices
-// are themselves the power source, so they don't get one either.
+// are themselves the power source, so they don't get one either — and they
+// don't host services or attached storage, so hide those rows too.
 function syncPowerFieldVisibility() {
-  const row = document.getElementById('fPowerRow');
-  if (!row) return;
   const type = document.getElementById('fType').value;
-  const hide = type === 'vm' || type === 'container' || type === 'ups';
-  row.hidden = hide;
-  if (hide) setFormSelectValue('fPower', '');
+  const hidePower = type === 'vm' || type === 'container' || type === 'ups';
+  const powerRow = document.getElementById('fPowerRow');
+  if (powerRow) {
+    powerRow.hidden = hidePower;
+    if (hidePower) setFormSelectValue('fPower', '');
+  }
+  const isUps = type === 'ups';
+  const storageRow = document.getElementById('fStorageRow');
+  const servicesRow = document.getElementById('fServicesRow');
+  if (storageRow) {
+    storageRow.hidden = isUps;
+    if (isUps) { storageRowData = []; renderStorageRows(); }
+  }
+  if (servicesRow) {
+    servicesRow.hidden = isUps;
+    if (isUps) { serviceRowData = []; renderServiceRows(); }
+  }
 }
 
 function setFormSelectValue(id, value) {
@@ -1698,16 +1711,17 @@ function saveDevice() {
   const name = document.getElementById('fName').value.trim();
   if (!name) { toast('Hostname / Name is required', 'error'); return; }
 
-  const services = serviceRowData.filter(s => s.name.trim()).map(s => ({
+  const type = document.getElementById('fType').value;
+  const isUps = type === 'ups';
+  const noPowerSource = type === 'vm' || type === 'container' || isUps;
+
+  const services = isUps ? [] : serviceRowData.filter(s => s.name.trim()).map(s => ({
     name: s.name.trim(), port: s.port.trim(), notes: s.notes.trim(), url: s.url.trim()
   }));
 
-  const storage = storageRowData.filter(s => s.type.trim()).map(s => ({
+  const storage = isUps ? [] : storageRowData.filter(s => s.type.trim()).map(s => ({
     type: s.type.trim(), size: s.size.trim(), notes: s.notes.trim()
   }));
-
-  const type = document.getElementById('fType').value;
-  const noPowerSource = type === 'vm' || type === 'container' || type === 'ups';
   const device = {
     name,
     type,
