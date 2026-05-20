@@ -563,22 +563,6 @@
   .view-btn.active { color: var(--accent); background: var(--accent-glow); }
   .view-btn + .view-btn { border-left: 1px solid var(--border); }
   .topo-mode-toggle[hidden] { display: none; }
-  .topology-section-header {
-    grid-column: 1 / -1;
-    font-family: 'JetBrains Mono', monospace;
-    font-size: 11px;
-    text-transform: uppercase;
-    letter-spacing: 1px;
-    color: var(--text-muted);
-    border-top: 1px solid var(--border);
-    padding-top: 16px;
-    margin-top: 8px;
-  }
-  .topology-section-header:first-child {
-    border-top: none;
-    padding-top: 0;
-    margin-top: 0;
-  }
 
   /* Topology view */
   .topology-view { display: none; }
@@ -775,7 +759,6 @@
     <div class="view-toggle topo-mode-toggle" id="topoModeToggle" role="tablist" aria-label="Topology mode" hidden>
       <button type="button" class="view-btn active" data-topo-mode="network" onclick="setTopoMode('network')" role="tab" aria-selected="true" title="Show network parent → child tree">Network</button>
       <button type="button" class="view-btn" data-topo-mode="power" onclick="setTopoMode('power')" role="tab" aria-selected="false" title="Show UPS → powered devices">Power</button>
-      <button type="button" class="view-btn" data-topo-mode="both" onclick="setTopoMode('both')" role="tab" aria-selected="false" title="Show both network and power">Both</button>
     </div>
   </div>
   <div class="device-grid" id="deviceGrid"></div>
@@ -1224,7 +1207,7 @@ let currentView = (function () {
 let topoMode = (function () {
   try {
     const v = localStorage.getItem(TOPO_MODE_KEY);
-    return v === 'power' || v === 'both' ? v : 'network';
+    return v === 'power' ? v : 'network';
   } catch (_) { return 'network'; }
 })();
 
@@ -1388,7 +1371,7 @@ function renderTopology() {
     return { device, children: kids.map(k => buildPowerTree(k, seen)) };
   }
 
-  const networkRoots = filtered.filter(d => !d.parentId);
+  const networkRoots = filtered.filter(d => !d.parentId && d.type !== 'ups');
   const networkOrphans = filtered.filter(d => d.parentId && !filteredIds.has(d.parentId));
   const networkTrees = networkRoots.concat(networkOrphans)
     .map(buildNetworkTree)
@@ -1411,21 +1394,12 @@ function renderTopology() {
       (a.device.name || '').localeCompare(b.device.name || '', undefined, { sensitivity: 'base' })
     );
 
-  const sections = [];
-  const showNetwork = topoMode === 'network' || topoMode === 'both';
-  const showPower = topoMode === 'power' || topoMode === 'both';
+  const trees = topoMode === 'power' ? powerTrees : networkTrees;
+  const opts = topoMode === 'power'
+    ? { showStatus: true, edgeType: 'power' }
+    : { showStatus: true };
 
-  if (showNetwork && networkTrees.length) {
-    if (topoMode === 'both') sections.push(`<div class="topology-section-header">Network</div>`);
-    sections.push(networkTrees.map(t => topologyClusterSvg(t, { showStatus: true })).join(''));
-  }
-
-  if (showPower && powerTrees.length) {
-    if (topoMode === 'both') sections.push(`<div class="topology-section-header">Power</div>`);
-    sections.push(powerTrees.map(t => topologyClusterSvg(t, { showStatus: true, edgeType: 'power' })).join(''));
-  }
-
-  if (!sections.length) {
+  if (!trees.length) {
     const msg = topoMode === 'power'
       ? 'No power relationships yet. Set a Power Source on any device.'
       : 'No matches for the current search/filter.';
@@ -1433,7 +1407,7 @@ function renderTopology() {
     return;
   }
 
-  container.innerHTML = `<div class="topology-clusters">${sections.join('')}</div>`;
+  container.innerHTML = `<div class="topology-clusters">${trees.map(t => topologyClusterSvg(t, opts)).join('')}</div>`;
 }
 
 function esc(str) {
@@ -2410,8 +2384,6 @@ const PUBLIC_HTML_TEMPLATE = '<!DOCTYPE html>\n'
 + '.topo-cluster .topo-type-icon{pointer-events:none;}\n'
 + '.topo-type-icon-server{color:var(--accent);}.topo-type-icon-vm{color:var(--blue);}.topo-type-icon-container{color:var(--purple);}.topo-type-icon-network{color:#e6b43c;}.topo-type-icon-storage{color:#e67850;}.topo-type-icon-ups{color:#b4e678;}.topo-type-icon-other{color:#9696aa;}\n'
 + '.topo-mode-toggle[hidden]{display:none;}\n'
-+ '.topology-section-header{grid-column:1/-1;font-family:\'JetBrains Mono\',monospace;font-size:11px;text-transform:uppercase;letter-spacing:1px;color:var(--text-muted);border-top:1px solid var(--border);padding-top:16px;margin-top:8px;}\n'
-+ '.topology-section-header:first-child{border-top:none;padding-top:0;margin-top:0;}\n'
 + '@media (max-width:640px){.header{padding:12px 16px;}.main{padding:16px;}.device-grid{grid-template-columns:1fr;}.detail-grid{grid-template-columns:1fr;}.toolbar{flex-direction:column;align-items:stretch;}.search-wrap{display:block;}.search-box{width:100%;}.stats-bar{flex-wrap:wrap;gap:16px;}.view-toggle{display:flex;}.view-toggle .view-btn{flex:1;text-align:center;justify-content:center;}.topology-clusters{grid-template-columns:1fr;max-width:320px;margin:0 auto;justify-content:center;}.topo-cluster{width:100%;height:auto;}.filter-group{display:none;}.filter-select{display:block;}}\n'
 + '</style>\n'
 + '</head>\n'
@@ -2436,7 +2408,6 @@ const PUBLIC_HTML_TEMPLATE = '<!DOCTYPE html>\n'
 + '    <div class="view-toggle topo-mode-toggle" id="topoModeToggle" role="tablist" aria-label="Topology mode" hidden>\n'
 + '      <button type="button" class="view-btn active" data-topo-mode="network" role="tab" aria-selected="true" title="Network parent &rarr; child tree">Network</button>\n'
 + '      <button type="button" class="view-btn" data-topo-mode="power" role="tab" aria-selected="false" title="UPS &rarr; powered devices">Power</button>\n'
-+ '      <button type="button" class="view-btn" data-topo-mode="both" role="tab" aria-selected="false" title="Show both network and power">Both</button>\n'
 + '    </div>\n'
 + '  </div>\n'
 + '  <div class="device-grid" id="deviceGrid"></div>\n'
@@ -2622,7 +2593,7 @@ const PUBLIC_HTML_TEMPLATE = '<!DOCTYPE html>\n'
 + '      .sort(function(a,b){return (a.name||"").localeCompare(b.name||"",undefined,{sensitivity:"base"});});\n'
 + '    return {device:device,children:kids.map(function(k){return buildPowerTree(k,seen);})};\n'
 + '  }\n'
-+ '  var networkRoots=filtered.filter(function(d){return !d.parentId;});\n'
++ '  var networkRoots=filtered.filter(function(d){return !d.parentId&&d.type!=="ups";});\n'
 + '  var networkOrphans=filtered.filter(function(d){return d.parentId&&!filteredIds[d.parentId];});\n'
 + '  var networkTrees=networkRoots.concat(networkOrphans).map(buildNetworkTree)\n'
 + '    .sort(function(a,b){return (a.device.name||"").localeCompare(b.device.name||"",undefined,{sensitivity:"base"});});\n'
@@ -2631,28 +2602,19 @@ const PUBLIC_HTML_TEMPLATE = '<!DOCTYPE html>\n'
 + '  var powerOrphans=filtered.filter(function(d){return d.poweredById&&!filteredIds[d.poweredById];});\n'
 + '  var powerTrees=powerRoots.concat(powerOrphans).map(function(d){return buildPowerTree(d);})\n'
 + '    .sort(function(a,b){return (a.device.name||"").localeCompare(b.device.name||"",undefined,{sensitivity:"base"});});\n'
-+ '  var sections=[];\n'
-+ '  var showNetwork=topoMode==="network"||topoMode==="both";\n'
-+ '  var showPower=topoMode==="power"||topoMode==="both";\n'
-+ '  if(showNetwork&&networkTrees.length){\n'
-+ '    if(topoMode==="both")sections.push(\'<div class="topology-section-header">Network</div>\');\n'
-+ '    sections.push(networkTrees.map(function(t){return topologyClusterSvg(t);}).join(""));\n'
-+ '  }\n'
-+ '  if(showPower&&powerTrees.length){\n'
-+ '    if(topoMode==="both")sections.push(\'<div class="topology-section-header">Power</div>\');\n'
-+ '    sections.push(powerTrees.map(function(t){return topologyClusterSvg(t,{edgeType:"power"});}).join(""));\n'
-+ '  }\n'
-+ '  if(!sections.length){\n'
++ '  var trees=topoMode==="power"?powerTrees:networkTrees;\n'
++ '  var opts=topoMode==="power"?{edgeType:"power"}:{};\n'
++ '  if(!trees.length){\n'
 + '    var msg=topoMode==="power"?"No power relationships in this set.":"No matches for the current search/filter.";\n'
 + '    container.innerHTML=\'<div class="topology-empty">\'+msg+\'</div>\';return;\n'
 + '  }\n'
-+ '  container.innerHTML=\'<div class="topology-clusters">\'+sections.join("")+\'</div>\';\n'
++ '  container.innerHTML=\'<div class="topology-clusters">\'+trees.map(function(t){return topologyClusterSvg(t,opts);}).join("")+\'</div>\';\n'
 + '}\n'
 + 'var VIEW_KEY="homelab_view";\n'
 + 'var TOPO_MODE_KEY="homelab_topo_mode";\n'
 + 'var topoMode="network";\n'
 + 'try{var savedView=localStorage.getItem(VIEW_KEY);if(savedView==="topology"||savedView==="grid")currentView=savedView;}catch(_){}\n'
-+ 'try{var savedMode=localStorage.getItem(TOPO_MODE_KEY);if(savedMode==="power"||savedMode==="both")topoMode=savedMode;}catch(_){}\n'
++ 'try{var savedMode=localStorage.getItem(TOPO_MODE_KEY);if(savedMode==="power")topoMode=savedMode;}catch(_){}\n'
 + 'function applyViewUI(){\n'
 + '  var btns=document.querySelectorAll("[data-view]");\n'
 + '  for(var i=0;i<btns.length;i++){var active=btns[i].getAttribute("data-view")===currentView;btns[i].classList.toggle("active",active);btns[i].setAttribute("aria-selected",active?"true":"false");}\n'
