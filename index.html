@@ -360,6 +360,7 @@
   .form-row.full { grid-template-columns: 1fr; }
   .form-row[hidden] { display: none; }
   .form-group { display: flex; flex-direction: column; gap: 5px; }
+  .form-group[hidden] { display: none; }
 
   .form-label {
     font-family: 'JetBrains Mono', monospace; font-size: 13px;
@@ -855,9 +856,9 @@
           <label class="form-label">System</label>
           <input type="text" class="form-input" id="fSystem" placeholder="e.g. Dell PowerEdge R730">
         </div>
-        <div class="form-group">
-          <label class="form-label">Operating System</label>
-          <input type="text" class="form-input" id="fOs" placeholder="e.g. Proxmox VE 8.1">
+        <div class="form-group" id="fOsGroup">
+          <label class="form-label">Operating System / Firmware</label>
+          <input type="text" class="form-input" id="fOs" placeholder="e.g. Proxmox VE 8.1, OpenWrt 23.05">
         </div>
       </div>
 
@@ -883,7 +884,7 @@
         </div>
       </div>
 
-      <div class="form-row">
+      <div class="form-row" id="fCpuRamRow">
         <div class="form-group">
           <label class="form-label">CPU</label>
           <input type="text" class="form-input" id="fCpu" placeholder="e.g. Intel i7-12700K / 8 cores">
@@ -894,7 +895,7 @@
         </div>
       </div>
 
-      <div class="form-row full">
+      <div class="form-row full" id="fStorageRow">
         <div class="form-group">
           <label class="form-label">Storage</label>
           <div class="services-editor">
@@ -910,7 +911,7 @@
         </div>
       </div>
 
-      <div class="form-row full">
+      <div class="form-row full" id="fServicesRow">
         <div class="form-group">
           <label class="form-label">Services</label>
           <div class="services-editor">
@@ -1189,7 +1190,7 @@ function renderDevices() {
       ${d.ip ? `<div class="device-ip">${esc(d.ip)}</div>` : ''}
       <div class="device-meta">
         ${d.system ? `<span class="meta-item"><strong>System:</strong> ${esc(d.system)}</span>` : ''}
-        ${d.os ? `<span class="meta-item"><strong>OS:</strong> ${esc(d.os)}</span>` : ''}
+        ${d.os ? `<span class="meta-item"><strong>OS / Firmware:</strong> ${esc(d.os)}</span>` : ''}
         ${d.cpu ? `<span class="meta-item"><strong>CPU:</strong> ${esc(d.cpu)}</span>` : ''}
         ${d.ram ? `<span class="meta-item"><strong>RAM:</strong> ${esc(d.ram)}</span>` : ''}
         ${storage && (Array.isArray(storage) ? storage.length : storage) ? `<span class="meta-item"><strong>Storage:</strong> ${Array.isArray(storage) ? (storage.length > 2 ? esc(storage[0].size ? storage[0].type + ' ' + storage[0].size : storage[0].type) + ', +' + (storage.length - 1) + ' more' : storage.map(s => esc(s.size ? s.type + ' ' + s.size : s.type)).join(', ')) : esc(storage)}</span>` : ''}
@@ -1581,14 +1582,43 @@ function selectFormSelect(id, optionEl) {
 
 // VMs and containers can't physically have their own power cord — their
 // power comes from the host they run on. Hide the Power Source field for
-// those types so users don't enter physically impossible state.
+// those types so users don't enter physically impossible state. UPS devices
+// are themselves the power source, so they don't get one either — and they
+// don't host services or attached storage, so hide those rows too.
 function syncPowerFieldVisibility() {
-  const row = document.getElementById('fPowerRow');
-  if (!row) return;
   const type = document.getElementById('fType').value;
-  const virtual = type === 'vm' || type === 'container';
-  row.hidden = virtual;
-  if (virtual) setFormSelectValue('fPower', '');
+  const hidePower = type === 'vm' || type === 'container' || type === 'ups';
+  const powerRow = document.getElementById('fPowerRow');
+  if (powerRow) {
+    powerRow.hidden = hidePower;
+    if (hidePower) setFormSelectValue('fPower', '');
+  }
+  const isUps = type === 'ups';
+  const hideStorage = isUps || type === 'network';
+  const storageRow = document.getElementById('fStorageRow');
+  const servicesRow = document.getElementById('fServicesRow');
+  const cpuRamRow = document.getElementById('fCpuRamRow');
+  const osGroup = document.getElementById('fOsGroup');
+  if (storageRow) {
+    storageRow.hidden = hideStorage;
+    if (hideStorage) { storageRowData = []; renderStorageRows(); }
+  }
+  if (servicesRow) {
+    servicesRow.hidden = isUps;
+    if (isUps) { serviceRowData = []; renderServiceRows(); }
+  }
+  const hideCpuRam = isUps || type === 'network';
+  if (cpuRamRow) {
+    cpuRamRow.hidden = hideCpuRam;
+    if (hideCpuRam) {
+      document.getElementById('fCpu').value = '';
+      document.getElementById('fRam').value = '';
+    }
+  }
+  if (osGroup) {
+    osGroup.hidden = isUps;
+    if (isUps) document.getElementById('fOs').value = '';
+  }
 }
 
 function setFormSelectValue(id, value) {
@@ -1697,27 +1727,28 @@ function saveDevice() {
   const name = document.getElementById('fName').value.trim();
   if (!name) { toast('Hostname / Name is required', 'error'); return; }
 
-  const services = serviceRowData.filter(s => s.name.trim()).map(s => ({
+  const type = document.getElementById('fType').value;
+  const isUps = type === 'ups';
+  const noPowerSource = type === 'vm' || type === 'container' || isUps;
+
+  const services = isUps ? [] : serviceRowData.filter(s => s.name.trim()).map(s => ({
     name: s.name.trim(), port: s.port.trim(), notes: s.notes.trim(), url: s.url.trim()
   }));
 
-  const storage = storageRowData.filter(s => s.type.trim()).map(s => ({
+  const storage = (isUps || type === 'network') ? [] : storageRowData.filter(s => s.type.trim()).map(s => ({
     type: s.type.trim(), size: s.size.trim(), notes: s.notes.trim()
   }));
-
-  const type = document.getElementById('fType').value;
-  const virtual = type === 'vm' || type === 'container';
   const device = {
     name,
     type,
     ip: document.getElementById('fIp').value.trim(),
     parentId: document.getElementById('fParent').value || null,
-    poweredById: virtual ? null : (document.getElementById('fPower').value || null),
+    poweredById: noPowerSource ? null : (document.getElementById('fPower').value || null),
     system: document.getElementById('fSystem').value.trim(),
-    os: document.getElementById('fOs').value.trim(),
+    os: isUps ? '' : document.getElementById('fOs').value.trim(),
     status: document.getElementById('fStatus').value,
-    cpu: document.getElementById('fCpu').value.trim(),
-    ram: document.getElementById('fRam').value.trim(),
+    cpu: (isUps || type === 'network') ? '' : document.getElementById('fCpu').value.trim(),
+    ram: (isUps || type === 'network') ? '' : document.getElementById('fRam').value.trim(),
     storage,
     location: document.getElementById('fLocation').value.trim(),
     services,
@@ -1774,23 +1805,30 @@ function showDetail(id) {
       <button class="btn btn-ghost btn-sm" onclick="closeDetail()">✕</button>
     </div>
     <div class="detail-body">
-      <div class="detail-section">
-        <div class="detail-section-title">Overview</div>
-        <div class="detail-grid">
-          <div><div class="detail-field-label">IP Address</div><div class="detail-field-value">${esc(d.ip) || '—'}</div></div>
-          <div><div class="detail-field-label">System</div><div class="detail-field-value">${esc(d.system) || '—'}</div></div>
-          <div><div class="detail-field-label">OS</div><div class="detail-field-value">${esc(d.os) || '—'}</div></div>
-          <div><div class="detail-field-label">Status</div><div class="detail-field-value">${esc(d.status) || '—'}</div></div>
-        </div>
-      </div>
-      <div class="detail-section">
-        <div class="detail-section-title">Hardware</div>
-        <div class="detail-grid">
-          <div><div class="detail-field-label">CPU</div><div class="detail-field-value">${esc(d.cpu) || '—'}</div></div>
-          <div><div class="detail-field-label">RAM</div><div class="detail-field-value">${esc(d.ram) || '—'}</div></div>
-          <div><div class="detail-field-label">Location</div><div class="detail-field-value">${esc(d.location) || '—'}</div></div>
-        </div>
-      </div>
+      ${(() => {
+        const field = (label, val) => val ? `<div><div class="detail-field-label">${label}</div><div class="detail-field-value">${esc(val)}</div></div>` : '';
+        const overview = [
+          field('IP Address', d.ip),
+          field('System', d.system),
+          field('OS / Firmware', d.os),
+          field('Status', d.status),
+        ].filter(Boolean).join('');
+        const hardware = [
+          field('CPU', d.cpu),
+          field('RAM', d.ram),
+          field('Location', d.location),
+        ].filter(Boolean).join('');
+        return `
+          ${overview ? `<div class="detail-section">
+            <div class="detail-section-title">Overview</div>
+            <div class="detail-grid">${overview}</div>
+          </div>` : ''}
+          ${hardware ? `<div class="detail-section">
+            <div class="detail-section-title">Hardware</div>
+            <div class="detail-grid">${hardware}</div>
+          </div>` : ''}
+        `;
+      })()}
       ${(Array.isArray(d.storage) && d.storage.length) || (!Array.isArray(d.storage) && d.storage) ? (() => { const storage = sortedStorage(d.storage); return `
         <div class="detail-section">
           <div class="detail-section-title">Storage (${Array.isArray(storage) ? storage.length : 1})</div>
@@ -1987,7 +2025,7 @@ function deviceToMarkdown(d, allDevices) {
   md += `- **Status:** ${d.status || '—'}\n`;
   md += `- **IP Address:** ${d.ip || '—'}\n`;
   md += `- **System:** ${d.system || '—'}\n`;
-  md += `- **OS:** ${d.os || '—'}\n`;
+  md += `- **OS / Firmware:** ${d.os || '—'}\n`;
   md += `- **CPU:** ${d.cpu || '—'}\n`;
   md += `- **RAM:** ${d.ram || '—'}\n`;
   if (Array.isArray(d.storage) && d.storage.length) {
@@ -2046,7 +2084,7 @@ function markdownToDevice(md) {
 
   const fieldMap = {
     'Type': 'type', 'Status': 'status', 'IP Address': 'ip', 'System': 'system',
-    'OS': 'os', 'CPU': 'cpu', 'RAM': 'ram', 'Location': 'location',
+    'OS / Firmware': 'os', 'OS': 'os', 'CPU': 'cpu', 'RAM': 'ram', 'Location': 'location',
     'Host': '_parentName', 'Power Source': '_powerName'
   };
 
@@ -2185,7 +2223,7 @@ function deviceToPublicSection(d, allDevices) {
   md += meta + '\n\n';
 
   const specs = [
-    ['System', d.system], ['OS', d.os], ['CPU', d.cpu],
+    ['System', d.system], ['OS / Firmware', d.os], ['CPU', d.cpu],
     ['RAM', d.ram],
   ].map(([k, v]) => [k, sanitizePublic(v || '')]).filter(([, v]) => v);
 
@@ -2248,10 +2286,10 @@ function exportPublic() {
   const devices = loadDevices();
   if (!devices.length) { toast('No devices to export', 'error'); return; }
 
-  const typeOrder = ['server', 'network', 'storage', 'vm', 'container', 'other'];
+  const typeOrder = ['server', 'network', 'storage', 'ups', 'vm', 'container', 'other'];
   const typeLabels = {
     server: 'Servers', vm: 'Virtual Machines', container: 'Containers / LXC',
-    network: 'Network Devices', storage: 'Storage', other: 'Other',
+    network: 'Network Devices', storage: 'Storage', ups: 'UPS / Power', other: 'Other',
   };
 
   const date = new Date().toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' });
@@ -2259,19 +2297,20 @@ function exportPublic() {
   let md = `*Last updated: ${date}*\n\n`;
   md += `**${devices.length} device${devices.length !== 1 ? 's' : ''}**\n\n---\n\n`;
 
-  const topLevel = devices.filter(d => !d.parentId);
+  const sortByName = (a, b) => (a.name || '').localeCompare(b.name || '', undefined, { sensitivity: 'base' });
+
   const handled = new Set();
   typeOrder.forEach(type => {
-    const group = topLevel.filter(d => d.type === type);
+    const group = devices.filter(d => d.type === type).sort(sortByName);
     if (!group.length) return;
     handled.add(type);
     md += `## ${typeLabels[type]}\n\n`;
     group.forEach(d => { md += deviceToPublicSection(d, devices) + '---\n\n'; });
   });
 
-  const remaining = [...new Set(topLevel.map(d => d.type).filter(t => !handled.has(t)))];
+  const remaining = [...new Set(devices.map(d => d.type).filter(t => !handled.has(t)))];
   remaining.forEach(type => {
-    const group = topLevel.filter(d => d.type === type);
+    const group = devices.filter(d => d.type === type).sort(sortByName);
     if (!group.length) return;
     const label = type ? type.charAt(0).toUpperCase() + type.slice(1) : 'Other';
     md += `## ${label}\n\n`;
@@ -2562,7 +2601,7 @@ const PUBLIC_HTML_TEMPLATE = '<!DOCTYPE html>\n'
 + '      (parent?\'<div class="device-parent-link">on <strong>\'+esc(parent.name)+\'</strong></div>\':"")+\n'
 + '      \'<div class="device-meta">\'+\n'
 + '        (d.system?\'<span class="meta-item"><strong>System:</strong> \'+esc(d.system)+\'</span>\':"")+\n'
-+ '        (d.os?\'<span class="meta-item"><strong>OS:</strong> \'+esc(d.os)+\'</span>\':"")+\n'
++ '        (d.os?\'<span class="meta-item"><strong>OS / Firmware:</strong> \'+esc(d.os)+\'</span>\':"")+\n'
 + '        (d.cpu?\'<span class="meta-item"><strong>CPU:</strong> \'+esc(d.cpu)+\'</span>\':"")+\n'
 + '        (d.ram?\'<span class="meta-item"><strong>RAM:</strong> \'+esc(d.ram)+\'</span>\':"")+\n'
 + '        (storageHtml?\'<span class="meta-item"><strong>Storage:</strong> \'+storageHtml+\'</span>\':"")+\n'
@@ -2721,20 +2760,15 @@ const PUBLIC_HTML_TEMPLATE = '<!DOCTYPE html>\n'
 + '    typeBadge(d.type)+\n'
 + '    (parent?\' <span style="font-size:14px;color:var(--text-secondary);margin-left:10px;">on <strong>\'+esc(parent.name)+\'</strong></span>\':"")+\n'
 + '  \'</div><button class="btn btn-ghost btn-sm" data-action="close-detail">\\u2715</button></div>\';\n'
-+ '  var hasOverview=d.system||d.os;\n'
-+ '  var hasHardware=d.cpu||d.ram;\n'
++ '  var field=function(label,val){return val?\'<div><div class="detail-field-label">\'+label+\'</div><div class="detail-field-value">\'+esc(val)+\'</div></div>\':"";};\n'
++ '  var overview=field("System",d.system)+field("OS / Firmware",d.os);\n'
++ '  var hardware=field("CPU",d.cpu)+field("RAM",d.ram);\n'
 + '  html+=\'<div class="detail-body">\';\n'
-+ '  if(hasOverview){\n'
-+ '    html+=\'<div class="detail-section"><div class="detail-section-title">Overview</div><div class="detail-grid">\'+\n'
-+ '      \'<div><div class="detail-field-label">System</div><div class="detail-field-value">\'+(esc(d.system)||"\\u2014")+\'</div></div>\'+\n'
-+ '      \'<div><div class="detail-field-label">OS</div><div class="detail-field-value">\'+(esc(d.os)||"\\u2014")+\'</div></div>\'+\n'
-+ '    \'</div></div>\';\n'
++ '  if(overview){\n'
++ '    html+=\'<div class="detail-section"><div class="detail-section-title">Overview</div><div class="detail-grid">\'+overview+\'</div></div>\';\n'
 + '  }\n'
-+ '  if(hasHardware){\n'
-+ '    html+=\'<div class="detail-section"><div class="detail-section-title">Hardware</div><div class="detail-grid">\'+\n'
-+ '      \'<div><div class="detail-field-label">CPU</div><div class="detail-field-value">\'+(esc(d.cpu)||"\\u2014")+\'</div></div>\'+\n'
-+ '      \'<div><div class="detail-field-label">RAM</div><div class="detail-field-value">\'+(esc(d.ram)||"\\u2014")+\'</div></div>\'+\n'
-+ '    \'</div></div>\';\n'
++ '  if(hardware){\n'
++ '    html+=\'<div class="detail-section"><div class="detail-section-title">Hardware</div><div class="detail-grid">\'+hardware+\'</div></div>\';\n'
 + '  }\n'
 + '  if(d.storage&&d.storage.length){\n'
 + '    var sortedSt=sortedStorage(d.storage);\n'
