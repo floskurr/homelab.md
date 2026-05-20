@@ -1396,7 +1396,12 @@ function renderTopology() {
     return { device, children: kids.map(k => buildPowerTree(k, seen)) };
   }
 
-  const networkRoots = filtered.filter(d => !d.parentId && d.type !== 'ups');
+  // UPS devices without a network parent are normally hidden from the Network
+  // view (they live in the Power view). Show them here when the user has
+  // explicitly filtered to UPS, otherwise they'd silently disappear.
+  const networkRoots = filtered.filter(d =>
+    !d.parentId && (d.type !== 'ups' || currentFilter === 'ups')
+  );
   const networkOrphans = filtered.filter(d => d.parentId && !filteredIds.has(d.parentId));
   const networkTrees = networkRoots.concat(networkOrphans)
     .map(buildNetworkTree)
@@ -1404,14 +1409,16 @@ function renderTopology() {
       (a.device.name || '').localeCompare(b.device.name || '', undefined, { sensitivity: 'base' })
     );
 
-  // Power roots: any device that powers ≥1 filtered device, and itself is not
-  // powered by something in the filtered set (so the tree starts at the top
-  // of the power chain visible). Orphans: devices whose power source isn't
-  // in the filtered set still need a root, handled by treating them as roots
-  // when their referenced UPS exists in the filtered set but they themselves
-  // are not powered.
+  // Power roots: any device that powers ≥1 filtered device, plus every UPS
+  // in the filtered set (so a UPS still shows up even when nothing it
+  // powers is currently visible — e.g. when the user has filtered to UPS).
+  // Roots themselves must not be powered by something in the filtered set,
+  // so a daisy-chained UPS becomes a child rather than a duplicate root.
   const poweringIds = new Set(filtered.filter(d => d.poweredById && filteredIds.has(d.poweredById)).map(d => d.poweredById));
-  const powerRoots = filtered.filter(d => poweringIds.has(d.id) && (!d.poweredById || !filteredIds.has(d.poweredById)));
+  const powerRoots = filtered.filter(d =>
+    (poweringIds.has(d.id) || d.type === 'ups') &&
+    (!d.poweredById || !filteredIds.has(d.poweredById))
+  );
   const powerOrphans = filtered.filter(d => d.poweredById && !filteredIds.has(d.poweredById));
   const powerTrees = powerRoots.concat(powerOrphans)
     .map(d => buildPowerTree(d))
@@ -2623,12 +2630,12 @@ const PUBLIC_HTML_TEMPLATE = '<!DOCTYPE html>\n'
 + '      .sort(function(a,b){return (a.name||"").localeCompare(b.name||"",undefined,{sensitivity:"base"});});\n'
 + '    return {device:device,children:kids.map(function(k){return buildPowerTree(k,seen);})};\n'
 + '  }\n'
-+ '  var networkRoots=filtered.filter(function(d){return !d.parentId&&d.type!=="ups";});\n'
++ '  var networkRoots=filtered.filter(function(d){return !d.parentId&&(d.type!=="ups"||currentFilter==="ups");});\n'
 + '  var networkOrphans=filtered.filter(function(d){return d.parentId&&!filteredIds[d.parentId];});\n'
 + '  var networkTrees=networkRoots.concat(networkOrphans).map(buildNetworkTree)\n'
 + '    .sort(function(a,b){return (a.device.name||"").localeCompare(b.device.name||"",undefined,{sensitivity:"base"});});\n'
 + '  var poweringIds={};filtered.forEach(function(d){if(d.poweredById&&filteredIds[d.poweredById])poweringIds[d.poweredById]=1;});\n'
-+ '  var powerRoots=filtered.filter(function(d){return poweringIds[d.id]&&(!d.poweredById||!filteredIds[d.poweredById]);});\n'
++ '  var powerRoots=filtered.filter(function(d){return (poweringIds[d.id]||d.type==="ups")&&(!d.poweredById||!filteredIds[d.poweredById]);});\n'
 + '  var powerOrphans=filtered.filter(function(d){return d.poweredById&&!filteredIds[d.poweredById];});\n'
 + '  var powerTrees=powerRoots.concat(powerOrphans).map(function(d){return buildPowerTree(d);})\n'
 + '    .sort(function(a,b){return (a.device.name||"").localeCompare(b.device.name||"",undefined,{sensitivity:"base"});});\n'
