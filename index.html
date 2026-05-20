@@ -1374,8 +1374,16 @@ function renderTopology() {
     seen = seen || new Set();
     if (seen.has(device.id)) return { device, children: [] };
     seen.add(device.id);
-    const kids = filtered
-      .filter(c => c.poweredById === device.id)
+    const powerKids = filtered.filter(c => c.poweredById === device.id);
+    // VMs and containers inherit power from their host unless they declare
+    // their own. They can't physically have a separate plug, so showing them
+    // under the host's UPS reflects real failure-domain semantics.
+    const virtualKids = filtered.filter(c =>
+      c.parentId === device.id &&
+      (c.type === 'vm' || c.type === 'container') &&
+      !c.poweredById
+    );
+    const kids = powerKids.concat(virtualKids)
       .sort((a, b) => (a.name || '').localeCompare(b.name || '', undefined, { sensitivity: 'base' }));
     return { device, children: kids.map(k => buildPowerTree(k, seen)) };
   }
@@ -2608,7 +2616,9 @@ const PUBLIC_HTML_TEMPLATE = '<!DOCTYPE html>\n'
 + '    seen=seen||{};\n'
 + '    if(seen[device.id])return {device:device,children:[]};\n'
 + '    seen[device.id]=1;\n'
-+ '    var kids=filtered.filter(function(c){return c.poweredById===device.id;})\n'
++ '    var powerKids=filtered.filter(function(c){return c.poweredById===device.id;});\n'
++ '    var virtualKids=filtered.filter(function(c){return c.parentId===device.id&&(c.type==="vm"||c.type==="container")&&!c.poweredById;});\n'
++ '    var kids=powerKids.concat(virtualKids)\n'
 + '      .sort(function(a,b){return (a.name||"").localeCompare(b.name||"",undefined,{sensitivity:"base"});});\n'
 + '    return {device:device,children:kids.map(function(k){return buildPowerTree(k,seen);})};\n'
 + '  }\n'
