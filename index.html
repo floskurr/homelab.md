@@ -563,6 +563,12 @@
   .view-btn.active { color: var(--accent); background: var(--accent-glow); }
   .view-btn + .view-btn { border-left: 1px solid var(--border); }
   .topo-mode-toggle[hidden] { display: none; }
+  .toolbar-secondary {
+    display: flex;
+    justify-content: flex-end;
+    margin: -8px 0 20px;
+  }
+  .toolbar-secondary[hidden] { display: none; }
 
   /* Topology view */
   .topology-view { display: none; }
@@ -653,6 +659,8 @@
     .detail-grid { grid-template-columns: 1fr; }
     .view-toggle { display: flex; }
     .view-toggle .view-btn { flex: 1; text-align: center; justify-content: center; }
+    .toolbar-secondary { margin: 0 0 16px; }
+    .toolbar-secondary .topo-mode-toggle { flex: 1; }
     .topology-clusters { grid-template-columns: 1fr; max-width: 320px; margin: 0 auto; justify-content: center; }
     .topo-cluster { width: 100%; height: auto; }
     .filter-group { display: none; }
@@ -756,7 +764,9 @@
       <button type="button" class="view-btn active" data-view="grid" onclick="setView('grid')" role="tab" aria-selected="true" title="Card view">Cards</button>
       <button type="button" class="view-btn" data-view="topology" onclick="setView('topology')" role="tab" aria-selected="false" title="Topology view">Topology</button>
     </div>
-    <div class="view-toggle topo-mode-toggle" id="topoModeToggle" role="tablist" aria-label="Topology mode" hidden>
+  </div>
+  <div class="toolbar-secondary" id="topoModeRow" hidden>
+    <div class="view-toggle topo-mode-toggle" id="topoModeToggle" role="tablist" aria-label="Topology mode">
       <button type="button" class="view-btn active" data-topo-mode="network" onclick="setTopoMode('network')" role="tab" aria-selected="true" title="Show network parent → child tree">Network</button>
       <button type="button" class="view-btn" data-topo-mode="power" onclick="setTopoMode('power')" role="tab" aria-selected="false" title="Show UPS → powered devices">Power</button>
     </div>
@@ -1219,8 +1229,8 @@ function applyViewUI() {
   });
   document.getElementById('deviceGrid').style.display = currentView === 'grid' ? '' : 'none';
   document.getElementById('topologyView').classList.toggle('active', currentView === 'topology');
-  const modeToggle = document.getElementById('topoModeToggle');
-  if (modeToggle) modeToggle.hidden = currentView !== 'topology';
+  const modeRow = document.getElementById('topoModeRow');
+  if (modeRow) modeRow.hidden = currentView !== 'topology';
   document.querySelectorAll('[data-topo-mode]').forEach(btn => {
     const active = btn.dataset.topoMode === topoMode;
     btn.classList.toggle('active', active);
@@ -2384,7 +2394,9 @@ const PUBLIC_HTML_TEMPLATE = '<!DOCTYPE html>\n'
 + '.topo-cluster .topo-type-icon{pointer-events:none;}\n'
 + '.topo-type-icon-server{color:var(--accent);}.topo-type-icon-vm{color:var(--blue);}.topo-type-icon-container{color:var(--purple);}.topo-type-icon-network{color:#e6b43c;}.topo-type-icon-storage{color:#e67850;}.topo-type-icon-ups{color:#b4e678;}.topo-type-icon-other{color:#9696aa;}\n'
 + '.topo-mode-toggle[hidden]{display:none;}\n'
-+ '@media (max-width:640px){.header{padding:12px 16px;}.main{padding:16px;}.device-grid{grid-template-columns:1fr;}.detail-grid{grid-template-columns:1fr;}.toolbar{flex-direction:column;align-items:stretch;}.search-wrap{display:block;}.search-box{width:100%;}.stats-bar{flex-wrap:wrap;gap:16px;}.view-toggle{display:flex;}.view-toggle .view-btn{flex:1;text-align:center;justify-content:center;}.topology-clusters{grid-template-columns:1fr;max-width:320px;margin:0 auto;justify-content:center;}.topo-cluster{width:100%;height:auto;}.filter-group{display:none;}.filter-select{display:block;}}\n'
++ '.toolbar-secondary{display:flex;justify-content:flex-end;margin:-8px 0 20px;}\n'
++ '.toolbar-secondary[hidden]{display:none;}\n'
++ '@media (max-width:640px){.header{padding:12px 16px;}.main{padding:16px;}.device-grid{grid-template-columns:1fr;}.detail-grid{grid-template-columns:1fr;}.toolbar{flex-direction:column;align-items:stretch;}.search-wrap{display:block;}.search-box{width:100%;}.stats-bar{flex-wrap:wrap;gap:16px;}.view-toggle{display:flex;}.view-toggle .view-btn{flex:1;text-align:center;justify-content:center;}.toolbar-secondary{margin:0 0 16px;}.toolbar-secondary .topo-mode-toggle{flex:1;}.topology-clusters{grid-template-columns:1fr;max-width:320px;margin:0 auto;justify-content:center;}.topo-cluster{width:100%;height:auto;}.filter-group{display:none;}.filter-select{display:block;}}\n'
 + '</style>\n'
 + '</head>\n'
 + '<body>\n'
@@ -2405,7 +2417,9 @@ const PUBLIC_HTML_TEMPLATE = '<!DOCTYPE html>\n'
 + '      <button type="button" class="view-btn active" data-view="grid" role="tab" aria-selected="true" title="Card view">Cards</button>\n'
 + '      <button type="button" class="view-btn" data-view="topology" role="tab" aria-selected="false" title="Topology view">Topology</button>\n'
 + '    </div>\n'
-+ '    <div class="view-toggle topo-mode-toggle" id="topoModeToggle" role="tablist" aria-label="Topology mode" hidden>\n'
++ '  </div>\n'
++ '  <div class="toolbar-secondary" id="topoModeRow" hidden>\n'
++ '    <div class="view-toggle topo-mode-toggle" id="topoModeToggle" role="tablist" aria-label="Topology mode">\n'
 + '      <button type="button" class="view-btn active" data-topo-mode="network" role="tab" aria-selected="true" title="Network parent &rarr; child tree">Network</button>\n'
 + '      <button type="button" class="view-btn" data-topo-mode="power" role="tab" aria-selected="false" title="UPS &rarr; powered devices">Power</button>\n'
 + '    </div>\n'
@@ -2620,8 +2634,8 @@ const PUBLIC_HTML_TEMPLATE = '<!DOCTYPE html>\n'
 + '  for(var i=0;i<btns.length;i++){var active=btns[i].getAttribute("data-view")===currentView;btns[i].classList.toggle("active",active);btns[i].setAttribute("aria-selected",active?"true":"false");}\n'
 + '  document.getElementById("deviceGrid").style.display=currentView==="grid"?"":"none";\n'
 + '  document.getElementById("topologyView").classList.toggle("active",currentView==="topology");\n'
-+ '  var modeToggle=document.getElementById("topoModeToggle");\n'
-+ '  if(modeToggle)modeToggle.hidden=currentView!=="topology";\n'
++ '  var modeRow=document.getElementById("topoModeRow");\n'
++ '  if(modeRow)modeRow.hidden=currentView!=="topology";\n'
 + '  var mbtns=document.querySelectorAll("[data-topo-mode]");\n'
 + '  for(var j=0;j<mbtns.length;j++){var a=mbtns[j].getAttribute("data-topo-mode")===topoMode;mbtns[j].classList.toggle("active",a);mbtns[j].setAttribute("aria-selected",a?"true":"false");}\n'
 + '}\n'
