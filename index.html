@@ -358,6 +358,7 @@
 
   .form-row { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; margin-bottom: 14px; }
   .form-row.full { grid-template-columns: 1fr; }
+  .form-row[hidden] { display: none; }
   .form-group { display: flex; flex-direction: column; gap: 5px; }
 
   .form-label {
@@ -563,6 +564,13 @@
   .view-btn.active { color: var(--accent); background: var(--accent-glow); }
   .view-btn + .view-btn { border-left: 1px solid var(--border); }
   .topo-mode-toggle[hidden] { display: none; }
+  .toolbar-secondary {
+    display: flex;
+    justify-content: flex-end;
+    margin: -8px 0 20px;
+  }
+  .toolbar-secondary[hidden] { display: none; }
+  .toolbar-secondary .topo-mode-toggle .view-btn { flex: 1; text-align: center; justify-content: center; }
 
   /* Topology view */
   .topology-view { display: none; }
@@ -653,6 +661,8 @@
     .detail-grid { grid-template-columns: 1fr; }
     .view-toggle { display: flex; }
     .view-toggle .view-btn { flex: 1; text-align: center; justify-content: center; }
+    .toolbar-secondary { margin: 0 0 16px; }
+    .toolbar-secondary .topo-mode-toggle { flex: 1; }
     .topology-clusters { grid-template-columns: 1fr; max-width: 320px; margin: 0 auto; justify-content: center; }
     .topo-cluster { width: 100%; height: auto; }
     .filter-group { display: none; }
@@ -756,7 +766,9 @@
       <button type="button" class="view-btn active" data-view="grid" onclick="setView('grid')" role="tab" aria-selected="true" title="Card view">Cards</button>
       <button type="button" class="view-btn" data-view="topology" onclick="setView('topology')" role="tab" aria-selected="false" title="Topology view">Topology</button>
     </div>
-    <div class="view-toggle topo-mode-toggle" id="topoModeToggle" role="tablist" aria-label="Topology mode" hidden>
+  </div>
+  <div class="toolbar-secondary" id="topoModeRow" hidden>
+    <div class="view-toggle topo-mode-toggle" id="topoModeToggle" role="tablist" aria-label="Topology mode">
       <button type="button" class="view-btn active" data-topo-mode="network" onclick="setTopoMode('network')" role="tab" aria-selected="true" title="Show network parent → child tree">Network</button>
       <button type="button" class="view-btn" data-topo-mode="power" onclick="setTopoMode('power')" role="tab" aria-selected="false" title="Show UPS → powered devices">Power</button>
     </div>
@@ -821,7 +833,7 @@
         </div>
       </div>
 
-      <div class="form-row">
+      <div class="form-row" id="fPowerRow">
         <div class="form-group">
           <label class="form-label">Power Source</label>
           <div class="form-select-wrap" id="fPowerWrap">
@@ -1219,8 +1231,9 @@ function applyViewUI() {
   });
   document.getElementById('deviceGrid').style.display = currentView === 'grid' ? '' : 'none';
   document.getElementById('topologyView').classList.toggle('active', currentView === 'topology');
-  const modeToggle = document.getElementById('topoModeToggle');
-  if (modeToggle) modeToggle.hidden = currentView !== 'topology';
+  const modeRow = document.getElementById('topoModeRow');
+  if (modeRow) modeRow.hidden = currentView !== 'topology';
+  syncTopoToggleWidth();
   document.querySelectorAll('[data-topo-mode]').forEach(btn => {
     const active = btn.dataset.topoMode === topoMode;
     btn.classList.toggle('active', active);
@@ -1234,6 +1247,19 @@ function setView(v) {
   applyViewUI();
   if (v === 'topology') renderTopology();
 }
+
+function syncTopoToggleWidth() {
+  const primary = document.querySelector('.toolbar .view-toggle');
+  const secondary = document.getElementById('topoModeToggle');
+  if (!primary || !secondary) return;
+  if (window.innerWidth > 640) {
+    secondary.style.width = primary.offsetWidth + 'px';
+  } else {
+    secondary.style.width = '';
+  }
+}
+
+window.addEventListener('resize', syncTopoToggleWidth);
 
 function setTopoMode(m) {
   topoMode = m;
@@ -1371,6 +1397,9 @@ function renderTopology() {
     return { device, children: kids.map(k => buildPowerTree(k, seen)) };
   }
 
+  // UPS devices without a network parent live in the Power view, not the
+  // Network view. A UPS with a parentId set (e.g. its management card on a
+  // switch) still appears as a child of that parent in the network tree.
   const networkRoots = filtered.filter(d => !d.parentId && d.type !== 'ups');
   const networkOrphans = filtered.filter(d => d.parentId && !filteredIds.has(d.parentId));
   const networkTrees = networkRoots.concat(networkOrphans)
@@ -1379,14 +1408,16 @@ function renderTopology() {
       (a.device.name || '').localeCompare(b.device.name || '', undefined, { sensitivity: 'base' })
     );
 
-  // Power roots: any device that powers ≥1 filtered device, and itself is not
-  // powered by something in the filtered set (so the tree starts at the top
-  // of the power chain visible). Orphans: devices whose power source isn't
-  // in the filtered set still need a root, handled by treating them as roots
-  // when their referenced UPS exists in the filtered set but they themselves
-  // are not powered.
+  // Power roots: any device that powers ≥1 filtered device, plus every UPS
+  // in the filtered set (so a UPS still shows up even when nothing it
+  // powers is currently visible — e.g. when the user has filtered to UPS).
+  // Roots themselves must not be powered by something in the filtered set,
+  // so a daisy-chained UPS becomes a child rather than a duplicate root.
   const poweringIds = new Set(filtered.filter(d => d.poweredById && filteredIds.has(d.poweredById)).map(d => d.poweredById));
-  const powerRoots = filtered.filter(d => poweringIds.has(d.id) && (!d.poweredById || !filteredIds.has(d.poweredById)));
+  const powerRoots = filtered.filter(d =>
+    (poweringIds.has(d.id) || d.type === 'ups') &&
+    (!d.poweredById || !filteredIds.has(d.poweredById))
+  );
   const powerOrphans = filtered.filter(d => d.poweredById && !filteredIds.has(d.poweredById));
   const powerTrees = powerRoots.concat(powerOrphans)
     .map(d => buildPowerTree(d))
@@ -1400,9 +1431,16 @@ function renderTopology() {
     : { showStatus: true };
 
   if (!trees.length) {
-    const msg = topoMode === 'power'
-      ? 'No power relationships yet. Set a Power Source on any device.'
-      : 'No matches for the current search/filter.';
+    let msg;
+    if (topoMode === 'power' && (currentFilter === 'vm' || currentFilter === 'container')) {
+      msg = `${currentFilter === 'vm' ? 'VMs' : 'Containers'} inherit power from their host, so they don’t appear here on their own.`;
+    } else if (topoMode === 'power') {
+      msg = 'No power relationships yet. Set a Power Source on any device.';
+    } else if (currentFilter === 'ups') {
+      msg = 'UPS devices are shown in the Power view — switch the topology mode above.';
+    } else {
+      msg = 'No matches for the current search/filter.';
+    }
     container.innerHTML = `<div class="topology-empty">${msg}</div>`;
     return;
   }
@@ -1536,8 +1574,21 @@ function selectFormSelect(id, optionEl) {
   const value = optionEl.getAttribute('data-value') || '';
   setFormSelectValue(id, value);
   closeAllFormSelects();
+  if (id === 'fType') syncPowerFieldVisibility();
   const toggle = document.getElementById(id + 'Toggle');
   if (toggle) toggle.focus();
+}
+
+// VMs and containers can't physically have their own power cord — their
+// power comes from the host they run on. Hide the Power Source field for
+// those types so users don't enter physically impossible state.
+function syncPowerFieldVisibility() {
+  const row = document.getElementById('fPowerRow');
+  if (!row) return;
+  const type = document.getElementById('fType').value;
+  const virtual = type === 'vm' || type === 'container';
+  row.hidden = virtual;
+  if (virtual) setFormSelectValue('fPower', '');
 }
 
 function setFormSelectValue(id, value) {
@@ -1579,6 +1630,7 @@ function openAddModal() {
   clearForm();
   populateParentDropdown();
   populatePowerDropdown();
+  syncPowerFieldVisibility();
   openModalEl(document.getElementById('formModal'), document.getElementById('fName'));
 }
 
@@ -1605,6 +1657,7 @@ function openEditModal(id) {
 
   populatePowerDropdown(id);
   setFormSelectValue('fPower', d.poweredById || '');
+  syncPowerFieldVisibility();
 
   openModalEl(document.getElementById('formModal'), document.getElementById('fName'));
 
@@ -1652,12 +1705,14 @@ function saveDevice() {
     type: s.type.trim(), size: s.size.trim(), notes: s.notes.trim()
   }));
 
+  const type = document.getElementById('fType').value;
+  const virtual = type === 'vm' || type === 'container';
   const device = {
     name,
-    type: document.getElementById('fType').value,
+    type,
     ip: document.getElementById('fIp').value.trim(),
     parentId: document.getElementById('fParent').value || null,
-    poweredById: document.getElementById('fPower').value || null,
+    poweredById: virtual ? null : (document.getElementById('fPower').value || null),
     system: document.getElementById('fSystem').value.trim(),
     os: document.getElementById('fOs').value.trim(),
     status: document.getElementById('fStatus').value,
@@ -2384,7 +2439,10 @@ const PUBLIC_HTML_TEMPLATE = '<!DOCTYPE html>\n'
 + '.topo-cluster .topo-type-icon{pointer-events:none;}\n'
 + '.topo-type-icon-server{color:var(--accent);}.topo-type-icon-vm{color:var(--blue);}.topo-type-icon-container{color:var(--purple);}.topo-type-icon-network{color:#e6b43c;}.topo-type-icon-storage{color:#e67850;}.topo-type-icon-ups{color:#b4e678;}.topo-type-icon-other{color:#9696aa;}\n'
 + '.topo-mode-toggle[hidden]{display:none;}\n'
-+ '@media (max-width:640px){.header{padding:12px 16px;}.main{padding:16px;}.device-grid{grid-template-columns:1fr;}.detail-grid{grid-template-columns:1fr;}.toolbar{flex-direction:column;align-items:stretch;}.search-wrap{display:block;}.search-box{width:100%;}.stats-bar{flex-wrap:wrap;gap:16px;}.view-toggle{display:flex;}.view-toggle .view-btn{flex:1;text-align:center;justify-content:center;}.topology-clusters{grid-template-columns:1fr;max-width:320px;margin:0 auto;justify-content:center;}.topo-cluster{width:100%;height:auto;}.filter-group{display:none;}.filter-select{display:block;}}\n'
++ '.toolbar-secondary{display:flex;justify-content:flex-end;margin:-8px 0 20px;}\n'
++ '.toolbar-secondary[hidden]{display:none;}\n'
++ '.toolbar-secondary .topo-mode-toggle .view-btn{flex:1;text-align:center;justify-content:center;}\n'
++ '@media (max-width:640px){.header{padding:12px 16px;}.main{padding:16px;}.device-grid{grid-template-columns:1fr;}.detail-grid{grid-template-columns:1fr;}.toolbar{flex-direction:column;align-items:stretch;}.search-wrap{display:block;}.search-box{width:100%;}.stats-bar{flex-wrap:wrap;gap:16px;}.view-toggle{display:flex;}.view-toggle .view-btn{flex:1;text-align:center;justify-content:center;}.toolbar-secondary{margin:0 0 16px;}.toolbar-secondary .topo-mode-toggle{flex:1;}.topology-clusters{grid-template-columns:1fr;max-width:320px;margin:0 auto;justify-content:center;}.topo-cluster{width:100%;height:auto;}.filter-group{display:none;}.filter-select{display:block;}}\n'
 + '</style>\n'
 + '</head>\n'
 + '<body>\n'
@@ -2405,7 +2463,9 @@ const PUBLIC_HTML_TEMPLATE = '<!DOCTYPE html>\n'
 + '      <button type="button" class="view-btn active" data-view="grid" role="tab" aria-selected="true" title="Card view">Cards</button>\n'
 + '      <button type="button" class="view-btn" data-view="topology" role="tab" aria-selected="false" title="Topology view">Topology</button>\n'
 + '    </div>\n'
-+ '    <div class="view-toggle topo-mode-toggle" id="topoModeToggle" role="tablist" aria-label="Topology mode" hidden>\n'
++ '  </div>\n'
++ '  <div class="toolbar-secondary" id="topoModeRow" hidden>\n'
++ '    <div class="view-toggle topo-mode-toggle" id="topoModeToggle" role="tablist" aria-label="Topology mode">\n'
 + '      <button type="button" class="view-btn active" data-topo-mode="network" role="tab" aria-selected="true" title="Network parent &rarr; child tree">Network</button>\n'
 + '      <button type="button" class="view-btn" data-topo-mode="power" role="tab" aria-selected="false" title="UPS &rarr; powered devices">Power</button>\n'
 + '    </div>\n'
@@ -2598,14 +2658,18 @@ const PUBLIC_HTML_TEMPLATE = '<!DOCTYPE html>\n'
 + '  var networkTrees=networkRoots.concat(networkOrphans).map(buildNetworkTree)\n'
 + '    .sort(function(a,b){return (a.device.name||"").localeCompare(b.device.name||"",undefined,{sensitivity:"base"});});\n'
 + '  var poweringIds={};filtered.forEach(function(d){if(d.poweredById&&filteredIds[d.poweredById])poweringIds[d.poweredById]=1;});\n'
-+ '  var powerRoots=filtered.filter(function(d){return poweringIds[d.id]&&(!d.poweredById||!filteredIds[d.poweredById]);});\n'
++ '  var powerRoots=filtered.filter(function(d){return (poweringIds[d.id]||d.type==="ups")&&(!d.poweredById||!filteredIds[d.poweredById]);});\n'
 + '  var powerOrphans=filtered.filter(function(d){return d.poweredById&&!filteredIds[d.poweredById];});\n'
 + '  var powerTrees=powerRoots.concat(powerOrphans).map(function(d){return buildPowerTree(d);})\n'
 + '    .sort(function(a,b){return (a.device.name||"").localeCompare(b.device.name||"",undefined,{sensitivity:"base"});});\n'
 + '  var trees=topoMode==="power"?powerTrees:networkTrees;\n'
 + '  var opts=topoMode==="power"?{edgeType:"power"}:{};\n'
 + '  if(!trees.length){\n'
-+ '    var msg=topoMode==="power"?"No power relationships in this set.":"No matches for the current search/filter.";\n'
++ '    var msg;\n'
++ '    if(topoMode==="power"&&(currentFilter==="vm"||currentFilter==="container"))msg=(currentFilter==="vm"?"VMs":"Containers")+" inherit power from their host, so they don\\u2019t appear here on their own.";\n'
++ '    else if(topoMode==="power")msg="No power relationships in this set.";\n'
++ '    else if(currentFilter==="ups")msg="UPS devices are shown in the Power view — switch the topology mode above.";\n'
++ '    else msg="No matches for the current search/filter.";\n'
 + '    container.innerHTML=\'<div class="topology-empty">\'+msg+\'</div>\';return;\n'
 + '  }\n'
 + '  container.innerHTML=\'<div class="topology-clusters">\'+trees.map(function(t){return topologyClusterSvg(t,opts);}).join("")+\'</div>\';\n'
@@ -2620,8 +2684,9 @@ const PUBLIC_HTML_TEMPLATE = '<!DOCTYPE html>\n'
 + '  for(var i=0;i<btns.length;i++){var active=btns[i].getAttribute("data-view")===currentView;btns[i].classList.toggle("active",active);btns[i].setAttribute("aria-selected",active?"true":"false");}\n'
 + '  document.getElementById("deviceGrid").style.display=currentView==="grid"?"":"none";\n'
 + '  document.getElementById("topologyView").classList.toggle("active",currentView==="topology");\n'
-+ '  var modeToggle=document.getElementById("topoModeToggle");\n'
-+ '  if(modeToggle)modeToggle.hidden=currentView!=="topology";\n'
++ '  var modeRow=document.getElementById("topoModeRow");\n'
++ '  if(modeRow)modeRow.hidden=currentView!=="topology";\n'
++ '  syncTopoToggleWidth();\n'
 + '  var mbtns=document.querySelectorAll("[data-topo-mode]");\n'
 + '  for(var j=0;j<mbtns.length;j++){var a=mbtns[j].getAttribute("data-topo-mode")===topoMode;mbtns[j].classList.toggle("active",a);mbtns[j].setAttribute("aria-selected",a?"true":"false");}\n'
 + '}\n'
@@ -2631,6 +2696,14 @@ const PUBLIC_HTML_TEMPLATE = '<!DOCTYPE html>\n'
 + '  applyViewUI();\n'
 + '  if(v==="topology")renderTopology();\n'
 + '}\n'
++ 'function syncTopoToggleWidth(){\n'
++ '  var primary=document.querySelector(".toolbar .view-toggle");\n'
++ '  var secondary=document.getElementById("topoModeToggle");\n'
++ '  if(!primary||!secondary)return;\n'
++ '  if(window.innerWidth>640)secondary.style.width=primary.offsetWidth+"px";\n'
++ '  else secondary.style.width="";\n'
++ '}\n'
++ 'window.addEventListener("resize",syncTopoToggleWidth);\n'
 + 'function setTopoMode(m){\n'
 + '  topoMode=m;\n'
 + '  try{localStorage.setItem(TOPO_MODE_KEY,m);}catch(_){}\n'
