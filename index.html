@@ -1,0 +1,2705 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>homelab.md</title>
+<link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='6' fill='%230a0e14'/%3E%3Crect x='4' y='6' width='24' height='8' rx='2' fill='%23141b24' stroke='%2339c5bb' stroke-width='1.5'/%3E%3Ccircle cx='8.5' cy='10' r='1.5' fill='%234bc77a'/%3E%3Ccircle cx='13' cy='10' r='1.5' fill='%2339c5bb'/%3E%3Crect x='18' y='9' width='7' height='2' rx='1' fill='%233d4f63'/%3E%3Crect x='4' y='18' width='24' height='8' rx='2' fill='%23141b24' stroke='%2339c5bb' stroke-width='1.5'/%3E%3Ccircle cx='8.5' cy='22' r='1.5' fill='%234bc77a'/%3E%3Ccircle cx='13' cy='22' r='1.5' fill='%2339c5bb'/%3E%3Crect x='18' y='21' width='7' height='2' rx='1' fill='%233d4f63'/%3E%3C/svg%3E">
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@300;400;500;600;700&family=IBM+Plex+Sans:wght@300;400;500;600&display=swap');
+
+  :root {
+    --bg-primary: #0a0e14;
+    --bg-secondary: #111820;
+    --bg-tertiary: #1a2130;
+    --bg-card: #141b24;
+    --border: #1e2a3a;
+    --border-active: #2d4a6f;
+    --text-primary: #c8d6e5;
+    --text-secondary: #95a8be;
+    --text-muted: #738aa3;
+    --accent: #39c5bb;
+    --accent-dim: #2a9d95;
+    --accent-glow: rgba(57, 197, 187, 0.15);
+    --danger: #e55b5b;
+    --danger-dim: rgba(229, 91, 91, 0.15);
+    --success: #4bc77a;
+    --tag-bg: rgba(57, 197, 187, 0.1);
+    --tag-border: rgba(57, 197, 187, 0.25);
+    --purple: #b478e6;
+    --purple-bg: rgba(180, 120, 230, 0.15);
+    --blue: #648ce6;
+    --blue-bg: rgba(100, 140, 230, 0.15);
+    --radius: 6px;
+    --shadow: 0 2px 12px rgba(0,0,0,0.3);
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  body {
+    font-family: 'IBM Plex Sans', sans-serif;
+    background: var(--bg-primary);
+    color: var(--text-primary);
+    min-height: 100vh;
+    line-height: 1.6;
+  }
+
+  ::-webkit-scrollbar { width: 6px; }
+  ::-webkit-scrollbar-track { background: var(--bg-primary); }
+  ::-webkit-scrollbar-thumb { background: var(--border); border-radius: 3px; }
+  ::-webkit-scrollbar-thumb:hover { background: var(--border-active); }
+
+  .header {
+    background: var(--bg-secondary);
+    border-bottom: 1px solid var(--border);
+    padding: 16px 32px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    position: sticky;
+    top: 0;
+    z-index: 100;
+  }
+
+  .logo {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 20px;
+    font-weight: 700;
+    color: var(--accent);
+    letter-spacing: -0.5px;
+  }
+  .logo span { color: var(--text-muted); font-weight: 300; }
+
+  .header-actions { display: flex; gap: 8px; }
+
+  .btn {
+    font-family: 'IBM Plex Sans', sans-serif;
+    font-size: 15px;
+    font-weight: 500;
+    padding: 8px 16px;
+    border-radius: var(--radius);
+    border: 1px solid var(--border);
+    background: var(--bg-tertiary);
+    color: var(--text-primary);
+    cursor: pointer;
+    transition: all 0.15s ease;
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+  }
+  .btn:hover { border-color: var(--border-active); background: var(--bg-card); }
+  .btn-primary { background: var(--accent); color: var(--bg-primary); border-color: var(--accent); font-weight: 600; }
+  .btn-primary:hover { background: var(--accent-dim); border-color: var(--accent-dim); }
+  .btn-danger { color: var(--danger); border-color: transparent; background: var(--danger-dim); }
+  .btn-danger:hover { border-color: var(--danger); }
+  .btn-ghost { border-color: transparent; background: transparent; }
+  .btn-ghost:hover { background: var(--bg-tertiary); }
+  .btn-sm { padding: 5px 10px; font-size: 14px; }
+
+  .main { max-width: 1200px; margin: 0 auto; padding: 24px 32px; }
+
+  .toolbar {
+    display: flex; align-items: center; justify-content: space-between;
+    margin-bottom: 20px; gap: 12px; flex-wrap: wrap;
+  }
+
+  .search-wrap { position: relative; display: inline-block; }
+  .search-box {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 15px; padding: 8px 34px 8px 14px;
+    border-radius: var(--radius);
+    border: 1px solid var(--border);
+    background: var(--bg-secondary);
+    color: var(--text-primary);
+    width: 320px; outline: none;
+    transition: border-color 0.15s ease;
+  }
+  .search-box::placeholder { color: var(--text-muted); }
+  .search-box:focus { border-color: var(--accent); }
+  .search-clear {
+    display: none;
+    position: absolute;
+    top: 50%; right: 6px;
+    transform: translateY(-50%);
+    width: 22px; height: 22px;
+    border: none; background: transparent;
+    color: var(--text-muted); cursor: pointer;
+    border-radius: 50%; padding: 0;
+    font-size: 14px; line-height: 1;
+    align-items: center; justify-content: center;
+    transition: color 0.15s, background 0.15s;
+  }
+  .search-clear:hover { color: var(--text-primary); background: var(--bg-tertiary); }
+  .search-wrap.has-value .search-clear { display: inline-flex; }
+
+  .filter-group { display: flex; gap: 4px; flex-wrap: wrap; }
+
+  .filter-btn {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 13px; padding: 5px 12px;
+    border-radius: 20px;
+    border: 1px solid var(--border);
+    background: transparent;
+    color: var(--text-secondary);
+    cursor: pointer; transition: all 0.15s ease;
+    text-transform: uppercase; letter-spacing: 0.5px;
+  }
+  .filter-btn:hover { border-color: var(--border-active); color: var(--text-primary); }
+  .filter-btn.active { border-color: var(--accent); color: var(--accent); background: var(--accent-glow); }
+
+  .filter-select { display: none; position: relative; width: 100%; min-width: 0; }
+  .filter-select-toggle {
+    width: 100%;
+    box-sizing: border-box;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 14px;
+    padding: 10px 14px;
+    border-radius: var(--radius);
+    border: 1px solid var(--border);
+    background: var(--bg-secondary);
+    color: var(--text-primary);
+    cursor: pointer;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    text-align: left;
+    transition: border-color 0.15s;
+  }
+  .filter-select-toggle:hover { border-color: var(--border-active); }
+  .filter-select-toggle[aria-expanded="true"] { border-color: var(--accent); }
+  .filter-select-chevron { color: var(--text-muted); flex-shrink: 0; transition: transform 0.15s; }
+  .filter-select-toggle[aria-expanded="true"] .filter-select-chevron { transform: rotate(180deg); }
+  .filter-select-menu {
+    list-style: none;
+    position: absolute;
+    top: calc(100% + 4px);
+    left: 0;
+    right: 0;
+    margin: 0;
+    padding: 4px;
+    background: var(--bg-secondary);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    z-index: 50;
+    max-height: 240px;
+    overflow-y: auto;
+    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.4);
+  }
+  .filter-select-menu[hidden] { display: none; }
+  .filter-select-option {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 14px;
+    padding: 8px 12px;
+    border-radius: 4px;
+    color: var(--text-secondary);
+    cursor: pointer;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    transition: background 0.1s, color 0.1s;
+  }
+  .filter-select-option:hover { background: var(--bg-tertiary); color: var(--text-primary); }
+  .filter-select-option.active { background: var(--accent-glow); color: var(--accent); }
+
+  .form-select-wrap { position: relative; width: 100%; min-width: 0; }
+  .form-select-toggle {
+    width: 100%;
+    box-sizing: border-box;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 15px;
+    padding: 9px 12px;
+    border-radius: var(--radius);
+    border: 1px solid var(--border);
+    background: var(--bg-primary);
+    color: var(--text-primary);
+    cursor: pointer;
+    text-align: left;
+    outline: none;
+    transition: border-color 0.15s ease;
+  }
+  .form-select-toggle:hover { border-color: var(--border-active); }
+  .form-select-toggle:focus,
+  .form-select-toggle[aria-expanded="true"] { border-color: var(--accent); }
+  .form-select-value { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .form-select-chevron { color: var(--text-muted); flex-shrink: 0; transition: transform 0.15s; }
+  .form-select-toggle[aria-expanded="true"] .form-select-chevron { transform: rotate(180deg); }
+  .form-select-menu {
+    list-style: none;
+    position: absolute;
+    top: calc(100% + 4px);
+    left: 0;
+    right: 0;
+    margin: 0;
+    padding: 4px;
+    background: var(--bg-secondary);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    z-index: 50;
+    max-height: 240px;
+    overflow-y: auto;
+    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.4);
+  }
+  .form-select-menu[hidden] { display: none; }
+  .form-select-option {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 14px;
+    padding: 8px 12px;
+    border-radius: 4px;
+    color: var(--text-secondary);
+    cursor: pointer;
+    transition: background 0.1s, color 0.1s;
+  }
+  .form-select-option:hover { background: var(--bg-tertiary); color: var(--text-primary); }
+  .form-select-option.active { background: var(--accent-glow); color: var(--accent); }
+
+  .stats-bar {
+    display: flex; gap: 24px; margin-bottom: 24px;
+    padding: 14px 20px; background: var(--bg-secondary);
+    border: 1px solid var(--border); border-radius: var(--radius); flex-wrap: wrap;
+  }
+  .stat { display: flex; align-items: baseline; gap: 6px; }
+  .stat-value { font-family: 'JetBrains Mono', monospace; font-size: 24px; font-weight: 700; color: var(--accent); }
+  .stat-label { font-size: 14px; color: var(--text-secondary); text-transform: uppercase; letter-spacing: 0.5px; }
+
+  .device-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(360px, 1fr)); gap: 14px; }
+
+  .device-card {
+    background: var(--bg-card); border: 1px solid var(--border);
+    border-radius: var(--radius); padding: 18px;
+    transition: all 0.15s ease; cursor: pointer; position: relative;
+  }
+  .device-card:hover, .device-card:focus-visible { border-color: var(--border-active); box-shadow: var(--shadow); }
+  .device-card:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+  .device-card.has-children { border-left: 3px solid var(--accent); }
+
+  .device-card-header { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 10px; }
+
+  .device-name { font-family: 'JetBrains Mono', monospace; font-size: 17px; font-weight: 600; color: var(--text-primary); }
+
+  .device-type-badge {
+    font-family: 'JetBrains Mono', monospace; font-size: 12px;
+    text-transform: uppercase; letter-spacing: 0.8px;
+    padding: 3px 8px; border-radius: 3px; font-weight: 600; white-space: nowrap;
+    display: inline-flex; align-items: center; gap: 5px;
+  }
+  .device-type-badge svg { flex-shrink: 0; display: block; }
+  .badge-server { background: rgba(57, 197, 187, 0.15); color: var(--accent); }
+  .badge-vm { background: var(--blue-bg); color: var(--blue); }
+  .badge-container { background: var(--purple-bg); color: var(--purple); }
+  .badge-network { background: rgba(230, 180, 60, 0.15); color: #e6b43c; }
+  .badge-storage { background: rgba(230, 120, 80, 0.15); color: #e67850; }
+  .badge-other { background: rgba(150, 150, 170, 0.15); color: #9696aa; }
+
+  .device-ip { font-family: 'JetBrains Mono', monospace; font-size: 15px; color: var(--accent); margin-bottom: 8px; }
+
+  .device-parent-link { font-size: 13px; color: var(--text-muted); margin-bottom: 8px; }
+  .device-parent-link strong { color: var(--text-secondary); }
+
+  .device-meta { display: flex; flex-wrap: wrap; gap: 12px; margin-bottom: 8px; }
+  .meta-item { font-size: 14px; color: var(--text-secondary); }
+  .meta-item strong { color: var(--text-primary); font-weight: 500; }
+
+  .device-services { display: flex; flex-wrap: wrap; gap: 4px; margin-top: 8px; }
+
+  .service-tag {
+    font-family: 'JetBrains Mono', monospace; font-size: 12px;
+    padding: 2px 8px; border-radius: 3px;
+    background: var(--tag-bg); border: 1px solid var(--tag-border); color: var(--accent);
+  }
+
+  .child-count-badge {
+    font-family: 'JetBrains Mono', monospace; font-size: 12px;
+    padding: 2px 8px; border-radius: 3px;
+    background: var(--blue-bg); color: var(--blue);
+    margin-top: 8px; display: inline-block;
+  }
+
+  .device-status { width: 8px; height: 8px; border-radius: 50%; display: inline-block; margin-right: 4px; }
+  .status-online { background: var(--success); box-shadow: 0 0 6px rgba(75, 199, 122, 0.4); }
+  .status-offline { background: var(--danger); }
+  .status-unknown { background: var(--text-muted); }
+
+  .modal-overlay {
+    display: none; position: fixed; inset: 0;
+    background: rgba(0,0,0,0.7); z-index: 200;
+    align-items: center; justify-content: center; backdrop-filter: blur(4px);
+  }
+  .modal-overlay.open { display: flex; }
+
+  .modal {
+    background: var(--bg-secondary); border: 1px solid var(--border);
+    border-radius: 8px; width: 85%; max-width: 1000px;
+    max-height: 90vh; overflow: hidden;
+    display: flex; flex-direction: column;
+    box-shadow: 0 20px 60px rgba(0,0,0,0.5);
+  }
+
+  .modal-header {
+    flex-shrink: 0;
+    display: flex; justify-content: space-between; align-items: center;
+    padding: 18px 22px; border-bottom: 1px solid var(--border);
+    background: var(--bg-secondary);
+  }
+  .modal-title { font-family: 'JetBrains Mono', monospace; font-size: 17px; font-weight: 600; }
+  .modal-body { padding: 22px; flex: 1 1 auto; overflow-y: auto; min-height: 0; }
+  .modal-footer {
+    flex-shrink: 0;
+    display: flex; justify-content: flex-end; gap: 8px;
+    padding: 16px 22px; border-top: 1px solid var(--border);
+    background: var(--bg-secondary);
+  }
+
+  .form-row { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; margin-bottom: 14px; }
+  .form-row.full { grid-template-columns: 1fr; }
+  .form-group { display: flex; flex-direction: column; gap: 5px; }
+
+  .form-label {
+    font-family: 'JetBrains Mono', monospace; font-size: 13px;
+    text-transform: uppercase; letter-spacing: 0.8px; color: var(--text-secondary);
+  }
+
+  .form-input, .form-select, .form-textarea {
+    font-family: 'JetBrains Mono', monospace; font-size: 15px;
+    padding: 9px 12px; border-radius: var(--radius);
+    border: 1px solid var(--border); background: var(--bg-primary);
+    color: var(--text-primary); outline: none; transition: border-color 0.15s ease;
+  }
+  .form-input:focus, .form-select:focus, .form-textarea:focus { border-color: var(--accent); }
+  .form-select { cursor: pointer; padding-right: 32px; -webkit-appearance: none; -moz-appearance: none; appearance: none; background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath fill='%2395a8be' d='M6 8L1 3h10z'/%3E%3C/svg%3E"); background-repeat: no-repeat; background-position: right 12px center; }
+  .form-select option { background: var(--bg-primary); }
+  .form-textarea { resize: vertical; min-height: 80px; font-family: 'JetBrains Mono', monospace; }
+  .form-hint { font-size: 13px; color: var(--text-muted); }
+
+  .services-editor { margin-top: 4px; }
+
+  .service-entry {
+    display: grid; grid-template-columns: 1fr 70px 1fr 1fr auto;
+    gap: 8px; align-items: center; margin-bottom: 8px;
+  }
+  .storage-entry {
+    display: grid; grid-template-columns: 1fr 80px 1fr auto;
+    gap: 8px; align-items: center; margin-bottom: 8px;
+  }
+  .service-entry .form-input, .storage-entry .form-input { font-size: 14px; padding: 7px 10px; }
+
+  .service-remove {
+    background: none; border: none; color: var(--text-muted);
+    cursor: pointer; font-size: 18px; padding: 4px 8px;
+    border-radius: var(--radius); transition: color 0.15s;
+  }
+  .service-remove:hover { color: var(--danger); }
+
+  .service-add-btn {
+    font-family: 'JetBrains Mono', monospace; font-size: 13px;
+    padding: 6px 12px; border-radius: var(--radius);
+    border: 1px dashed var(--border); background: transparent;
+    color: var(--text-secondary); cursor: pointer; transition: all 0.15s; width: 100%; text-align: center;
+  }
+  .service-add-btn:hover { border-color: var(--accent); color: var(--accent); }
+
+  .service-labels {
+    display: grid; grid-template-columns: 1fr 70px 1fr 1fr auto;
+    gap: 8px; margin-bottom: 6px;
+  }
+  .storage-labels {
+    display: grid; grid-template-columns: 1fr 80px 1fr auto;
+    gap: 8px; margin-bottom: 6px;
+  }
+  .service-labels span, .storage-labels span {
+    font-family: 'JetBrains Mono', monospace; font-size: 11px;
+    text-transform: uppercase; letter-spacing: 0.5px; color: var(--text-muted);
+  }
+
+  .detail-overlay {
+    display: none; position: fixed; inset: 0;
+    background: rgba(0,0,0,0.7); z-index: 200;
+    align-items: center; justify-content: center; backdrop-filter: blur(4px);
+  }
+  .detail-overlay.open { display: flex; }
+
+  .detail-panel {
+    background: var(--bg-secondary); border: 1px solid var(--border);
+    border-radius: 8px; width: 85%; max-width: 1000px;
+    max-height: 90vh; overflow: hidden;
+    display: flex; flex-direction: column;
+    box-shadow: 0 20px 60px rgba(0,0,0,0.5);
+  }
+
+  .detail-header {
+    flex-shrink: 0;
+    display: flex; justify-content: space-between; align-items: flex-start;
+    padding: 22px; border-bottom: 1px solid var(--border);
+    background: var(--bg-secondary);
+  }
+  .detail-body { padding: 22px; flex: 1 1 auto; overflow-y: auto; min-height: 0; }
+  .detail-section { margin-bottom: 20px; }
+
+  .detail-section-title {
+    font-family: 'JetBrains Mono', monospace; font-size: 13px;
+    text-transform: uppercase; letter-spacing: 1px; color: var(--text-muted);
+    margin-bottom: 10px; padding-bottom: 6px; border-bottom: 1px solid var(--border);
+  }
+  .detail-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+  .detail-field-label { font-size: 13px; color: var(--text-secondary); text-transform: uppercase; letter-spacing: 0.5px; }
+  .detail-field-value { font-family: 'JetBrains Mono', monospace; font-size: 15px; color: var(--text-primary); }
+  .detail-notes { font-size: 15px; color: var(--text-secondary); line-height: 1.7; white-space: pre-wrap; }
+
+  .detail-actions {
+    flex-shrink: 0;
+    display: flex; gap: 8px; padding: 16px 22px;
+    border-top: 1px solid var(--border);
+    background: var(--bg-secondary);
+  }
+
+  .service-table { width: 100%; border-collapse: collapse; }
+  .service-table th {
+    font-family: 'JetBrains Mono', monospace; font-size: 12px;
+    text-transform: uppercase; letter-spacing: 0.5px; color: var(--text-muted);
+    text-align: left; padding: 6px 10px; border-bottom: 1px solid var(--border);
+  }
+  .service-table td {
+    font-family: 'JetBrains Mono', monospace; font-size: 14px;
+    padding: 8px 10px; color: var(--text-primary); border-bottom: 1px solid var(--border);
+  }
+  .service-table td.svc-notes { color: var(--text-secondary); font-family: 'IBM Plex Sans', sans-serif; }
+  .service-table tr:last-child td { border-bottom: none; }
+
+  .child-device {
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 10px 14px; border: 1px solid var(--border);
+    border-radius: var(--radius); margin-bottom: 6px;
+    cursor: pointer; transition: all 0.15s;
+  }
+  .child-device:hover { border-color: var(--border-active); background: var(--bg-tertiary); }
+  .child-device-name { font-family: 'JetBrains Mono', monospace; font-size: 14px; font-weight: 500; }
+  .child-device-info { font-size: 13px; color: var(--text-secondary); }
+
+  .empty-state { text-align: center; padding: 80px 20px; }
+  .empty-icon { font-size: 52px; margin-bottom: 16px; opacity: 0.3; }
+  .empty-title { font-family: 'JetBrains Mono', monospace; font-size: 18px; color: var(--text-secondary); margin-bottom: 8px; }
+  .empty-text { font-size: 15px; color: var(--text-muted); margin-bottom: 20px; }
+
+  .toast-container { position: fixed; bottom: 24px; right: 24px; z-index: 300; display: flex; flex-direction: column; gap: 8px; }
+  .toast {
+    font-family: 'JetBrains Mono', monospace; font-size: 14px;
+    padding: 10px 16px; border-radius: var(--radius);
+    background: var(--bg-tertiary); border: 1px solid var(--border);
+    color: var(--text-primary); box-shadow: var(--shadow); animation: slideIn 0.2s ease;
+  }
+  .toast.success { border-color: var(--success); }
+  .toast.error { border-color: var(--danger); }
+  .toast { display: inline-flex; align-items: center; gap: 4px; }
+  .toast-action {
+    margin-left: 8px;
+    background: none;
+    border: none;
+    color: var(--accent);
+    font-family: inherit;
+    font-size: 14px;
+    font-weight: 700;
+    cursor: pointer;
+    padding: 2px 6px;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    border-radius: 3px;
+  }
+  .toast-action:hover { background: var(--accent-glow); }
+
+  .btn.has-unsaved { position: relative; }
+  .btn.has-unsaved::after {
+    content: '';
+    position: absolute;
+    top: 3px;
+    right: 3px;
+    width: 7px;
+    height: 7px;
+    border-radius: 50%;
+    background: #e6a44b;
+    box-shadow: 0 0 5px rgba(230, 164, 75, 0.7);
+  }
+
+  @keyframes slideIn {
+    from { transform: translateX(20px); opacity: 0; }
+    to { transform: translateX(0); opacity: 1; }
+  }
+  @keyframes fadeOut {
+    from { opacity: 1; transform: translateX(0); }
+    to { opacity: 0; transform: translateX(20px); }
+  }
+  .toast.removing { animation: fadeOut 0.3s ease forwards; }
+
+  .detail-panel.confirm-panel { max-width: 460px; }
+  .confirm-dialog { text-align: center; padding: 12px 0; }
+  .confirm-dialog p { font-size: 16px; color: var(--text-secondary); margin-bottom: 20px; }
+  .confirm-dialog .btn-group { display: flex; justify-content: center; gap: 10px; }
+
+  /* View toggle (Cards / Topology) */
+  .view-toggle {
+    display: inline-flex;
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    overflow: hidden;
+  }
+  .view-btn {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 13px;
+    padding: 5px 12px;
+    border: none;
+    background: transparent;
+    color: var(--text-secondary);
+    cursor: pointer;
+    transition: all 0.15s;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+  }
+  .view-btn:hover { color: var(--text-primary); background: var(--bg-tertiary); }
+  .view-btn.active { color: var(--accent); background: var(--accent-glow); }
+  .view-btn + .view-btn { border-left: 1px solid var(--border); }
+
+  /* Topology view */
+  .topology-view { display: none; }
+  .topology-view.active { display: block; }
+  .topology-empty {
+    text-align: center; padding: 60px 20px;
+    color: var(--text-muted); font-size: 15px;
+  }
+  .topology-clusters {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, 280px);
+    gap: 28px 24px;
+    align-items: start;
+    justify-content: center;
+  }
+  .topo-cluster { overflow: visible; display: block; }
+  .topo-cluster .topo-box {
+    fill: var(--bg-card);
+    stroke: var(--border);
+    stroke-width: 1;
+    transition: fill 0.15s, stroke 0.15s, filter 0.15s;
+  }
+  .topo-cluster .topo-node { cursor: pointer; }
+  .topo-cluster .topo-node:hover .topo-box,
+  .topo-cluster .topo-node:focus-visible .topo-box {
+    fill: var(--bg-tertiary);
+    stroke: var(--border-active);
+    filter: drop-shadow(0 0 8px rgba(57,197,187,0.35));
+  }
+  .topo-cluster .topo-node:focus { outline: none; }
+  .topo-cluster .topo-text-name {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 14px;
+    font-weight: 600;
+    fill: var(--text-primary);
+    pointer-events: none;
+  }
+  .topo-cluster .topo-text-type {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 10px;
+    fill: var(--text-muted);
+    letter-spacing: 0.5px;
+    pointer-events: none;
+  }
+  .topo-cluster .topo-edge {
+    stroke: var(--border-active);
+    stroke-width: 1;
+    fill: none;
+  }
+  .topo-cluster .topo-status { stroke: none; pointer-events: none; }
+  .topo-status.status-online { fill: var(--success); }
+  .topo-status.status-offline { fill: var(--danger); }
+  .topo-status.status-unknown { fill: var(--text-muted); }
+  .topo-cluster .topo-accent { pointer-events: none; }
+  .topo-accent-server { fill: var(--accent); }
+  .topo-accent-vm { fill: var(--blue); }
+  .topo-accent-container { fill: var(--purple); }
+  .topo-accent-network { fill: #e6b43c; }
+  .topo-accent-storage { fill: #e67850; }
+  .topo-accent-other { fill: #9696aa; }
+  .topo-cluster .topo-type-icon { pointer-events: none; }
+  .topo-type-icon-server { color: var(--accent); }
+  .topo-type-icon-vm { color: var(--blue); }
+  .topo-type-icon-container { color: var(--purple); }
+  .topo-type-icon-network { color: #e6b43c; }
+  .topo-type-icon-storage { color: #e67850; }
+  .topo-type-icon-other { color: #9696aa; }
+
+  @media (max-width: 640px) {
+    .header { padding: 12px 16px; }
+    .main { padding: 16px; }
+    .device-grid { grid-template-columns: 1fr; }
+    .form-row { grid-template-columns: 1fr; }
+    .service-entry { grid-template-columns: 1fr 60px auto; }
+    .toolbar { flex-direction: column; align-items: stretch; }
+    .search-wrap { display: block; }
+    .search-box { width: 100%; }
+    .stats-bar { flex-wrap: wrap; gap: 16px; }
+    .detail-grid { grid-template-columns: 1fr; }
+    .view-toggle { display: flex; }
+    .view-toggle .view-btn { flex: 1; text-align: center; justify-content: center; }
+    .topology-clusters { grid-template-columns: 1fr; max-width: 320px; margin: 0 auto; justify-content: center; }
+    .topo-cluster { width: 100%; height: auto; }
+    .filter-group { display: none; }
+    .filter-select { display: block; }
+  }
+
+  .footer {
+    text-align: center;
+    padding: 24px 16px;
+    border-top: 1px solid var(--border);
+    margin-top: 40px;
+  }
+  .footer-link {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 13px;
+    color: var(--text-muted);
+    text-decoration: none;
+    transition: color 0.15s;
+  }
+  .footer-link:hover { color: var(--accent); }
+
+  .hidden { display: none; }
+
+  .export-wrap { position: relative; }
+  .export-menu {
+    display: none;
+    position: absolute;
+    top: calc(100% + 6px);
+    right: 0;
+    background: var(--bg-card);
+    border: 1px solid var(--border-active);
+    border-radius: var(--radius);
+    box-shadow: var(--shadow);
+    min-width: 180px;
+    z-index: 200;
+    overflow: hidden;
+  }
+  .export-menu.open { display: block; }
+  .export-menu button {
+    display: block;
+    width: 100%;
+    text-align: left;
+    padding: 9px 14px;
+    background: none;
+    border: none;
+    color: var(--text-primary);
+    font-family: 'IBM Plex Sans', sans-serif;
+    font-size: 14px;
+    cursor: pointer;
+    line-height: 1.4;
+  }
+  .export-menu button:hover { background: var(--bg-tertiary); color: var(--accent); }
+  .export-menu-label {
+    font-size: 11px;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    color: var(--text-muted);
+    padding: 8px 14px 4px;
+    font-family: 'IBM Plex Sans', sans-serif;
+  }
+  .export-menu hr { border: none; border-top: 1px solid var(--border); margin: 4px 0; }
+</style>
+</head>
+<body>
+
+<header class="header">
+  <div class="logo">homelab<span>.md</span></div>
+  <div class="header-actions">
+    <button class="btn btn-sm" onclick="importMarkdown()" title="Import .md files">↑ Import</button>
+    <div class="export-wrap">
+      <button class="btn btn-sm" id="exportBtn" onclick="toggleExportMenu(event)" title="Export options">↓ Export ▾</button>
+      <div class="export-menu" id="exportMenu">
+        <div class="export-menu-label">Format</div>
+        <button onclick="exportAll(); closeExportMenu()">homelab.md Full</button>
+        <button onclick="exportCsv(); closeExportMenu()">homelab.csv Full</button>
+        <hr>
+        <button onclick="exportPublic(); closeExportMenu()">homelab.md Public</button>
+        <button onclick="openHtmlExportModal(); closeExportMenu()">homelab.html Public</button>
+      </div>
+    </div>
+    <button class="btn btn-primary btn-sm" onclick="openAddModal()">+</button>
+  </div>
+</header>
+
+<div class="main">
+  <div class="stats-bar" id="statsBar"></div>
+  <div class="toolbar">
+    <div class="search-wrap">
+      <input type="text" class="search-box" id="searchBox" placeholder="Search..." oninput="onSearchInput()">
+      <button type="button" class="search-clear" id="searchClear" onclick="clearSearch()" aria-label="Clear search" title="Clear search">✕</button>
+    </div>
+    <div class="filter-group" id="filterGroup"></div>
+    <div class="filter-select" id="filterSelectWrap">
+      <button type="button" class="filter-select-toggle" id="filterToggle" aria-haspopup="listbox" aria-expanded="false" aria-label="Filter by type" onclick="toggleFilterMenu(event)">
+        <span id="filterValue">all</span>
+        <svg class="filter-select-chevron" width="12" height="12" viewBox="0 0 12 12" aria-hidden="true"><path fill="none" stroke="currentColor" stroke-width="1.5" d="M2 4l4 4 4-4"/></svg>
+      </button>
+      <ul class="filter-select-menu" id="filterMenu" role="listbox" hidden></ul>
+    </div>
+    <div class="view-toggle" role="tablist" aria-label="View mode">
+      <button type="button" class="view-btn active" data-view="grid" onclick="setView('grid')" role="tab" aria-selected="true" title="Card view">Cards</button>
+      <button type="button" class="view-btn" data-view="topology" onclick="setView('topology')" role="tab" aria-selected="false" title="Topology view">Topology</button>
+    </div>
+  </div>
+  <div class="device-grid" id="deviceGrid"></div>
+  <div class="topology-view" id="topologyView" aria-live="polite"></div>
+</div>
+
+<div class="modal-overlay" id="formModal" role="dialog" aria-modal="true" aria-labelledby="formTitle">
+  <div class="modal">
+    <div class="modal-header">
+      <div class="modal-title" id="formTitle">Add Device</div>
+      <button class="btn btn-ghost btn-sm" onclick="closeModal()" aria-label="Close">✕</button>
+    </div>
+    <div class="modal-body">
+      <input type="hidden" id="editId">
+
+      <div class="form-row">
+        <div class="form-group">
+          <label class="form-label">Hostname  / Name *</label>
+          <input type="text" class="form-input" id="fName" placeholder="e.g. proxmox-01">
+        </div>
+        <div class="form-group">
+          <label class="form-label">Type</label>
+          <div class="form-select-wrap" id="fTypeWrap">
+            <button type="button" class="form-select-toggle" id="fTypeToggle" aria-haspopup="listbox" aria-expanded="false" onclick="toggleFormSelect('fType', event)">
+              <span class="form-select-value" id="fTypeLabel">Server</span>
+              <svg class="form-select-chevron" width="12" height="12" viewBox="0 0 12 12" aria-hidden="true"><path fill="none" stroke="currentColor" stroke-width="1.5" d="M2 4l4 4 4-4"/></svg>
+            </button>
+            <ul class="form-select-menu" id="fTypeMenu" role="listbox" hidden>
+              <li class="form-select-option active" role="option" aria-selected="true" data-value="server" onclick="selectFormSelect('fType', this)">Server</li>
+              <li class="form-select-option" role="option" aria-selected="false" data-value="vm" onclick="selectFormSelect('fType', this)">Virtual Machine</li>
+              <li class="form-select-option" role="option" aria-selected="false" data-value="container" onclick="selectFormSelect('fType', this)">Container / LXC</li>
+              <li class="form-select-option" role="option" aria-selected="false" data-value="network" onclick="selectFormSelect('fType', this)">Network Device</li>
+              <li class="form-select-option" role="option" aria-selected="false" data-value="storage" onclick="selectFormSelect('fType', this)">Storage</li>
+              <li class="form-select-option" role="option" aria-selected="false" data-value="other" onclick="selectFormSelect('fType', this)">Other</li>
+            </ul>
+            <input type="hidden" id="fType" value="server">
+          </div>
+        </div>
+      </div>
+
+      <div class="form-row">
+        <div class="form-group">
+          <label class="form-label">IP Address</label>
+          <input type="text" class="form-input" id="fIp" placeholder="e.g. 192.168.1.100">
+        </div>
+        <div class="form-group">
+          <label class="form-label">Host / Parent Device</label>
+          <div class="form-select-wrap" id="fParentWrap">
+            <button type="button" class="form-select-toggle" id="fParentToggle" aria-haspopup="listbox" aria-expanded="false" onclick="toggleFormSelect('fParent', event)">
+              <span class="form-select-value" id="fParentLabel">— None (standalone) —</span>
+              <svg class="form-select-chevron" width="12" height="12" viewBox="0 0 12 12" aria-hidden="true"><path fill="none" stroke="currentColor" stroke-width="1.5" d="M2 4l4 4 4-4"/></svg>
+            </button>
+            <ul class="form-select-menu" id="fParentMenu" role="listbox" hidden>
+              <li class="form-select-option active" role="option" aria-selected="true" data-value="" onclick="selectFormSelect('fParent', this)">— None (standalone) —</li>
+            </ul>
+            <input type="hidden" id="fParent" value="">
+          </div>
+          <span class="form-hint">e.g. the Proxmox host this VM runs on</span>
+        </div>
+      </div>
+
+      <div class="form-row">
+        <div class="form-group">
+          <label class="form-label">System</label>
+          <input type="text" class="form-input" id="fSystem" placeholder="e.g. Dell PowerEdge R730">
+        </div>
+        <div class="form-group">
+          <label class="form-label">Operating System</label>
+          <input type="text" class="form-input" id="fOs" placeholder="e.g. Proxmox VE 8.1">
+        </div>
+      </div>
+
+      <div class="form-row">
+        <div class="form-group">
+          <label class="form-label">Status</label>
+          <div class="form-select-wrap" id="fStatusWrap">
+            <button type="button" class="form-select-toggle" id="fStatusToggle" aria-haspopup="listbox" aria-expanded="false" onclick="toggleFormSelect('fStatus', event)">
+              <span class="form-select-value" id="fStatusLabel">Online</span>
+              <svg class="form-select-chevron" width="12" height="12" viewBox="0 0 12 12" aria-hidden="true"><path fill="none" stroke="currentColor" stroke-width="1.5" d="M2 4l4 4 4-4"/></svg>
+            </button>
+            <ul class="form-select-menu" id="fStatusMenu" role="listbox" hidden>
+              <li class="form-select-option active" role="option" aria-selected="true" data-value="online" onclick="selectFormSelect('fStatus', this)">Online</li>
+              <li class="form-select-option" role="option" aria-selected="false" data-value="offline" onclick="selectFormSelect('fStatus', this)">Offline</li>
+              <li class="form-select-option" role="option" aria-selected="false" data-value="unknown" onclick="selectFormSelect('fStatus', this)">Unknown</li>
+            </ul>
+            <input type="hidden" id="fStatus" value="online">
+          </div>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Location</label>
+          <input type="text" class="form-input" id="fLocation" placeholder="e.g. Rack 1, Shelf 2">
+        </div>
+      </div>
+
+      <div class="form-row">
+        <div class="form-group">
+          <label class="form-label">CPU</label>
+          <input type="text" class="form-input" id="fCpu" placeholder="e.g. Intel i7-12700K / 8 cores">
+        </div>
+        <div class="form-group">
+          <label class="form-label">RAM</label>
+          <input type="text" class="form-input" id="fRam" placeholder="e.g. 32GB DDR4">
+        </div>
+      </div>
+
+      <div class="form-row full">
+        <div class="form-group">
+          <label class="form-label">Storage</label>
+          <div class="services-editor">
+            <div class="storage-labels">
+              <span>Type / Device</span>
+              <span>Size</span>
+              <span>Notes</span>
+              <span></span>
+            </div>
+            <div id="storageRows"></div>
+            <button type="button" class="service-add-btn" onclick="addStorageRow()">+ Add Storage</button>
+          </div>
+        </div>
+      </div>
+
+      <div class="form-row full">
+        <div class="form-group">
+          <label class="form-label">Services</label>
+          <div class="services-editor">
+            <div class="service-labels">
+              <span>Name</span>
+              <span>Port</span>
+              <span>Notes</span>
+              <span>URL</span>
+              <span></span>
+            </div>
+            <div id="serviceRows"></div>
+            <button type="button" class="service-add-btn" onclick="addServiceRow()">+ Add Service</button>
+          </div>
+        </div>
+      </div>
+
+      <div class="form-row full">
+        <div class="form-group">
+          <label class="form-label">Notes</label>
+          <textarea class="form-textarea" id="fNotes" placeholder="Any additional notes, credentials references, links..."></textarea>
+        </div>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn" onclick="closeModal()">Cancel</button>
+      <button class="btn btn-primary" onclick="saveDevice()">Save Device</button>
+    </div>
+  </div>
+</div>
+
+<footer class="footer">
+  <a href="https://github.com/jeremehancock/homelab.md" target="_blank" class="footer-link">homelab.md</a>
+</footer>
+
+<div class="detail-overlay" id="detailOverlay" role="dialog" aria-modal="true" aria-label="Device details">
+  <div class="detail-panel" id="detailPanel"></div>
+</div>
+
+<div class="modal-overlay" id="htmlExportModal" role="dialog" aria-modal="true" aria-labelledby="htmlExportTitle">
+  <div class="modal" style="max-width: 480px;">
+    <div class="modal-header">
+      <div class="modal-title" id="htmlExportTitle">Export HTML (Public)</div>
+      <button class="btn btn-ghost btn-sm" onclick="closeHtmlExportModal()" aria-label="Close">✕</button>
+    </div>
+    <div class="modal-body">
+      <div class="form-row full">
+        <div class="form-group">
+          <label class="form-label">Site Name</label>
+          <input type="text" class="form-input" id="htmlSiteName" placeholder="e.g. My Homelab" onkeydown="if(event.key==='Enter'){event.preventDefault();confirmExportHtml();}">
+          <span class="form-hint">Replaces "homelab.md" in the top-left of the exported page. Same sanitization as the public Markdown export.</span>
+        </div>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn" onclick="closeHtmlExportModal()">Cancel</button>
+      <button class="btn btn-primary" onclick="confirmExportHtml()">Generate HTML</button>
+    </div>
+  </div>
+</div>
+
+<div class="modal-overlay" id="confirmModal" role="dialog" aria-modal="true" aria-labelledby="confirmTitle">
+  <div class="modal" style="max-width: 480px;">
+    <div class="modal-header">
+      <div class="modal-title" id="confirmTitle">Confirm</div>
+      <button class="btn btn-ghost btn-sm" onclick="closeConfirm()" aria-label="Close">✕</button>
+    </div>
+    <div class="modal-body">
+      <p id="confirmMessage" style="font-size:15px;color:var(--text-secondary);line-height:1.5;"></p>
+    </div>
+    <div class="modal-footer">
+      <button class="btn" onclick="closeConfirm()">Cancel</button>
+      <button class="btn btn-primary" id="confirmOkBtn">Confirm</button>
+    </div>
+  </div>
+</div>
+
+<div class="toast-container" id="toastContainer"></div>
+<input type="file" class="hidden" id="fileInput" accept=".md,.markdown" multiple onchange="handleImport(event)">
+
+<script>
+const STORAGE_KEY = 'homelab_devices';
+
+function loadDevices() {
+  try { return JSON.parse(localStorage.getItem(STORAGE_KEY)) || []; }
+  catch { return []; }
+}
+function saveDevices(devices) { localStorage.setItem(STORAGE_KEY, JSON.stringify(devices)); }
+function generateId() { return Date.now().toString(36) + Math.random().toString(36).slice(2, 8); }
+function getDevice(id, devices) { return (devices || loadDevices()).find(d => d.id === id); }
+function getChildren(parentId, devices) { return (devices || loadDevices()).filter(d => d.parentId === parentId).sort((a, b) => (a.name || '').localeCompare(b.name || '', undefined, { sensitivity: 'base' })); }
+function sortedStorage(storage) { return Array.isArray(storage) ? storage.slice().sort((a, b) => (a.type || '').localeCompare(b.type || '', undefined, { sensitivity: 'base' })) : storage; }
+function sortedServices(services) { return (services || []).slice().sort((a, b) => { const an = typeof a === 'string' ? a : (a.name || ''); const bn = typeof b === 'string' ? b : (b.name || ''); return an.localeCompare(bn, undefined, { sensitivity: 'base' }); }); }
+
+function toast(message, type = 'success', action = null) {
+  const container = document.getElementById('toastContainer');
+  const el = document.createElement('div');
+  el.className = `toast ${type}`;
+  const msg = document.createElement('span');
+  msg.textContent = message;
+  el.appendChild(msg);
+  const dismiss = () => {
+    el.classList.add('removing');
+    el.addEventListener('animationend', () => el.remove());
+  };
+  if (action && typeof action.handler === 'function') {
+    const btn = document.createElement('button');
+    btn.type = 'button';
+    btn.className = 'toast-action';
+    btn.textContent = action.label || 'Undo';
+    btn.addEventListener('click', () => { dismiss(); action.handler(); });
+    el.appendChild(btn);
+  }
+  container.appendChild(el);
+  setTimeout(dismiss, action ? 6000 : 2700);
+}
+
+function getTypeClass(type) {
+  const map = { server: 'badge-server', vm: 'badge-vm', container: 'badge-container', network: 'badge-network', storage: 'badge-storage' };
+  return map[type] || 'badge-other';
+}
+
+const TYPE_ICON_PATHS = {
+  server: '<rect x="2" y="2.5" width="12" height="4.5" rx="1"/><rect x="2" y="9" width="12" height="4.5" rx="1"/><circle cx="4.5" cy="4.75" r="0.6" fill="currentColor" stroke="none"/><circle cx="4.5" cy="11.25" r="0.6" fill="currentColor" stroke="none"/><line x1="7" y1="4.75" x2="12" y2="4.75"/><line x1="7" y1="11.25" x2="12" y2="11.25"/>',
+  vm: '<rect x="1.75" y="2.75" width="12.5" height="8.5" rx="1"/><line x1="5.5" y1="14" x2="10.5" y2="14"/><line x1="8" y1="11.25" x2="8" y2="14"/><circle cx="8" cy="7" r="2" fill="currentColor" stroke="none"/>',
+  container: '<path d="M8 1.75l5.75 2.75v7L8 14.25 2.25 11.5v-7z"/><path d="M2.25 4.5L8 7.25l5.75-2.75"/><line x1="8" y1="7.25" x2="8" y2="14.25"/>',
+  network: '<circle cx="8" cy="3" r="1.6"/><circle cx="3" cy="13" r="1.6"/><circle cx="13" cy="13" r="1.6"/><line x1="8" y1="4.6" x2="8" y2="7.5"/><line x1="8" y1="7.5" x2="3.8" y2="11.6"/><line x1="8" y1="7.5" x2="12.2" y2="11.6"/>',
+  storage: '<ellipse cx="8" cy="3.5" rx="5.25" ry="1.75"/><path d="M2.75 3.5v9c0 .97 2.35 1.75 5.25 1.75s5.25-.78 5.25-1.75v-9"/><path d="M2.75 8c0 .97 2.35 1.75 5.25 1.75s5.25-.78 5.25-1.75"/>',
+  other: '<circle cx="8" cy="8" r="6"/><circle cx="8" cy="8" r="1.4" fill="currentColor" stroke="none"/>'
+};
+
+function getTypeIcon(type) {
+  const t = TYPE_ICON_PATHS[type] ? type : 'other';
+  return `<svg width="12" height="12" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round" aria-hidden="true">${TYPE_ICON_PATHS[t]}</svg>`;
+}
+
+function getTopoTypeIcon(type, x, y, size) {
+  const t = TYPE_ICON_PATHS[type] ? type : 'other';
+  return `<svg x="${x}" y="${y}" width="${size}" height="${size}" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round" class="topo-type-icon topo-type-icon-${t}" aria-hidden="true">${TYPE_ICON_PATHS[t]}</svg>`;
+}
+
+function typeBadge(type, extraStyle) {
+  const t = type || 'other';
+  return `<span class="device-type-badge ${getTypeClass(t)}"${extraStyle ? ` style="${extraStyle}"` : ''}>${getTypeIcon(t)}<span>${esc(t)}</span></span>`;
+}
+
+function renderStats() {
+  const devices = loadDevices();
+  const online = devices.filter(d => d.status === 'online').length;
+  const hosts = devices.filter(d => !d.parentId).length;
+  const vmsAndContainers = devices.filter(d => d.type === 'vm' || d.type === 'container').length;
+  const totalServices = devices.reduce((sum, d) => sum + (d.services ? d.services.length : 0), 0);
+
+  document.getElementById('statsBar').innerHTML = `
+    <div class="stat"><span class="stat-value">${devices.length}</span><span class="stat-label">Devices</span></div>
+    <div class="stat"><span class="stat-value">${online}</span><span class="stat-label">Online</span></div>
+    <div class="stat"><span class="stat-value">${hosts}</span><span class="stat-label">Hosts</span></div>
+    <div class="stat"><span class="stat-value">${vmsAndContainers}</span><span class="stat-label">VMs/Containers</span></div>
+    <div class="stat"><span class="stat-value">${totalServices}</span><span class="stat-label">Services</span></div>
+  `;
+}
+
+function renderFilters() {
+  const devices = loadDevices();
+  const types = ['all', ...new Set(devices.map(d => d.type))];
+  const active = currentFilter || 'all';
+  document.getElementById('filterGroup').innerHTML = types.map(t =>
+    `<button class="filter-btn ${t === active ? 'active' : ''}" onclick="setFilter('${t}')">${t}</button>`
+  ).join('');
+  document.getElementById('filterValue').textContent = active;
+  document.getElementById('filterMenu').innerHTML = types.map(t =>
+    `<li class="filter-select-option ${t === active ? 'active' : ''}" role="option" aria-selected="${t === active}" onclick="selectFilter('${t}')">${t}</li>`
+  ).join('');
+}
+
+function toggleFilterMenu(e) {
+  if (e) e.stopPropagation();
+  const btn = document.getElementById('filterToggle');
+  const menu = document.getElementById('filterMenu');
+  const open = btn.getAttribute('aria-expanded') === 'true';
+  btn.setAttribute('aria-expanded', open ? 'false' : 'true');
+  menu.hidden = open;
+}
+function closeFilterMenu() {
+  const btn = document.getElementById('filterToggle');
+  const menu = document.getElementById('filterMenu');
+  if (!btn || !menu) return;
+  btn.setAttribute('aria-expanded', 'false');
+  menu.hidden = true;
+}
+function selectFilter(t) { closeFilterMenu(); setFilter(t); }
+document.addEventListener('click', (e) => {
+  const wrap = document.getElementById('filterSelectWrap');
+  if (wrap && !wrap.contains(e.target)) closeFilterMenu();
+});
+document.addEventListener('keydown', (e) => { if (e.key === 'Escape') closeFilterMenu(); });
+
+let currentFilter = 'all';
+function setFilter(f) {
+  currentFilter = f;
+  renderFilters();
+  renderDevices();
+  if (currentView === 'topology') renderTopology();
+}
+
+function onSearchInput() {
+  const box = document.getElementById('searchBox');
+  document.querySelector('.search-wrap').classList.toggle('has-value', !!box.value);
+  renderDevices();
+  if (currentView === 'topology') renderTopology();
+}
+
+function clearSearch() {
+  const box = document.getElementById('searchBox');
+  box.value = '';
+  document.querySelector('.search-wrap').classList.remove('has-value');
+  box.focus();
+  renderDevices();
+  if (currentView === 'topology') renderTopology();
+}
+
+function getFilteredDevices() {
+  const devices = loadDevices();
+  const query = document.getElementById('searchBox').value.toLowerCase();
+  const filtered = devices.filter(d => {
+    if (currentFilter !== 'all' && d.type !== currentFilter) return false;
+    if (query) {
+      const svcText = (d.services || []).map(s => typeof s === 'string' ? s : `${s.name} ${s.port} ${s.notes} ${s.url}`).join(' ');
+      const storageText = Array.isArray(d.storage) ? d.storage.map(s => `${s.type} ${s.size} ${s.notes}`).join(' ') : (d.storage || '');
+      const searchable = [d.name, d.ip, d.os, d.system, d.type, d.location, d.notes, svcText, storageText].join(' ').toLowerCase();
+      if (!searchable.includes(query)) return false;
+    }
+    return true;
+  });
+  filtered.sort((a, b) => (a.name || '').localeCompare(b.name || '', undefined, { sensitivity: 'base' }));
+  return filtered;
+}
+
+function renderDevices() {
+  const devices = loadDevices();
+  const filtered = getFilteredDevices();
+
+  const grid = document.getElementById('deviceGrid');
+
+  if (filtered.length === 0) {
+    grid.innerHTML = `
+      <div class="empty-state" style="grid-column:1/-1;">
+        <div class="empty-icon">⬡</div>
+        <div class="empty-title">${devices.length === 0 ? 'No devices yet' : 'No matches'}</div>
+        <div class="empty-text">${devices.length === 0 ? 'Add your first homelab device to get started.' : 'Try adjusting your search or filter.'}</div>
+        ${devices.length === 0 ? '<button class="btn btn-primary" onclick="openAddModal()">+ Add Device</button>' : ''}
+      </div>`;
+    return;
+  }
+
+  grid.innerHTML = filtered.map(d => {
+    const children = getChildren(d.id, devices);
+    const parent = d.parentId ? getDevice(d.parentId, devices) : null;
+    const svcs = sortedServices(d.services);
+    const svcCount = svcs.length;
+    const storage = sortedStorage(d.storage);
+
+    return `
+    <div class="device-card ${children.length ? 'has-children' : ''}" tabindex="0" role="button" onclick="showDetail('${d.id}')" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();showDetail('${d.id}');}">
+      <div class="device-card-header">
+        <div>
+          <div class="device-name">
+            <span class="device-status status-${d.status || 'unknown'}"></span>
+            ${esc(d.name)}
+          </div>
+        </div>
+        ${typeBadge(d.type)}
+      </div>
+      ${parent ? `<div class="device-parent-link">on <strong>${esc(parent.name)}</strong></div>` : ''}
+      ${d.ip ? `<div class="device-ip">${esc(d.ip)}</div>` : ''}
+      <div class="device-meta">
+        ${d.system ? `<span class="meta-item"><strong>System:</strong> ${esc(d.system)}</span>` : ''}
+        ${d.os ? `<span class="meta-item"><strong>OS:</strong> ${esc(d.os)}</span>` : ''}
+        ${d.cpu ? `<span class="meta-item"><strong>CPU:</strong> ${esc(d.cpu)}</span>` : ''}
+        ${d.ram ? `<span class="meta-item"><strong>RAM:</strong> ${esc(d.ram)}</span>` : ''}
+        ${storage && (Array.isArray(storage) ? storage.length : storage) ? `<span class="meta-item"><strong>Storage:</strong> ${Array.isArray(storage) ? (storage.length > 2 ? esc(storage[0].size ? storage[0].type + ' ' + storage[0].size : storage[0].type) + ', +' + (storage.length - 1) + ' more' : storage.map(s => esc(s.size ? s.type + ' ' + s.size : s.type)).join(', ')) : esc(storage)}</span>` : ''}
+      </div>
+      ${svcCount ? `
+        <div class="device-services">
+          ${svcs.slice(0, 2).map(s => {
+            const name = typeof s === 'string' ? s : s.name;
+            const port = typeof s === 'string' ? '' : s.port;
+            return `<span class="service-tag">${esc(name)}${port ? ':' + esc(port) : ''}</span>`;
+          }).join('')}
+          ${svcCount > 2 ? `<span class="service-tag">+${svcCount - 2} more</span>` : ''}
+        </div>
+      ` : ''}
+      ${children.length ? `<span class="child-count-badge">${children.length} ${children.length === 1 ? 'child' : 'children'}</span>` : ''}
+    </div>`;
+  }).join('');
+}
+
+// --- Topology view ---
+const VIEW_KEY = 'homelab_view';
+let currentView = (function () {
+  try { return localStorage.getItem(VIEW_KEY) || 'grid'; }
+  catch (_) { return 'grid'; }
+})();
+
+function applyViewUI() {
+  document.querySelectorAll('[data-view]').forEach(btn => {
+    const active = btn.dataset.view === currentView;
+    btn.classList.toggle('active', active);
+    btn.setAttribute('aria-selected', active ? 'true' : 'false');
+  });
+  document.getElementById('deviceGrid').style.display = currentView === 'grid' ? '' : 'none';
+  document.getElementById('topologyView').classList.toggle('active', currentView === 'topology');
+}
+
+function setView(v) {
+  currentView = v;
+  try { localStorage.setItem(VIEW_KEY, v); } catch (_) {}
+  applyViewUI();
+  if (v === 'topology') renderTopology();
+}
+
+function truncateLabel(s, n) {
+  s = String(s || '');
+  return s.length > n ? s.slice(0, n - 1) + '…' : s;
+}
+
+function topoBoxSvg(d, x, y, w, h, isParent, opts) {
+  const showStatus = opts && opts.showStatus !== false;
+  const status = d.status || 'unknown';
+  const dotX = x + 14;
+  const dotY = y + h / 2;
+  const textX = showStatus ? x + 26 : x + 14;
+  const nameY = y + h / 2 - 3;
+  const typeY = y + h / 2 + 13;
+  const iconSize = 12;
+  const iconX = textX;
+  const iconY = typeY - 11;
+  const typeTextX = textX + iconSize + 4;
+  const t = d.type || 'other';
+  const nameMax = isParent ? 24 : 22;
+  const clipId = 'topo-clip-' + esc(d.id);
+  return `<g class="topo-node" data-id="${esc(d.id)}">
+    <defs><clipPath id="${clipId}"><rect x="${x}" y="${y}" width="${w}" height="${h}" rx="6"/></clipPath></defs>
+    <rect x="${x}" y="${y}" width="${w}" height="${h}" rx="6" class="topo-box"/>
+    <rect x="${x}" y="${y}" width="3" height="${h}" class="topo-accent topo-accent-${t}" clip-path="url(#${clipId})"/>
+    ${showStatus ? `<circle cx="${dotX}" cy="${dotY}" r="4" class="topo-status status-${status}"/>` : ''}
+    <text x="${textX}" y="${nameY}" class="topo-text-name">${esc(truncateLabel(d.name, nameMax))}</text>
+    ${getTopoTypeIcon(t, iconX, iconY, iconSize)}
+    <text x="${typeTextX}" y="${typeY}" class="topo-text-type">${esc(t.toUpperCase())}</text>
+    <title>${esc(d.name)}${d.type ? ' (' + esc(d.type) + ')' : ''}</title>
+  </g>`;
+}
+
+function topologyClusterSvg(parent, children, opts) {
+  const w = 280;
+  const parentH = 60;
+  const childH = 50;
+  const childIndent = 26;
+  const childGap = 10;
+  const childTopGap = 20;
+  const childW = w - childIndent;
+  const pad = 6;
+
+  let svg = topoBoxSvg(parent, 0, 0, w, parentH, true, opts);
+
+  if (children.length) {
+    const trunkX = 11;
+    const trunkTop = parentH;
+    const lastChildCenter = parentH + childTopGap + (children.length - 1) * (childH + childGap) + childH / 2;
+    svg += `<line x1="${trunkX}" y1="${trunkTop}" x2="${trunkX}" y2="${lastChildCenter}" class="topo-edge"/>`;
+    children.forEach((c, i) => {
+      const y = parentH + childTopGap + i * (childH + childGap);
+      const cy = y + childH / 2;
+      svg += `<line x1="${trunkX}" y1="${cy}" x2="${childIndent}" y2="${cy}" class="topo-edge"/>`;
+      svg += topoBoxSvg(c, childIndent, y, childW, childH, false, opts);
+    });
+  }
+
+  const contentH = children.length
+    ? parentH + childTopGap + children.length * (childH + childGap) - childGap
+    : parentH;
+  const svgW = w + pad * 2;
+  const svgH = contentH + pad * 2;
+
+  return `<svg class="topo-cluster" viewBox="${-pad} ${-pad} ${svgW} ${svgH}" width="${svgW}" height="${svgH}" xmlns="http://www.w3.org/2000/svg" role="group" aria-label="${esc(parent.name)}${children.length ? ' with ' + children.length + ' child device' + (children.length === 1 ? '' : 's') : ''}">${svg}</svg>`;
+}
+
+function renderTopology() {
+  const allDevices = loadDevices();
+  const filtered = getFilteredDevices();
+  const container = document.getElementById('topologyView');
+
+  if (filtered.length === 0) {
+    container.innerHTML = `<div class="topology-empty">${allDevices.length === 0 ? 'No devices yet.' : 'No matches for the current search/filter.'}</div>`;
+    return;
+  }
+
+  const filteredIds = new Set(filtered.map(d => d.id));
+  const roots = filtered.filter(d => !d.parentId);
+  const orphans = filtered.filter(d => d.parentId && !filteredIds.has(d.parentId));
+
+  const clusters = [];
+  roots.forEach(p => {
+    clusters.push({ parent: p, children: filtered.filter(c => c.parentId === p.id) });
+  });
+  orphans.forEach(o => clusters.push({ parent: o, children: [] }));
+
+  // Alphabetical by parent name.
+  clusters.sort((a, b) =>
+    (a.parent.name || '').localeCompare(b.parent.name || '', undefined, { sensitivity: 'base' })
+  );
+
+  container.innerHTML = `<div class="topology-clusters">${clusters.map(c => topologyClusterSvg(c.parent, c.children, { showStatus: true })).join('')}</div>`;
+}
+
+function esc(str) {
+  if (!str) return '';
+  const d = document.createElement('div');
+  d.textContent = str;
+  return d.innerHTML;
+}
+
+function safeUrl(url) {
+  if (!url) return '';
+  try {
+    const parsed = new URL(url, window.location.href);
+    if (['http:', 'https:'].includes(parsed.protocol)) return esc(url);
+  } catch {}
+  return '';
+}
+
+// Service row management
+let serviceRowData = [];
+
+function renderServiceRows() {
+  document.getElementById('serviceRows').innerHTML = serviceRowData.map((s, i) => `
+    <div class="service-entry">
+      <input type="text" class="form-input" placeholder="e.g. nginx" value="${esc(s.name)}" oninput="serviceRowData[${i}].name=this.value">
+      <input type="text" class="form-input" placeholder="80" value="${esc(s.port)}" oninput="serviceRowData[${i}].port=this.value">
+      <input type="text" class="form-input" placeholder="e.g. reverse proxy" value="${esc(s.notes)}" oninput="serviceRowData[${i}].notes=this.value">
+      <input type="text" class="form-input" placeholder="https://..." value="${esc(s.url)}" oninput="serviceRowData[${i}].url=this.value">
+      <button type="button" class="service-remove" onclick="removeServiceRow(${i})" aria-label="Remove service">✕</button>
+    </div>
+  `).join('');
+}
+
+function addServiceRow(name = '', port = '', notes = '', url = '') {
+  serviceRowData.push({ name, port, notes, url });
+  renderServiceRows();
+}
+
+function removeServiceRow(i) {
+  serviceRowData.splice(i, 1);
+  renderServiceRows();
+}
+
+// Storage row management
+let storageRowData = [];
+
+function renderStorageRows() {
+  document.getElementById('storageRows').innerHTML = storageRowData.map((s, i) => `
+    <div class="storage-entry">
+      <input type="text" class="form-input" placeholder="e.g. NVMe SSD" value="${esc(s.type)}" oninput="storageRowData[${i}].type=this.value">
+      <input type="text" class="form-input" placeholder="1TB" value="${esc(s.size)}" oninput="storageRowData[${i}].size=this.value">
+      <input type="text" class="form-input" placeholder="e.g. Samsung 980 Pro, /dev/sda" value="${esc(s.notes)}" oninput="storageRowData[${i}].notes=this.value">
+      <button type="button" class="service-remove" onclick="removeStorageRow(${i})" aria-label="Remove storage">✕</button>
+    </div>
+  `).join('');
+}
+
+function addStorageRow(type = '', size = '', notes = '') {
+  storageRowData.push({ type, size, notes });
+  renderStorageRows();
+}
+
+function removeStorageRow(i) {
+  storageRowData.splice(i, 1);
+  renderStorageRows();
+}
+
+function populateParentDropdown(excludeId = null) {
+  const menu = document.getElementById('fParentMenu');
+  const devices = loadDevices();
+  const current = document.getElementById('fParent').value || '';
+  const opts = [{ value: '', label: '— None (standalone) —' }];
+  devices.filter(d => d.id !== excludeId).forEach(d => {
+    opts.push({ value: d.id, label: `${d.name} (${d.type})` });
+  });
+  menu.innerHTML = opts.map(o =>
+    `<li class="form-select-option" role="option" aria-selected="false" data-value="${esc(o.value)}" onclick="selectFormSelect('fParent', this)">${esc(o.label)}</li>`
+  ).join('');
+  setFormSelectValue('fParent', current);
+}
+
+function toggleFormSelect(id, e) {
+  if (e) e.stopPropagation();
+  const wrap = document.getElementById(id + 'Wrap');
+  if (!wrap) return;
+  const btn = wrap.querySelector('.form-select-toggle');
+  const menu = wrap.querySelector('.form-select-menu');
+  const isOpen = btn.getAttribute('aria-expanded') === 'true';
+  closeAllFormSelects();
+  if (!isOpen) {
+    btn.setAttribute('aria-expanded', 'true');
+    menu.hidden = false;
+  }
+}
+
+function closeAllFormSelects() {
+  document.querySelectorAll('.form-select-wrap').forEach(wrap => {
+    const btn = wrap.querySelector('.form-select-toggle');
+    const menu = wrap.querySelector('.form-select-menu');
+    if (btn) btn.setAttribute('aria-expanded', 'false');
+    if (menu) menu.hidden = true;
+  });
+}
+
+function selectFormSelect(id, optionEl) {
+  const value = optionEl.getAttribute('data-value') || '';
+  setFormSelectValue(id, value);
+  closeAllFormSelects();
+  const toggle = document.getElementById(id + 'Toggle');
+  if (toggle) toggle.focus();
+}
+
+function setFormSelectValue(id, value) {
+  const input = document.getElementById(id);
+  if (input) input.value = value;
+  const wrap = document.getElementById(id + 'Wrap');
+  if (!wrap) return;
+  const menu = wrap.querySelector('.form-select-menu');
+  const labelEl = document.getElementById(id + 'Label');
+  let chosenLabel = null;
+  let firstLabel = null;
+  menu.querySelectorAll('.form-select-option').forEach(opt => {
+    const optValue = opt.getAttribute('data-value') || '';
+    const isActive = optValue === value;
+    opt.classList.toggle('active', isActive);
+    opt.setAttribute('aria-selected', isActive ? 'true' : 'false');
+    if (isActive) chosenLabel = opt.textContent;
+    if (firstLabel === null) firstLabel = opt.textContent;
+  });
+  if (labelEl) labelEl.textContent = chosenLabel || firstLabel || '';
+  if (input && chosenLabel === null) {
+    const firstOpt = menu.querySelector('.form-select-option');
+    if (firstOpt) {
+      input.value = firstOpt.getAttribute('data-value') || '';
+      firstOpt.classList.add('active');
+      firstOpt.setAttribute('aria-selected', 'true');
+    }
+  }
+}
+
+document.addEventListener('click', (e) => {
+  const inside = e.target.closest && e.target.closest('.form-select-wrap');
+  if (!inside) closeAllFormSelects();
+});
+
+function openAddModal() {
+  document.getElementById('formTitle').textContent = 'Add Device';
+  document.getElementById('editId').value = '';
+  clearForm();
+  populateParentDropdown();
+  openModalEl(document.getElementById('formModal'), document.getElementById('fName'));
+}
+
+function openEditModal(id) {
+  const devices = loadDevices();
+  const d = devices.find(x => x.id === id);
+  if (!d) return;
+
+  document.getElementById('formTitle').textContent = 'Edit Device';
+  document.getElementById('editId').value = id;
+  document.getElementById('fName').value = d.name || '';
+  setFormSelectValue('fType', d.type || 'server');
+  document.getElementById('fIp').value = d.ip || '';
+  document.getElementById('fSystem').value = d.system || '';
+  document.getElementById('fOs').value = d.os || '';
+  setFormSelectValue('fStatus', d.status || 'unknown');
+  document.getElementById('fCpu').value = d.cpu || '';
+  document.getElementById('fRam').value = d.ram || '';
+  document.getElementById('fLocation').value = d.location || '';
+  document.getElementById('fNotes').value = d.notes || '';
+
+  populateParentDropdown(id);
+  setFormSelectValue('fParent', d.parentId || '');
+
+  openModalEl(document.getElementById('formModal'), document.getElementById('fName'));
+
+  // Load storage
+  if (Array.isArray(d.storage)) {
+    storageRowData = d.storage.map(s => ({ ...s }));
+  } else if (d.storage) {
+    storageRowData = [{ type: d.storage, size: '', notes: '' }];
+  } else {
+    storageRowData = [];
+  }
+  renderStorageRows();
+
+  serviceRowData = (d.services || []).map(s =>
+    typeof s === 'string' ? { name: s, port: '', notes: '', url: '' } : { name: s.name || '', port: s.port || '', notes: s.notes || '', url: s.url || '' }
+  );
+  renderServiceRows();
+}
+
+function closeModal() { closeModalEl(document.getElementById('formModal')); }
+
+function clearForm() {
+  ['fName','fIp','fSystem','fOs','fCpu','fRam','fLocation','fNotes'].forEach(id => {
+    document.getElementById(id).value = '';
+  });
+  setFormSelectValue('fType', 'server');
+  setFormSelectValue('fStatus', 'online');
+  setFormSelectValue('fParent', '');
+  serviceRowData = [];
+  renderServiceRows();
+  storageRowData = [];
+  renderStorageRows();
+}
+
+function saveDevice() {
+  const name = document.getElementById('fName').value.trim();
+  if (!name) { toast('Hostname / Name is required', 'error'); return; }
+
+  const services = serviceRowData.filter(s => s.name.trim()).map(s => ({
+    name: s.name.trim(), port: s.port.trim(), notes: s.notes.trim(), url: s.url.trim()
+  }));
+
+  const storage = storageRowData.filter(s => s.type.trim()).map(s => ({
+    type: s.type.trim(), size: s.size.trim(), notes: s.notes.trim()
+  }));
+
+  const device = {
+    name,
+    type: document.getElementById('fType').value,
+    ip: document.getElementById('fIp').value.trim(),
+    parentId: document.getElementById('fParent').value || null,
+    system: document.getElementById('fSystem').value.trim(),
+    os: document.getElementById('fOs').value.trim(),
+    status: document.getElementById('fStatus').value,
+    cpu: document.getElementById('fCpu').value.trim(),
+    ram: document.getElementById('fRam').value.trim(),
+    storage,
+    location: document.getElementById('fLocation').value.trim(),
+    services,
+    notes: document.getElementById('fNotes').value.trim(),
+    updatedAt: new Date().toISOString(),
+  };
+
+  const devices = loadDevices();
+  const editId = document.getElementById('editId').value;
+
+  if (editId) {
+    const idx = devices.findIndex(d => d.id === editId);
+    if (idx !== -1) {
+      device.id = editId;
+      device.createdAt = devices[idx].createdAt;
+      devices[idx] = device;
+    }
+    toast(`${name} updated`);
+  } else {
+    device.id = generateId();
+    device.createdAt = device.updatedAt;
+    devices.push(device);
+    toast(`${name} added`);
+  }
+
+  saveDevices(devices);
+  closeModal();
+  refresh();
+}
+
+function showDetail(id) {
+  const devices = loadDevices();
+  const d = devices.find(x => x.id === id);
+  if (!d) return;
+
+  const children = getChildren(d.id, devices);
+  const parent = d.parentId ? getDevice(d.parentId, devices) : null;
+
+  const panel = document.getElementById('detailPanel');
+  panel.innerHTML = `
+    <div class="detail-header">
+      <div>
+        <div style="font-family:'JetBrains Mono',monospace;font-size:22px;font-weight:700;margin-bottom:4px;">
+          <span class="device-status status-${d.status || 'unknown'}"></span>
+          ${esc(d.name)}
+        </div>
+        ${typeBadge(d.type)}
+        ${parent ? `<span style="font-size:14px;color:var(--text-secondary);margin-left:10px;">on <strong>${esc(parent.name)}</strong></span>` : ''}
+      </div>
+      <button class="btn btn-ghost btn-sm" onclick="closeDetail()">✕</button>
+    </div>
+    <div class="detail-body">
+      <div class="detail-section">
+        <div class="detail-section-title">Overview</div>
+        <div class="detail-grid">
+          <div><div class="detail-field-label">IP Address</div><div class="detail-field-value">${esc(d.ip) || '—'}</div></div>
+          <div><div class="detail-field-label">System</div><div class="detail-field-value">${esc(d.system) || '—'}</div></div>
+          <div><div class="detail-field-label">OS</div><div class="detail-field-value">${esc(d.os) || '—'}</div></div>
+          <div><div class="detail-field-label">Status</div><div class="detail-field-value">${esc(d.status) || '—'}</div></div>
+        </div>
+      </div>
+      <div class="detail-section">
+        <div class="detail-section-title">Hardware</div>
+        <div class="detail-grid">
+          <div><div class="detail-field-label">CPU</div><div class="detail-field-value">${esc(d.cpu) || '—'}</div></div>
+          <div><div class="detail-field-label">RAM</div><div class="detail-field-value">${esc(d.ram) || '—'}</div></div>
+          <div><div class="detail-field-label">Location</div><div class="detail-field-value">${esc(d.location) || '—'}</div></div>
+        </div>
+      </div>
+      ${(Array.isArray(d.storage) && d.storage.length) || (!Array.isArray(d.storage) && d.storage) ? (() => { const storage = sortedStorage(d.storage); return `
+        <div class="detail-section">
+          <div class="detail-section-title">Storage (${Array.isArray(storage) ? storage.length : 1})</div>
+          ${Array.isArray(storage) ? `
+            <table class="service-table">
+              <thead><tr><th>Type / Device</th><th>Size</th><th>Notes</th></tr></thead>
+              <tbody>
+                ${storage.map(s => `<tr>
+                  <td>${esc(s.type)}</td>
+                  <td>${esc(s.size) || '—'}</td>
+                  <td class="svc-notes">${esc(s.notes || '—')}</td>
+                </tr>`).join('')}
+              </tbody>
+            </table>
+          ` : `<div class="detail-field-value">${esc(storage)}</div>`}
+        </div>
+      `; })() : ''}
+      ${d.services && d.services.length ? (() => { const services = sortedServices(d.services); return `
+        <div class="detail-section">
+          <div class="detail-section-title">Services (${services.length})</div>
+          <table class="service-table">
+            <thead><tr><th>Service</th><th>Port</th><th>Notes</th><th>URL</th></tr></thead>
+            <tbody>
+              ${services.map(s => {
+                const sName = typeof s === 'string' ? s : s.name;
+                const sPort = typeof s === 'string' ? '' : s.port;
+                const sNotes = typeof s === 'string' ? '' : s.notes;
+                const sUrl = typeof s === 'string' ? '' : (s.url || '');
+                return `<tr>
+                  <td>${esc(sName)}</td>
+                  <td>${esc(sPort) || '—'}</td>
+                  <td class="svc-notes">${esc(sNotes || '—')}</td>
+                  <td>${sUrl && safeUrl(sUrl) ? `<a href="${safeUrl(sUrl)}" target="_blank" rel="noopener" style="color:var(--accent);text-decoration:none;">${esc(sUrl)}</a>` : (sUrl ? esc(sUrl) : '—')}</td>
+                </tr>`;
+              }).join('')}
+            </tbody>
+          </table>
+        </div>
+      `; })() : ''}
+      ${children.length ? `
+        <div class="detail-section">
+          <div class="detail-section-title">Running on this host (${children.length})</div>
+          ${children.map(c => `
+            <div class="child-device" onclick="event.stopPropagation(); showDetail('${c.id}')">
+              <div>
+                <div class="child-device-name">
+                  <span class="device-status status-${c.status || 'unknown'}"></span>
+                  ${esc(c.name)}
+                </div>
+                <div class="child-device-info">${esc(c.type)}${c.ip ? ' · ' + esc(c.ip) : ''}${c.services && c.services.length ? ' · ' + c.services.length + ' services' : ''}</div>
+              </div>
+              ${typeBadge(c.type)}
+            </div>
+          `).join('')}
+        </div>
+      ` : ''}
+      ${parent ? `
+        <div class="detail-section">
+          <div class="detail-section-title">Host</div>
+          <div class="child-device" onclick="event.stopPropagation(); showDetail('${parent.id}')">
+            <div>
+              <div class="child-device-name">
+                <span class="device-status status-${parent.status || 'unknown'}"></span>
+                ${esc(parent.name)}
+              </div>
+              <div class="child-device-info">${esc(parent.type)}${parent.ip ? ' · ' + esc(parent.ip) : ''}</div>
+            </div>
+            ${typeBadge(parent.type)}
+          </div>
+        </div>
+      ` : ''}
+      ${d.notes ? `
+        <div class="detail-section">
+          <div class="detail-section-title">Notes</div>
+          <div class="detail-notes">${esc(d.notes)}</div>
+        </div>
+      ` : ''}
+      <div style="font-size:13px;color:var(--text-muted);margin-top:16px;">
+        Created: ${d.createdAt ? new Date(d.createdAt).toLocaleString() : '—'}
+        · Updated: ${d.updatedAt ? new Date(d.updatedAt).toLocaleString() : '—'}
+      </div>
+    </div>
+    <div class="detail-actions">
+      <button class="btn btn-danger" onclick="confirmDelete('${d.id}')">Delete</button>
+      <div style="flex:1;"></div>
+      <button class="btn" onclick="closeDetail()">Cancel</button>
+      <button class="btn btn-primary" onclick="closeDetail(); openEditModal('${d.id}')">Edit Device</button>
+    </div>
+  `;
+  openModalEl(document.getElementById('detailOverlay'));
+}
+
+function closeDetail() {
+  document.getElementById('detailPanel').classList.remove('confirm-panel');
+  closeModalEl(document.getElementById('detailOverlay'));
+}
+
+function confirmDelete(id) {
+  const devices = loadDevices();
+  const d = devices.find(x => x.id === id);
+  if (!d) return;
+  const children = getChildren(id, devices);
+
+  const panel = document.getElementById('detailPanel');
+  panel.classList.add('confirm-panel');
+  panel.innerHTML = `
+    <div class="modal-header">
+      <div class="modal-title">Confirm Delete</div>
+      <button class="btn btn-ghost btn-sm" onclick="closeDetail()">✕</button>
+    </div>
+    <div class="modal-body">
+      <div class="confirm-dialog">
+        <p>Delete <strong>${esc(d.name)}</strong>?${children.length ? ` This will unlink ${children.length} child device${children.length > 1 ? 's' : ''}.` : ''}</p>
+        <div class="btn-group">
+          <button class="btn" onclick="closeDetail()">Cancel</button>
+          <button class="btn btn-danger" onclick="deleteDevice('${id}')">Delete</button>
+        </div>
+      </div>
+    </div>
+  `;
+}
+
+function deleteDevice(id) {
+  let devices = loadDevices();
+  const d = devices.find(x => x.id === id);
+  if (!d) return;
+  const orphans = devices.filter(c => c.parentId === id).map(c => c.id);
+  const index = devices.findIndex(x => x.id === id);
+  window._lastDeleted = { device: JSON.parse(JSON.stringify(d)), orphans, index };
+  devices.forEach(c => { if (c.parentId === id) c.parentId = null; });
+  devices = devices.filter(x => x.id !== id);
+  saveDevices(devices);
+  closeDetail();
+  toast(`${d.name} deleted`, 'success', { label: 'Undo', handler: undoDelete });
+  refresh();
+}
+
+// Markdown export/import
+// Escape a value for a Markdown table cell: pipes become \|, newlines become spaces.
+function mdCell(v) {
+  if (v === undefined || v === null || v === '') return '—';
+  return String(v).replace(/\\/g, '\\\\').replace(/\|/g, '\\|').replace(/\r?\n/g, ' ');
+}
+// Reverse of mdCell for parsing.
+function unmdCell(v) {
+  if (!v) return '';
+  return v.replace(/\\\|/g, '|').replace(/\\\\/g, '\\');
+}
+// Split a Markdown table row on unescaped pipes.
+function splitMdRow(line) {
+  return line.split(/(?<!\\)\|/);
+}
+
+function deviceToMarkdown(d, allDevices) {
+  let md = `# ${d.name}\n\n`;
+  const parent = d.parentId ? allDevices.find(x => x.id === d.parentId) : null;
+
+  md += `- **Type:** ${d.type || '—'}\n`;
+  md += `- **Status:** ${d.status || '—'}\n`;
+  md += `- **IP Address:** ${d.ip || '—'}\n`;
+  md += `- **System:** ${d.system || '—'}\n`;
+  md += `- **OS:** ${d.os || '—'}\n`;
+  md += `- **CPU:** ${d.cpu || '—'}\n`;
+  md += `- **RAM:** ${d.ram || '—'}\n`;
+  if (Array.isArray(d.storage) && d.storage.length) {
+    md += `\n## Storage\n\n`;
+    md += `| Type / Device | Size | Notes |\n`;
+    md += `|---------------|------|-------|\n`;
+    sortedStorage(d.storage).forEach(s => {
+      md += `| ${mdCell(s.type)} | ${mdCell(s.size)} | ${mdCell(s.notes)} |\n`;
+    });
+    md += `\n`;
+  } else if (d.storage && !Array.isArray(d.storage)) {
+    md += `- **Storage:** ${d.storage}\n`;
+  }
+  md += `- **Location:** ${d.location || '—'}\n`;
+  if (parent) md += `- **Host:** ${parent.name}\n`;
+
+  if (d.services && d.services.length) {
+    md += `\n## Services\n\n`;
+    md += `| Service | Port | Notes | URL |\n`;
+    md += `|---------|------|-------|-----|\n`;
+    sortedServices(d.services).forEach(s => {
+      if (typeof s === 'string') { md += `| ${mdCell(s)} | — | — | — |\n`; }
+      else { md += `| ${mdCell(s.name)} | ${mdCell(s.port)} | ${mdCell(s.notes)} | ${mdCell(s.url)} |\n`; }
+    });
+  }
+
+  const children = allDevices.filter(c => c.parentId === d.id).sort((a, b) => (a.name || '').localeCompare(b.name || '', undefined, { sensitivity: 'base' }));
+  if (children.length) {
+    md += `\n## Running on this host\n\n`;
+    children.forEach(c => { md += `- **${c.name}** (${c.type})${c.ip ? ' — ' + c.ip : ''}\n`; });
+  }
+
+  if (d.notes) md += `\n## Notes\n\n${d.notes}\n`;
+
+  md += `\n---\n`;
+  md += `*Created: ${d.createdAt || '—'} | Updated: ${d.updatedAt || '—'} | ID: ${d.id}${d.parentId ? ' | ParentID: ' + d.parentId : ''}*\n`;
+  return md;
+}
+
+function markdownToDevice(md) {
+  const device = { id: generateId(), createdAt: new Date().toISOString(), updatedAt: new Date().toISOString(), services: [], storage: [] };
+
+  const nameMatch = md.match(/^#\s+(.+)$/m);
+  if (nameMatch) device.name = nameMatch[1].trim();
+
+  const fieldMap = {
+    'Type': 'type', 'Status': 'status', 'IP Address': 'ip', 'System': 'system',
+    'OS': 'os', 'CPU': 'cpu', 'RAM': 'ram', 'Location': 'location',
+    'Host': '_parentName'
+  };
+
+  for (const [label, key] of Object.entries(fieldMap)) {
+    const regex = new RegExp(`-\\s+\\*\\*${label}:\\*\\*\\s*(.+)`, 'i');
+    const match = md.match(regex);
+    if (match && match[1].trim() !== '—') device[key] = match[1].trim();
+  }
+
+  // Parse storage table
+  const storageTableMatch = md.match(/## Storage\s*\n[\s\S]*?\n\|[-\s|]+\|\n([\s\S]*?)(?=\n##|\n---|\n*$)/);
+  if (storageTableMatch) {
+    device.storage = storageTableMatch[1].split('\n').filter(l => l.trim().startsWith('|')).map(l => {
+      const cells = splitMdRow(l).map(c => unmdCell(c.trim())).filter((c, i, arr) => i !== 0 && i !== arr.length - 1);
+      return { type: cells[0] || '', size: cells[1] === '—' ? '' : (cells[1] || ''), notes: cells[2] === '—' ? '' : (cells[2] || '') };
+    }).filter(s => s.type && s.type !== '—');
+  } else {
+    // Fallback: old single-line storage field
+    const oldStorageMatch = md.match(/-\s+\*\*Storage:\*\*\s*(.+)/i);
+    if (oldStorageMatch && oldStorageMatch[1].trim() !== '—') {
+      device.storage = [{ type: oldStorageMatch[1].trim(), size: '', notes: '' }];
+    } else {
+      device.storage = [];
+    }
+  }
+
+  const tableMatch = md.match(/## Services\s*\n[\s\S]*?\n\|[-\s|]+\|\n([\s\S]*?)(?=\n##|\n---|\n*$)/);
+  if (tableMatch) {
+    device.services = tableMatch[1].split('\n').filter(l => l.trim().startsWith('|')).map(l => {
+      const cells = splitMdRow(l).map(c => unmdCell(c.trim())).filter((c, i, arr) => i !== 0 && i !== arr.length - 1);
+      return { name: cells[0] || '', port: cells[1] === '—' ? '' : (cells[1] || ''), notes: cells[2] === '—' ? '' : (cells[2] || ''), url: cells[3] === '—' ? '' : (cells[3] || '') };
+    }).filter(s => s.name && s.name !== '—');
+  }
+
+  if (!device.services.length) {
+    const oldMatch = md.match(/## Services\s*\n([\s\S]*?)(?=\n##|\n---|\n*$)/);
+    if (oldMatch) {
+      device.services = oldMatch[1].split('\n')
+        .map(l => l.replace(/^-\s*/, '').trim()).filter(Boolean).filter(l => !l.startsWith('|'))
+        .map(s => ({ name: s, port: '', notes: '', url: '' }));
+    }
+  }
+
+  const notesMatch = md.match(/## Notes\s*\n([\s\S]*?)(?=\n---|\n*$)/);
+  if (notesMatch) device.notes = notesMatch[1].trim();
+
+  const idMatch = md.match(/ID:\s*([a-z0-9]+)/);
+  if (idMatch) device.id = idMatch[1];
+
+  const parentIdMatch = md.match(/ParentID:\s*([a-z0-9]+)/);
+  if (parentIdMatch) device.parentId = parentIdMatch[1];
+
+  return device;
+}
+
+function downloadFile(filename, content, onDone) {
+  const blob = new Blob([content], { type: 'text/markdown;charset=utf-8' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url; a.download = filename; a.click();
+  setTimeout(() => { URL.revokeObjectURL(url); if (onDone) onDone(); }, 500);
+}
+
+function toggleExportMenu(e) {
+  e.stopPropagation();
+  document.getElementById('exportMenu').classList.toggle('open');
+}
+function closeExportMenu() {
+  document.getElementById('exportMenu').classList.remove('open');
+}
+document.addEventListener('click', closeExportMenu);
+
+// Public export helpers
+// Strips private/internal data from a string and returns the cleaned text.
+// Removed tokens are blanked (not replaced with placeholders); residual
+// whitespace and dangling separators are tidied so the output reads cleanly.
+function sanitizePublic(text) {
+  if (typeof text !== 'string') return '';
+  let out = text
+    // URLs
+    .replace(/https?:\/\/[^\s)>\]"']*/gi, '')
+    // IPv4
+    .replace(/\b(?:(?:25[0-5]|2[0-4]\d|[01]?\d\d?)\.){3}(?:25[0-5]|2[0-4]\d|[01]?\d\d?)\b/g, '')
+    // MAC addresses (before IPv6 so they don't get partially matched)
+    .replace(/\b(?:[0-9A-Fa-f]{2}[:\-]){5}[0-9A-Fa-f]{2}\b/g, '')
+    // IPv6 (full and common compressed forms — pragmatic, not RFC-perfect)
+    .replace(/\b(?:[0-9a-fA-F]{1,4}:){7}[0-9a-fA-F]{1,4}\b/g, '')
+    .replace(/(?:[0-9a-fA-F]{1,4}:){1,7}:(?:[0-9a-fA-F]{1,4}(?::[0-9a-fA-F]{1,4})*)?/g, '')
+    .replace(/::(?:[0-9a-fA-F]{1,4}(?::[0-9a-fA-F]{1,4})*)?/g, '')
+    // Internal/local hostnames (anything.lan, .local, .home.arpa, .internal, .lab, .home)
+    .replace(/\b[a-z0-9-]+(?:\.[a-z0-9-]+)*\.(?:lan|local|home\.arpa|internal|lab|home)\b/gi, '')
+    // "port 8080" mentions in free-text
+    .replace(/\bports?\s+\d{1,5}\b/gi, '')
+    // Stray :NNNN left behind (e.g., from "1.2.3.4:8080" → ":8080"), but not
+    // colon-segments of times like "12:34:56" — require the colon to NOT
+    // follow a digit.
+    .replace(/(?<!\d):\d{1,5}\b/g, '');
+
+  // Tidy: collapse internal whitespace, fix dangling separators, trim.
+  // Note: we intentionally do NOT strip trailing `.` — that would eat natural
+  // sentence-ending periods in notes.
+  out = out
+    .replace(/[ \t]+/g, ' ')
+    .replace(/\s+([,;.])/g, '$1')      // " ," → ","
+    .replace(/([,;])(?:\s*\1)+/g, '$1') // ",," → ","
+    .replace(/^[\s,;]+|[\s,;]+$/g, '')
+    .trim();
+  return out;
+}
+
+function isPublicUrl(url) {
+  if (!url || url === '—') return false;
+  try {
+    const u = new URL(url);
+    if (u.protocol !== 'http:' && u.protocol !== 'https:') return false;
+    const h = u.hostname;
+    return !(/^(localhost|127\.|0\.|10\.|192\.168\.|172\.(1[6-9]|2\d|3[01])\.)/i.test(h));
+  } catch { return false; }
+}
+
+function deviceToPublicSection(d, allDevices) {
+  const children = allDevices.filter(c => c.parentId === d.id).sort((a, b) => (a.name || '').localeCompare(b.name || '', undefined, { sensitivity: 'base' }));
+  const parent = d.parentId ? allDevices.find(x => x.id === d.parentId) : null;
+
+  const cap = s => s ? s.charAt(0).toUpperCase() + s.slice(1) : '';
+
+  let md = `### ${sanitizePublic(d.name)}\n\n`;
+
+  let meta = `**${cap(d.type || 'Device')}**`;
+  if (parent) meta += ` · Hosted on ${sanitizePublic(parent.name)}`;
+  md += meta + '\n\n';
+
+  const specs = [
+    ['System', d.system], ['OS', d.os], ['CPU', d.cpu],
+    ['RAM', d.ram],
+  ].map(([k, v]) => [k, sanitizePublic(v || '')]).filter(([, v]) => v);
+
+  if (specs.length) {
+    md += `| | |\n|---|---|\n`;
+    specs.forEach(([k, v]) => { md += `| ${k} | ${v} |\n`; });
+    md += '\n';
+  }
+
+  if (Array.isArray(d.storage) && d.storage.length) {
+    const rows = sortedStorage(d.storage)
+      .filter(s => s.type)
+      .map(s => ({ type: sanitizePublic(s.type), size: s.size || '', notes: sanitizePublic(s.notes || '') }))
+      .filter(s => s.type);
+    if (rows.length) {
+      md += `**Storage**\n\n| Drive | Size | Notes |\n|---|---|---|\n`;
+      rows.forEach(s => { md += `| ${s.type} | ${s.size || '—'} | ${s.notes || '—'} |\n`; });
+      md += '\n';
+    }
+  }
+
+  const services = sortedServices(d.services).map(s => typeof s === 'string' ? { name: s, notes: '', url: '' } : s)
+    .map(s => ({ name: sanitizePublic(s.name || ''), notes: sanitizePublic(s.notes || '') }))
+    .filter(s => s.name);
+  if (services.length) {
+    md += `**Services**\n\n`;
+    services.forEach(s => {
+      const note = s.notes ? ' — ' + s.notes : '';
+      md += `- ${s.name}${note}\n`;
+    });
+    md += '\n';
+  }
+
+  if (children.length) {
+    md += `**Running on this device**\n\n`;
+    children.forEach(c => {
+      const cName = sanitizePublic(c.name || '');
+      if (!cName) return;
+      md += `- **${cName}** (${cap(c.type || 'device')})\n`;
+      const cOs = sanitizePublic(c.os || '');
+      if (cOs) md += `  - OS: ${cOs}\n`;
+      const cServices = (c.services || [])
+        .map(s => typeof s === 'string' ? s : s.name)
+        .map(n => sanitizePublic(n || ''))
+        .filter(Boolean);
+      if (cServices.length) md += `  - Services: ${cServices.join(', ')}\n`;
+      const cNotes = sanitizePublic((c.notes || '').trim());
+      if (cNotes) md += `  - ${cNotes}\n`;
+    });
+    md += '\n';
+  }
+
+  const sanitizedNotes = sanitizePublic((d.notes || '').trim());
+  if (sanitizedNotes) md += `${sanitizedNotes}\n\n`;
+
+  return md;
+}
+
+function exportPublic() {
+  const devices = loadDevices();
+  if (!devices.length) { toast('No devices to export', 'error'); return; }
+
+  const typeOrder = ['server', 'network', 'storage', 'vm', 'container', 'other'];
+  const typeLabels = {
+    server: 'Servers', vm: 'Virtual Machines', container: 'Containers / LXC',
+    network: 'Network Devices', storage: 'Storage', other: 'Other',
+  };
+
+  const date = new Date().toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' });
+
+  let md = `*Last updated: ${date}*\n\n`;
+  md += `**${devices.length} device${devices.length !== 1 ? 's' : ''}**\n\n---\n\n`;
+
+  const topLevel = devices.filter(d => !d.parentId);
+  const handled = new Set();
+  typeOrder.forEach(type => {
+    const group = topLevel.filter(d => d.type === type);
+    if (!group.length) return;
+    handled.add(type);
+    md += `## ${typeLabels[type]}\n\n`;
+    group.forEach(d => { md += deviceToPublicSection(d, devices) + '---\n\n'; });
+  });
+
+  const remaining = [...new Set(topLevel.map(d => d.type).filter(t => !handled.has(t)))];
+  remaining.forEach(type => {
+    const group = topLevel.filter(d => d.type === type);
+    if (!group.length) return;
+    const label = type ? type.charAt(0).toUpperCase() + type.slice(1) : 'Other';
+    md += `## ${label}\n\n`;
+    group.forEach(d => { md += deviceToPublicSection(d, devices) + '---\n\n'; });
+  });
+
+  md += `*Generated by [homelab.md](https://github.com/jeremehancock/homelab.md)*\n`;
+
+  downloadFile('homelab-public.md', md, () => {
+    toast('Exported public markdown');
+  });
+}
+
+function openHtmlExportModal() {
+  const devices = loadDevices();
+  if (!devices.length) { toast('No devices to export', 'error'); return; }
+  document.getElementById('htmlSiteName').value = '';
+  openModalEl(document.getElementById('htmlExportModal'), document.getElementById('htmlSiteName'));
+}
+
+function closeHtmlExportModal() {
+  closeModalEl(document.getElementById('htmlExportModal'));
+}
+
+function confirmExportHtml() {
+  const name = document.getElementById('htmlSiteName').value.trim() || 'My Homelab';
+  closeHtmlExportModal();
+  exportHtml(name);
+}
+
+function sanitizeDeviceForPublic(d) {
+  return {
+    id: d.id,
+    parentId: d.parentId || null,
+    name: sanitizePublic(d.name || ''),
+    type: d.type || 'other',
+    system: sanitizePublic(d.system || ''),
+    os: sanitizePublic(d.os || ''),
+    cpu: sanitizePublic(d.cpu || ''),
+    ram: sanitizePublic(d.ram || ''),
+    storage: Array.isArray(d.storage) ? sortedStorage(d.storage)
+      .filter(s => s && s.type)
+      .map(s => ({
+        type: sanitizePublic(s.type || ''),
+        size: s.size || '',
+        notes: sanitizePublic(s.notes || ''),
+      })) : [],
+    services: sortedServices(d.services)
+      .map(s => typeof s === 'string' ? { name: s, notes: '' } : { name: s.name || '', notes: s.notes || '' })
+      .filter(s => s.name && s.name !== '—')
+      .map(s => ({ name: sanitizePublic(s.name), notes: sanitizePublic(s.notes) })),
+    notes: sanitizePublic(d.notes || ''),
+  };
+}
+
+function exportHtml(siteName) {
+  const devices = loadDevices();
+  if (!devices.length) { toast('No devices to export', 'error'); return; }
+
+  const sanitized = devices.map(sanitizeDeviceForPublic);
+  const html = buildPublicHtml(siteName, sanitized);
+
+  const blob = new Blob([html], { type: 'text/html;charset=utf-8' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url; a.download = 'homelab.html'; a.click();
+  setTimeout(() => { URL.revokeObjectURL(url); toast('Exported homelab.html'); }, 500);
+}
+
+function buildPublicHtml(siteName, devices) {
+  const safeName = (siteName || 'My Homelab').replace(/[<>&"']/g, c => ({ '<':'&lt;', '>':'&gt;', '&':'&amp;', '"':'&quot;', "'":'&#39;' }[c]));
+  const dataJson = JSON.stringify(devices)
+    .replace(/</g, '\\u003c')
+    .replace(/>/g, '\\u003e')
+    .replace(/&/g, '\\u0026')
+    .replace(/\u2028/g, '\\u2028')
+    .replace(/\u2029/g, '\\u2029');
+  return PUBLIC_HTML_TEMPLATE
+    .replace(/__SITE_NAME__/g, safeName)
+    .replace('__DEVICE_DATA__', dataJson);
+}
+
+const PUBLIC_HTML_TEMPLATE = '<!DOCTYPE html>\n'
++ '<html lang="en">\n'
++ '<head>\n'
++ '<meta charset="UTF-8">\n'
++ '<meta name="viewport" content="width=device-width, initial-scale=1.0">\n'
++ '<title>__SITE_NAME__</title>\n'
++ '<link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns=\'http://www.w3.org/2000/svg\' viewBox=\'0 0 32 32\'%3E%3Crect width=\'32\' height=\'32\' rx=\'6\' fill=\'%230a0e14\'/%3E%3Crect x=\'4\' y=\'6\' width=\'24\' height=\'8\' rx=\'2\' fill=\'%23141b24\' stroke=\'%2339c5bb\' stroke-width=\'1.5\'/%3E%3Ccircle cx=\'8.5\' cy=\'10\' r=\'1.5\' fill=\'%234bc77a\'/%3E%3Ccircle cx=\'13\' cy=\'10\' r=\'1.5\' fill=\'%2339c5bb\'/%3E%3Crect x=\'18\' y=\'9\' width=\'7\' height=\'2\' rx=\'1\' fill=\'%233d4f63\'/%3E%3Crect x=\'4\' y=\'18\' width=\'24\' height=\'8\' rx=\'2\' fill=\'%23141b24\' stroke=\'%2339c5bb\' stroke-width=\'1.5\'/%3E%3Ccircle cx=\'8.5\' cy=\'22\' r=\'1.5\' fill=\'%234bc77a\'/%3E%3Ccircle cx=\'13\' cy=\'22\' r=\'1.5\' fill=\'%2339c5bb\'/%3E%3Crect x=\'18\' y=\'21\' width=\'7\' height=\'2\' rx=\'1\' fill=\'%233d4f63\'/%3E%3C/svg%3E">\n'
++ '<style>\n'
++ '@import url(\'https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@300;400;500;600;700&family=IBM+Plex+Sans:wght@300;400;500;600&display=swap\');\n'
++ ':root{--bg-primary:#0a0e14;--bg-secondary:#111820;--bg-tertiary:#1a2130;--bg-card:#141b24;--border:#1e2a3a;--border-active:#2d4a6f;--text-primary:#c8d6e5;--text-secondary:#95a8be;--text-muted:#738aa3;--accent:#39c5bb;--accent-dim:#2a9d95;--accent-glow:rgba(57,197,187,0.15);--success:#4bc77a;--tag-bg:rgba(57,197,187,0.1);--tag-border:rgba(57,197,187,0.25);--purple:#b478e6;--purple-bg:rgba(180,120,230,0.15);--blue:#648ce6;--blue-bg:rgba(100,140,230,0.15);--radius:6px;--shadow:0 2px 12px rgba(0,0,0,0.3);}\n'
++ '*{margin:0;padding:0;box-sizing:border-box;}\n'
++ 'body{font-family:\'IBM Plex Sans\',sans-serif;background:var(--bg-primary);color:var(--text-primary);min-height:100vh;line-height:1.6;}\n'
++ '::-webkit-scrollbar{width:6px;}::-webkit-scrollbar-track{background:var(--bg-primary);}::-webkit-scrollbar-thumb{background:var(--border);border-radius:3px;}::-webkit-scrollbar-thumb:hover{background:var(--border-active);}\n'
++ '.header{background:var(--bg-secondary);border-bottom:1px solid var(--border);padding:16px 32px;display:flex;align-items:center;justify-content:space-between;position:sticky;top:0;z-index:100;}\n'
++ '.logo{font-family:\'JetBrains Mono\',monospace;font-size:20px;font-weight:700;color:var(--accent);letter-spacing:-0.5px;}\n'
++ '.main{max-width:1200px;margin:0 auto;padding:24px 32px;}\n'
++ '.toolbar{display:flex;align-items:center;justify-content:space-between;margin-bottom:20px;gap:12px;flex-wrap:wrap;}\n'
++ '.search-wrap{position:relative;display:inline-block;}\n'
++ '.search-box{font-family:\'JetBrains Mono\',monospace;font-size:15px;padding:8px 34px 8px 14px;border-radius:var(--radius);border:1px solid var(--border);background:var(--bg-secondary);color:var(--text-primary);width:320px;outline:none;transition:border-color 0.15s ease;}\n'
++ '.search-box::placeholder{color:var(--text-muted);}.search-box:focus{border-color:var(--accent);}\n'
++ '.search-clear{display:none;position:absolute;top:50%;right:6px;transform:translateY(-50%);width:22px;height:22px;border:none;background:transparent;color:var(--text-muted);cursor:pointer;border-radius:50%;padding:0;font-size:14px;line-height:1;align-items:center;justify-content:center;transition:color 0.15s,background 0.15s;}\n'
++ '.search-clear:hover{color:var(--text-primary);background:var(--bg-tertiary);}\n'
++ '.search-wrap.has-value .search-clear{display:inline-flex;}\n'
++ '.filter-group{display:flex;gap:4px;flex-wrap:wrap;}\n'
++ '.filter-btn{font-family:\'JetBrains Mono\',monospace;font-size:13px;padding:5px 12px;border-radius:20px;border:1px solid var(--border);background:transparent;color:var(--text-secondary);cursor:pointer;transition:all 0.15s ease;text-transform:uppercase;letter-spacing:0.5px;}\n'
++ '.filter-btn:hover{border-color:var(--border-active);color:var(--text-primary);}.filter-btn.active{border-color:var(--accent);color:var(--accent);background:var(--accent-glow);}\n'
++ '.filter-select{display:none;position:relative;width:100%;min-width:0;}\n'
++ '.filter-select-toggle{width:100%;box-sizing:border-box;display:flex;align-items:center;justify-content:space-between;gap:8px;font-family:\'JetBrains Mono\',monospace;font-size:14px;padding:10px 14px;border-radius:var(--radius);border:1px solid var(--border);background:var(--bg-secondary);color:var(--text-primary);cursor:pointer;text-transform:uppercase;letter-spacing:0.5px;text-align:left;transition:border-color 0.15s;}\n'
++ '.filter-select-toggle:hover{border-color:var(--border-active);}\n'
++ '.filter-select-toggle[aria-expanded="true"]{border-color:var(--accent);}\n'
++ '.filter-select-chevron{color:var(--text-muted);flex-shrink:0;transition:transform 0.15s;}\n'
++ '.filter-select-toggle[aria-expanded="true"] .filter-select-chevron{transform:rotate(180deg);}\n'
++ '.filter-select-menu{list-style:none;position:absolute;top:calc(100% + 4px);left:0;right:0;margin:0;padding:4px;background:var(--bg-secondary);border:1px solid var(--border);border-radius:var(--radius);z-index:50;max-height:240px;overflow-y:auto;box-shadow:0 8px 24px rgba(0,0,0,0.4);}\n'
++ '.filter-select-menu[hidden]{display:none;}\n'
++ '.filter-select-option{font-family:\'JetBrains Mono\',monospace;font-size:14px;padding:8px 12px;border-radius:4px;color:var(--text-secondary);cursor:pointer;text-transform:uppercase;letter-spacing:0.5px;transition:background 0.1s,color 0.1s;}\n'
++ '.filter-select-option:hover{background:var(--bg-tertiary);color:var(--text-primary);}\n'
++ '.filter-select-option.active{background:var(--accent-glow);color:var(--accent);}\n'
++ '.stats-bar{display:flex;gap:24px;margin-bottom:24px;padding:14px 20px;background:var(--bg-secondary);border:1px solid var(--border);border-radius:var(--radius);flex-wrap:wrap;}\n'
++ '.stat{display:flex;align-items:baseline;gap:6px;}.stat-value{font-family:\'JetBrains Mono\',monospace;font-size:24px;font-weight:700;color:var(--accent);}.stat-label{font-size:14px;color:var(--text-secondary);text-transform:uppercase;letter-spacing:0.5px;}\n'
++ '.device-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(360px,1fr));gap:14px;}\n'
++ '.device-card{background:var(--bg-card);border:1px solid var(--border);border-radius:var(--radius);padding:18px;transition:all 0.15s ease;cursor:pointer;position:relative;}\n'
++ '.device-card:hover,.device-card:focus-visible{border-color:var(--border-active);box-shadow:var(--shadow);}.device-card:focus-visible{outline:2px solid var(--accent);outline-offset:2px;}.device-card.has-children{border-left:3px solid var(--accent);}\n'
++ '.device-card-header{display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:10px;}\n'
++ '.device-name{font-family:\'JetBrains Mono\',monospace;font-size:17px;font-weight:600;color:var(--text-primary);}\n'
++ '.device-type-badge{font-family:\'JetBrains Mono\',monospace;font-size:12px;text-transform:uppercase;letter-spacing:0.8px;padding:3px 8px;border-radius:3px;font-weight:600;white-space:nowrap;display:inline-flex;align-items:center;gap:5px;}\n'
++ '.device-type-badge svg{flex-shrink:0;display:block;}\n'
++ '.badge-server{background:rgba(57,197,187,0.15);color:var(--accent);}.badge-vm{background:var(--blue-bg);color:var(--blue);}.badge-container{background:var(--purple-bg);color:var(--purple);}.badge-network{background:rgba(230,180,60,0.15);color:#e6b43c;}.badge-storage{background:rgba(230,120,80,0.15);color:#e67850;}.badge-other{background:rgba(150,150,170,0.15);color:#9696aa;}\n'
++ '.device-parent-link{font-size:13px;color:var(--text-muted);margin-bottom:8px;}.device-parent-link strong{color:var(--text-secondary);}\n'
++ '.device-meta{display:flex;flex-wrap:wrap;gap:12px;margin-bottom:8px;}.meta-item{font-size:14px;color:var(--text-secondary);}.meta-item strong{color:var(--text-primary);font-weight:500;}\n'
++ '.device-services{display:flex;flex-wrap:wrap;gap:4px;margin-top:8px;}\n'
++ '.service-tag{font-family:\'JetBrains Mono\',monospace;font-size:12px;padding:2px 8px;border-radius:3px;background:var(--tag-bg);border:1px solid var(--tag-border);color:var(--accent);}\n'
++ '.child-count-badge{font-family:\'JetBrains Mono\',monospace;font-size:12px;padding:2px 8px;border-radius:3px;background:var(--blue-bg);color:var(--blue);margin-top:8px;display:inline-block;}\n'
++ '.detail-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,0.7);z-index:200;align-items:center;justify-content:center;backdrop-filter:blur(4px);}.detail-overlay.open{display:flex;}\n'
++ '.detail-panel{background:var(--bg-secondary);border:1px solid var(--border);border-radius:8px;width:85%;max-width:1000px;max-height:90vh;overflow:hidden;display:flex;flex-direction:column;box-shadow:0 20px 60px rgba(0,0,0,0.5);}\n'
++ '.detail-header{flex-shrink:0;display:flex;justify-content:space-between;align-items:flex-start;padding:22px;border-bottom:1px solid var(--border);background:var(--bg-secondary);}\n'
++ '.detail-body{padding:22px;flex:1 1 auto;overflow-y:auto;min-height:0;}.detail-section{margin-bottom:20px;}\n'
++ '.detail-section-title{font-family:\'JetBrains Mono\',monospace;font-size:13px;text-transform:uppercase;letter-spacing:1px;color:var(--text-muted);margin-bottom:10px;padding-bottom:6px;border-bottom:1px solid var(--border);}\n'
++ '.detail-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;}.detail-field-label{font-size:13px;color:var(--text-secondary);text-transform:uppercase;letter-spacing:0.5px;}.detail-field-value{font-family:\'JetBrains Mono\',monospace;font-size:15px;color:var(--text-primary);}\n'
++ '.detail-notes{font-size:15px;color:var(--text-secondary);line-height:1.7;white-space:pre-wrap;}\n'
++ '.btn{font-family:\'IBM Plex Sans\',sans-serif;font-size:15px;font-weight:500;padding:8px 16px;border-radius:var(--radius);border:1px solid var(--border);background:var(--bg-tertiary);color:var(--text-primary);cursor:pointer;transition:all 0.15s ease;display:inline-flex;align-items:center;gap:6px;}.btn:hover{border-color:var(--border-active);background:var(--bg-card);}.btn-ghost{border-color:transparent;background:transparent;}.btn-ghost:hover{background:var(--bg-tertiary);}.btn-sm{padding:5px 10px;font-size:14px;}\n'
++ '.service-table{width:100%;border-collapse:collapse;}.service-table th{font-family:\'JetBrains Mono\',monospace;font-size:12px;text-transform:uppercase;letter-spacing:0.5px;color:var(--text-muted);text-align:left;padding:6px 10px;border-bottom:1px solid var(--border);}.service-table td{font-family:\'JetBrains Mono\',monospace;font-size:14px;padding:8px 10px;color:var(--text-primary);border-bottom:1px solid var(--border);}.service-table td.svc-notes{color:var(--text-secondary);font-family:\'IBM Plex Sans\',sans-serif;}.service-table tr:last-child td{border-bottom:none;}\n'
++ '.child-device{display:flex;align-items:center;justify-content:space-between;padding:10px 14px;border:1px solid var(--border);border-radius:var(--radius);margin-bottom:6px;cursor:pointer;transition:all 0.15s;}.child-device:hover{border-color:var(--border-active);background:var(--bg-tertiary);}.child-device-name{font-family:\'JetBrains Mono\',monospace;font-size:14px;font-weight:500;}.child-device-info{font-size:13px;color:var(--text-secondary);}\n'
++ '.empty-state{text-align:center;padding:80px 20px;}.empty-icon{font-size:52px;margin-bottom:16px;opacity:0.3;}.empty-title{font-family:\'JetBrains Mono\',monospace;font-size:18px;color:var(--text-secondary);margin-bottom:8px;}.empty-text{font-size:15px;color:var(--text-muted);margin-bottom:20px;}\n'
++ '.footer{text-align:center;padding:24px 16px;border-top:1px solid var(--border);margin-top:40px;}.footer-link{font-family:\'JetBrains Mono\',monospace;font-size:13px;color:var(--text-muted);text-decoration:none;transition:color 0.15s;}.footer-link:hover{color:var(--accent);}\n'
++ '.view-toggle{display:inline-flex;border:1px solid var(--border);border-radius:var(--radius);overflow:hidden;}\n'
++ '.view-btn{font-family:\'JetBrains Mono\',monospace;font-size:13px;padding:5px 12px;border:none;background:transparent;color:var(--text-secondary);cursor:pointer;transition:all 0.15s;text-transform:uppercase;letter-spacing:0.5px;}\n'
++ '.view-btn:hover{color:var(--text-primary);background:var(--bg-tertiary);}.view-btn.active{color:var(--accent);background:var(--accent-glow);}.view-btn+.view-btn{border-left:1px solid var(--border);}\n'
++ '.topology-view{display:none;}.topology-view.active{display:block;}\n'
++ '.topology-empty{text-align:center;padding:60px 20px;color:var(--text-muted);font-size:15px;}\n'
++ '.topology-clusters{display:grid;grid-template-columns:repeat(auto-fill,280px);gap:28px 24px;align-items:start;justify-content:center;}\n'
++ '.topo-cluster{overflow:visible;display:block;}\n'
++ '.topo-cluster .topo-box{fill:var(--bg-card);stroke:var(--border);stroke-width:1;transition:fill 0.15s,stroke 0.15s,filter 0.15s;}\n'
++ '.topo-cluster .topo-node{cursor:pointer;}\n'
++ '.topo-cluster .topo-node:hover .topo-box,.topo-cluster .topo-node:focus-visible .topo-box{fill:var(--bg-tertiary);stroke:var(--border-active);filter:drop-shadow(0 0 8px rgba(57,197,187,0.35));}\n'
++ '.topo-cluster .topo-node:focus{outline:none;}\n'
++ '.topo-cluster .topo-text-name{font-family:\'JetBrains Mono\',monospace;font-size:14px;font-weight:600;fill:var(--text-primary);pointer-events:none;}\n'
++ '.topo-cluster .topo-text-type{font-family:\'JetBrains Mono\',monospace;font-size:10px;fill:var(--text-muted);letter-spacing:0.5px;pointer-events:none;}\n'
++ '.topo-cluster .topo-edge{stroke:var(--border-active);stroke-width:1;fill:none;}\n'
++ '.topo-cluster .topo-accent{pointer-events:none;}\n'
++ '.topo-accent-server{fill:var(--accent);}.topo-accent-vm{fill:var(--blue);}.topo-accent-container{fill:var(--purple);}.topo-accent-network{fill:#e6b43c;}.topo-accent-storage{fill:#e67850;}.topo-accent-other{fill:#9696aa;}\n'
++ '.topo-cluster .topo-type-icon{pointer-events:none;}\n'
++ '.topo-type-icon-server{color:var(--accent);}.topo-type-icon-vm{color:var(--blue);}.topo-type-icon-container{color:var(--purple);}.topo-type-icon-network{color:#e6b43c;}.topo-type-icon-storage{color:#e67850;}.topo-type-icon-other{color:#9696aa;}\n'
++ '@media (max-width:640px){.header{padding:12px 16px;}.main{padding:16px;}.device-grid{grid-template-columns:1fr;}.detail-grid{grid-template-columns:1fr;}.toolbar{flex-direction:column;align-items:stretch;}.search-wrap{display:block;}.search-box{width:100%;}.stats-bar{flex-wrap:wrap;gap:16px;}.view-toggle{display:flex;}.view-toggle .view-btn{flex:1;text-align:center;justify-content:center;}.topology-clusters{grid-template-columns:1fr;max-width:320px;margin:0 auto;justify-content:center;}.topo-cluster{width:100%;height:auto;}.filter-group{display:none;}.filter-select{display:block;}}\n'
++ '</style>\n'
++ '</head>\n'
++ '<body>\n'
++ '<header class="header"><div class="logo">__SITE_NAME__</div></header>\n'
++ '<div class="main">\n'
++ '  <div class="stats-bar" id="statsBar"></div>\n'
++ '  <div class="toolbar">\n'
++ '    <div class="search-wrap" id="searchWrap">\n'
++ '      <input type="text" class="search-box" id="searchBox" placeholder="Search...">\n'
++ '      <button type="button" class="search-clear" id="searchClear" aria-label="Clear search" title="Clear search">✕</button>\n'
++ '    </div>\n'
++ '    <div class="filter-group" id="filterGroup"></div>\n'
++ '    <div class="filter-select" id="filterSelectWrap">\n'
++ '      <button type="button" class="filter-select-toggle" id="filterToggle" aria-haspopup="listbox" aria-expanded="false" aria-label="Filter by type"><span id="filterValue">all</span><svg class="filter-select-chevron" width="12" height="12" viewBox="0 0 12 12" aria-hidden="true"><path fill="none" stroke="currentColor" stroke-width="1.5" d="M2 4l4 4 4-4"/></svg></button>\n'
++ '      <ul class="filter-select-menu" id="filterMenu" role="listbox" hidden></ul>\n'
++ '    </div>\n'
++ '    <div class="view-toggle" role="tablist" aria-label="View mode">\n'
++ '      <button type="button" class="view-btn active" data-view="grid" role="tab" aria-selected="true" title="Card view">Cards</button>\n'
++ '      <button type="button" class="view-btn" data-view="topology" role="tab" aria-selected="false" title="Topology view">Topology</button>\n'
++ '    </div>\n'
++ '  </div>\n'
++ '  <div class="device-grid" id="deviceGrid"></div>\n'
++ '  <div class="topology-view" id="topologyView" aria-live="polite"></div>\n'
++ '</div>\n'
++ '<footer class="footer"><a href="https://github.com/jeremehancock/homelab.md" target="_blank" rel="noopener" class="footer-link">Generated by homelab.md</a></footer>\n'
++ '<div class="detail-overlay" id="detailOverlay"><div class="detail-panel" id="detailPanel"></div></div>\n'
++ '<script>\n'
++ '"use strict";\n'
++ 'var DEVICES = __DEVICE_DATA__;\n'
++ 'var currentFilter = "all";\n'
++ 'var currentView = "grid";\n'
++ 'function esc(str){if(!str&&str!==0)return "";var d=document.createElement("div");d.textContent=String(str);return d.innerHTML;}\n'
++ 'function getTypeClass(type){var map={server:"badge-server",vm:"badge-vm",container:"badge-container",network:"badge-network",storage:"badge-storage"};return map[type]||"badge-other";}\n'
++ 'var TYPE_ICON_PATHS={'
++ 'server:\'<rect x="2" y="2.5" width="12" height="4.5" rx="1"/><rect x="2" y="9" width="12" height="4.5" rx="1"/><circle cx="4.5" cy="4.75" r="0.6" fill="currentColor" stroke="none"/><circle cx="4.5" cy="11.25" r="0.6" fill="currentColor" stroke="none"/><line x1="7" y1="4.75" x2="12" y2="4.75"/><line x1="7" y1="11.25" x2="12" y2="11.25"/>\','
++ 'vm:\'<rect x="1.75" y="2.75" width="12.5" height="8.5" rx="1"/><line x1="5.5" y1="14" x2="10.5" y2="14"/><line x1="8" y1="11.25" x2="8" y2="14"/><circle cx="8" cy="7" r="2" fill="currentColor" stroke="none"/>\','
++ 'container:\'<path d="M8 1.75l5.75 2.75v7L8 14.25 2.25 11.5v-7z"/><path d="M2.25 4.5L8 7.25l5.75-2.75"/><line x1="8" y1="7.25" x2="8" y2="14.25"/>\','
++ 'network:\'<circle cx="8" cy="3" r="1.6"/><circle cx="3" cy="13" r="1.6"/><circle cx="13" cy="13" r="1.6"/><line x1="8" y1="4.6" x2="8" y2="7.5"/><line x1="8" y1="7.5" x2="3.8" y2="11.6"/><line x1="8" y1="7.5" x2="12.2" y2="11.6"/>\','
++ 'storage:\'<ellipse cx="8" cy="3.5" rx="5.25" ry="1.75"/><path d="M2.75 3.5v9c0 .97 2.35 1.75 5.25 1.75s5.25-.78 5.25-1.75v-9"/><path d="M2.75 8c0 .97 2.35 1.75 5.25 1.75s5.25-.78 5.25-1.75"/>\','
++ 'other:\'<circle cx="8" cy="8" r="6"/><circle cx="8" cy="8" r="1.4" fill="currentColor" stroke="none"/>\''
++ '};\n'
++ 'function getTypeIcon(type){var t=TYPE_ICON_PATHS[type]?type:"other";return \'<svg width="12" height="12" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round" aria-hidden="true">\'+TYPE_ICON_PATHS[t]+\'</svg>\';}\n'
++ 'function getTopoTypeIcon(type,x,y,size){var t=TYPE_ICON_PATHS[type]?type:"other";return \'<svg x="\'+x+\'" y="\'+y+\'" width="\'+size+\'" height="\'+size+\'" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round" class="topo-type-icon topo-type-icon-\'+t+\'" aria-hidden="true">\'+TYPE_ICON_PATHS[t]+\'</svg>\';}\n'
++ 'function typeBadge(type){var t=type||"other";return \'<span class="device-type-badge \'+getTypeClass(t)+\'">\'+getTypeIcon(t)+\'<span>\'+esc(t)+\'</span></span>\';}\n'
++ 'function getDevice(id){for(var i=0;i<DEVICES.length;i++)if(DEVICES[i].id===id)return DEVICES[i];return null;}\n'
++ 'function getChildren(parentId){return DEVICES.filter(function(d){return d.parentId===parentId;}).sort(function(a,b){return (a.name||"").localeCompare(b.name||"",undefined,{sensitivity:"base"});});}\n'
++ 'function sortedStorage(storage){return Array.isArray(storage)?storage.slice().sort(function(a,b){return (a.type||"").localeCompare(b.type||"",undefined,{sensitivity:"base"});}):storage;}\n'
++ 'function sortedServices(services){return (services||[]).slice().sort(function(a,b){var an=typeof a==="string"?a:(a.name||"");var bn=typeof b==="string"?b:(b.name||"");return an.localeCompare(bn,undefined,{sensitivity:"base"});});}\n'
++ 'function renderStats(){\n'
++ '  var hosts=DEVICES.filter(function(d){return !d.parentId;}).length;\n'
++ '  var vmsAndContainers=DEVICES.filter(function(d){return d.type==="vm"||d.type==="container";}).length;\n'
++ '  var totalServices=DEVICES.reduce(function(sum,d){return sum+(d.services?d.services.length:0);},0);\n'
++ '  document.getElementById("statsBar").innerHTML=\n'
++ '    \'<div class="stat"><span class="stat-value">\'+DEVICES.length+\'</span><span class="stat-label">Devices</span></div>\'+\n'
++ '    \'<div class="stat"><span class="stat-value">\'+hosts+\'</span><span class="stat-label">Hosts</span></div>\'+\n'
++ '    \'<div class="stat"><span class="stat-value">\'+vmsAndContainers+\'</span><span class="stat-label">VMs/Containers</span></div>\'+\n'
++ '    \'<div class="stat"><span class="stat-value">\'+totalServices+\'</span><span class="stat-label">Services</span></div>\';\n'
++ '}\n'
++ 'function renderFilters(){\n'
++ '  var seen={},types=["all"];\n'
++ '  DEVICES.forEach(function(d){if(!seen[d.type]){seen[d.type]=1;types.push(d.type);}});\n'
++ '  document.getElementById("filterGroup").innerHTML=types.map(function(t){\n'
++ '    return \'<button class="filter-btn \'+(t===currentFilter?"active":"")+\'" data-filter="\'+esc(t)+\'">\'+esc(t)+\'</button>\';\n'
++ '  }).join("");\n'
++ '  document.getElementById("filterValue").textContent=currentFilter;\n'
++ '  document.getElementById("filterMenu").innerHTML=types.map(function(t){\n'
++ '    return \'<li class="filter-select-option \'+(t===currentFilter?"active":"")+\'" role="option" aria-selected="\'+(t===currentFilter)+\'" data-filter="\'+esc(t)+\'">\'+esc(t)+\'</li>\';\n'
++ '  }).join("");\n'
++ '}\n'
++ 'function toggleFilterMenu(){var b=document.getElementById("filterToggle"),m=document.getElementById("filterMenu");var open=b.getAttribute("aria-expanded")==="true";b.setAttribute("aria-expanded",open?"false":"true");m.hidden=open;}\n'
++ 'function closeFilterMenu(){var b=document.getElementById("filterToggle"),m=document.getElementById("filterMenu");if(!b||!m)return;b.setAttribute("aria-expanded","false");m.hidden=true;}\n'
++ 'function setFilter(f){currentFilter=f;renderFilters();renderDevices();if(currentView==="topology")renderTopology();}\n'
++ 'function getFilteredDevices(){\n'
++ '  var query=document.getElementById("searchBox").value.toLowerCase();\n'
++ '  var filtered=DEVICES.filter(function(d){\n'
++ '    if(currentFilter!=="all"&&d.type!==currentFilter)return false;\n'
++ '    if(query){\n'
++ '      var svcText=(d.services||[]).map(function(s){return s.name+" "+s.notes;}).join(" ");\n'
++ '      var storageText=(d.storage||[]).map(function(s){return s.type+" "+s.size+" "+s.notes;}).join(" ");\n'
++ '      var hay=[d.name,d.os,d.system,d.type,d.cpu,d.ram,d.notes,svcText,storageText].join(" ").toLowerCase();\n'
++ '      return hay.indexOf(query)!==-1;\n'
++ '    }\n'
++ '    return true;\n'
++ '  });\n'
++ '  filtered.sort(function(a,b){return (a.name||"").localeCompare(b.name||"",undefined,{sensitivity:"base"});});\n'
++ '  return filtered;\n'
++ '}\n'
++ 'function renderDevices(){\n'
++ '  var filtered=getFilteredDevices();\n'
++ '  var grid=document.getElementById("deviceGrid");\n'
++ '  if(!filtered.length){\n'
++ '    grid.innerHTML=\'<div class="empty-state" style="grid-column:1/-1;"><div class="empty-icon">\\u29E1</div><div class="empty-title">\'+(DEVICES.length===0?"No devices":"No matches")+\'</div><div class="empty-text">\'+(DEVICES.length===0?"":"Try adjusting your search or filter.")+\'</div></div>\';\n'
++ '    return;\n'
++ '  }\n'
++ '  grid.innerHTML=filtered.map(function(d){\n'
++ '    var children=getChildren(d.id);\n'
++ '    var parent=d.parentId?getDevice(d.parentId):null;\n'
++ '    var svcs=sortedServices(d.services);\n'
++ '    var storage=sortedStorage(d.storage||[]);\n'
++ '    var storageHtml="";\n'
++ '    if(storage.length){\n'
++ '      var first=storage[0];\n'
++ '      var firstLabel=esc(first.size?first.type+" "+first.size:first.type);\n'
++ '      if(storage.length>2){storageHtml=firstLabel+", +"+(storage.length-1)+" more";}\n'
++ '      else{storageHtml=storage.map(function(s){return esc(s.size?s.type+" "+s.size:s.type);}).join(", ");}\n'
++ '    }\n'
++ '    return \'<div class="device-card \'+(children.length?"has-children":"")+\'" tabindex="0" role="button" data-id="\'+esc(d.id)+\'">\'+\n'
++ '      \'<div class="device-card-header"><div><div class="device-name">\'+esc(d.name)+\'</div></div>\'+\n'
++ '      typeBadge(d.type)+\'</div>\'+\n'
++ '      (parent?\'<div class="device-parent-link">on <strong>\'+esc(parent.name)+\'</strong></div>\':"")+\n'
++ '      \'<div class="device-meta">\'+\n'
++ '        (d.system?\'<span class="meta-item"><strong>System:</strong> \'+esc(d.system)+\'</span>\':"")+\n'
++ '        (d.os?\'<span class="meta-item"><strong>OS:</strong> \'+esc(d.os)+\'</span>\':"")+\n'
++ '        (d.cpu?\'<span class="meta-item"><strong>CPU:</strong> \'+esc(d.cpu)+\'</span>\':"")+\n'
++ '        (d.ram?\'<span class="meta-item"><strong>RAM:</strong> \'+esc(d.ram)+\'</span>\':"")+\n'
++ '        (storageHtml?\'<span class="meta-item"><strong>Storage:</strong> \'+storageHtml+\'</span>\':"")+\n'
++ '      \'</div>\'+\n'
++ '      (svcs.length?\'<div class="device-services">\'+\n'
++ '        svcs.slice(0,3).map(function(s){return \'<span class="service-tag">\'+esc(s.name)+\'</span>\';}).join("")+\n'
++ '        (svcs.length>3?\'<span class="service-tag">+\'+(svcs.length-3)+\' more</span>\':"")+\n'
++ '      \'</div>\':"")+\n'
++ '      (children.length?\'<span class="child-count-badge">\'+children.length+" "+(children.length===1?"child":"children")+\'</span>\':"")+\n'
++ '    \'</div>\';\n'
++ '  }).join("");\n'
++ '}\n'
++ 'function truncateLabel(s,n){s=String(s||"");return s.length>n?s.slice(0,n-1)+"\\u2026":s;}\n'
++ 'function topoBoxSvg(d,x,y,w,h,isParent){\n'
++ '  var textX=x+14;\n'
++ '  var nameY=y+h/2-3;\n'
++ '  var typeY=y+h/2+13;\n'
++ '  var iconSize=12,iconX=textX,iconY=typeY-11,typeTextX=textX+iconSize+4;\n'
++ '  var t=d.type||"other";\n'
++ '  var nameMax=isParent?24:22;\n'
++ '  var clipId="topo-clip-"+esc(d.id);\n'
++ '  return \'<g class="topo-node" data-id="\'+esc(d.id)+\'">\'+\n'
++ '    \'<defs><clipPath id="\'+clipId+\'"><rect x="\'+x+\'" y="\'+y+\'" width="\'+w+\'" height="\'+h+\'" rx="6"/></clipPath></defs>\'+\n'
++ '    \'<rect x="\'+x+\'" y="\'+y+\'" width="\'+w+\'" height="\'+h+\'" rx="6" class="topo-box"/>\'+\n'
++ '    \'<rect x="\'+x+\'" y="\'+y+\'" width="3" height="\'+h+\'" class="topo-accent topo-accent-\'+t+\'" clip-path="url(#\'+clipId+\')"/>\'+\n'
++ '    \'<text x="\'+textX+\'" y="\'+nameY+\'" class="topo-text-name">\'+esc(truncateLabel(d.name,nameMax))+\'</text>\'+\n'
++ '    getTopoTypeIcon(t,iconX,iconY,iconSize)+\n'
++ '    \'<text x="\'+typeTextX+\'" y="\'+typeY+\'" class="topo-text-type">\'+esc(t.toUpperCase())+\'</text>\'+\n'
++ '    \'<title>\'+esc(d.name)+(d.type?" (\'+esc(d.type)+\')":"")+\'</title>\'+\n'
++ '  \'</g>\';\n'
++ '}\n'
++ 'function topologyClusterSvg(parent,children){\n'
++ '  var w=280,parentH=60,childH=50,childIndent=26,childGap=10,childTopGap=20,pad=6;\n'
++ '  var childW=w-childIndent;\n'
++ '  var svg=topoBoxSvg(parent,0,0,w,parentH,true);\n'
++ '  if(children.length){\n'
++ '    var trunkX=11,trunkTop=parentH;\n'
++ '    var lastChildCenter=parentH+childTopGap+(children.length-1)*(childH+childGap)+childH/2;\n'
++ '    svg+=\'<line x1="\'+trunkX+\'" y1="\'+trunkTop+\'" x2="\'+trunkX+\'" y2="\'+lastChildCenter+\'" class="topo-edge"/>\';\n'
++ '    children.forEach(function(c,i){\n'
++ '      var y=parentH+childTopGap+i*(childH+childGap);\n'
++ '      var cy=y+childH/2;\n'
++ '      svg+=\'<line x1="\'+trunkX+\'" y1="\'+cy+\'" x2="\'+childIndent+\'" y2="\'+cy+\'" class="topo-edge"/>\';\n'
++ '      svg+=topoBoxSvg(c,childIndent,y,childW,childH,false);\n'
++ '    });\n'
++ '  }\n'
++ '  var contentH=children.length?parentH+childTopGap+children.length*(childH+childGap)-childGap:parentH;\n'
++ '  var svgW=w+pad*2,svgH=contentH+pad*2;\n'
++ '  var ariaLabel=esc(parent.name)+(children.length?" with "+children.length+" child device"+(children.length===1?"":"s"):"");\n'
++ '  return \'<svg class="topo-cluster" viewBox="\'+(-pad)+\' \'+(-pad)+\' \'+svgW+\' \'+svgH+\'" width="\'+svgW+\'" height="\'+svgH+\'" xmlns="http://www.w3.org/2000/svg" role="group" aria-label="\'+ariaLabel+\'">\'+svg+\'</svg>\';\n'
++ '}\n'
++ 'function renderTopology(){\n'
++ '  var filtered=getFilteredDevices();\n'
++ '  var container=document.getElementById("topologyView");\n'
++ '  if(!filtered.length){container.innerHTML=\'<div class="topology-empty">\'+(DEVICES.length===0?"No devices yet.":"No matches for the current search/filter.")+\'</div>\';return;}\n'
++ '  var filteredIds={};filtered.forEach(function(d){filteredIds[d.id]=1;});\n'
++ '  var roots=filtered.filter(function(d){return !d.parentId;});\n'
++ '  var orphans=filtered.filter(function(d){return d.parentId&&!filteredIds[d.parentId];});\n'
++ '  var clusters=[];\n'
++ '  roots.forEach(function(p){clusters.push({parent:p,children:filtered.filter(function(c){return c.parentId===p.id;})});});\n'
++ '  orphans.forEach(function(o){clusters.push({parent:o,children:[]});});\n'
++ '  clusters.sort(function(a,b){return (a.parent.name||"").localeCompare(b.parent.name||"",undefined,{sensitivity:"base"});});\n'
++ '  container.innerHTML=\'<div class="topology-clusters">\'+clusters.map(function(c){return topologyClusterSvg(c.parent,c.children);}).join("")+\'</div>\';\n'
++ '}\n'
++ 'var VIEW_KEY="homelab_view";\n'
++ 'try{var savedView=localStorage.getItem(VIEW_KEY);if(savedView==="topology"||savedView==="grid")currentView=savedView;}catch(_){}\n'
++ 'function applyViewUI(){\n'
++ '  var btns=document.querySelectorAll("[data-view]");\n'
++ '  for(var i=0;i<btns.length;i++){var active=btns[i].getAttribute("data-view")===currentView;btns[i].classList.toggle("active",active);btns[i].setAttribute("aria-selected",active?"true":"false");}\n'
++ '  document.getElementById("deviceGrid").style.display=currentView==="grid"?"":"none";\n'
++ '  document.getElementById("topologyView").classList.toggle("active",currentView==="topology");\n'
++ '}\n'
++ 'function setView(v){\n'
++ '  currentView=v;\n'
++ '  try{localStorage.setItem(VIEW_KEY,v);}catch(_){}\n'
++ '  applyViewUI();\n'
++ '  if(v==="topology")renderTopology();\n'
++ '}\n'
++ 'function showDetail(id){\n'
++ '  var d=getDevice(id);if(!d)return;\n'
++ '  var children=getChildren(d.id);\n'
++ '  var parent=d.parentId?getDevice(d.parentId):null;\n'
++ '  var html=\'<div class="detail-header"><div>\'+\n'
++ '    \'<div style="font-family:\\\'JetBrains Mono\\\',monospace;font-size:22px;font-weight:700;margin-bottom:4px;">\'+esc(d.name)+\'</div>\'+\n'
++ '    typeBadge(d.type)+\n'
++ '    (parent?\' <span style="font-size:14px;color:var(--text-secondary);margin-left:10px;">on <strong>\'+esc(parent.name)+\'</strong></span>\':"")+\n'
++ '  \'</div><button class="btn btn-ghost btn-sm" data-action="close-detail">\\u2715</button></div>\';\n'
++ '  var hasOverview=d.system||d.os;\n'
++ '  var hasHardware=d.cpu||d.ram;\n'
++ '  html+=\'<div class="detail-body">\';\n'
++ '  if(hasOverview){\n'
++ '    html+=\'<div class="detail-section"><div class="detail-section-title">Overview</div><div class="detail-grid">\'+\n'
++ '      \'<div><div class="detail-field-label">System</div><div class="detail-field-value">\'+(esc(d.system)||"\\u2014")+\'</div></div>\'+\n'
++ '      \'<div><div class="detail-field-label">OS</div><div class="detail-field-value">\'+(esc(d.os)||"\\u2014")+\'</div></div>\'+\n'
++ '    \'</div></div>\';\n'
++ '  }\n'
++ '  if(hasHardware){\n'
++ '    html+=\'<div class="detail-section"><div class="detail-section-title">Hardware</div><div class="detail-grid">\'+\n'
++ '      \'<div><div class="detail-field-label">CPU</div><div class="detail-field-value">\'+(esc(d.cpu)||"\\u2014")+\'</div></div>\'+\n'
++ '      \'<div><div class="detail-field-label">RAM</div><div class="detail-field-value">\'+(esc(d.ram)||"\\u2014")+\'</div></div>\'+\n'
++ '    \'</div></div>\';\n'
++ '  }\n'
++ '  if(d.storage&&d.storage.length){\n'
++ '    var sortedSt=sortedStorage(d.storage);\n'
++ '    html+=\'<div class="detail-section"><div class="detail-section-title">Storage (\'+sortedSt.length+\')</div>\'+\n'
++ '      \'<table class="service-table"><thead><tr><th>Type / Device</th><th>Size</th><th>Notes</th></tr></thead><tbody>\'+\n'
++ '      sortedSt.map(function(s){return \'<tr><td>\'+esc(s.type)+\'</td><td>\'+(esc(s.size)||"\\u2014")+\'</td><td class="svc-notes">\'+(esc(s.notes)||"\\u2014")+\'</td></tr>\';}).join("")+\n'
++ '      \'</tbody></table></div>\';\n'
++ '  }\n'
++ '  if(d.services&&d.services.length){\n'
++ '    var sortedSv=sortedServices(d.services);\n'
++ '    html+=\'<div class="detail-section"><div class="detail-section-title">Services (\'+sortedSv.length+\')</div>\'+\n'
++ '      \'<table class="service-table"><thead><tr><th>Service</th><th>Notes</th></tr></thead><tbody>\'+\n'
++ '      sortedSv.map(function(s){return \'<tr><td>\'+esc(s.name)+\'</td><td class="svc-notes">\'+(esc(s.notes)||"\\u2014")+\'</td></tr>\';}).join("")+\n'
++ '      \'</tbody></table></div>\';\n'
++ '  }\n'
++ '  if(children.length){\n'
++ '    html+=\'<div class="detail-section"><div class="detail-section-title">Running on this host (\'+children.length+\')</div>\'+\n'
++ '      children.map(function(c){return \'<div class="child-device" data-detail-id="\'+esc(c.id)+\'"><div><div class="child-device-name">\'+esc(c.name)+\'</div><div class="child-device-info">\'+esc(c.type)+(c.services&&c.services.length?" \\u00B7 "+c.services.length+" services":"")+\'</div></div>\'+typeBadge(c.type)+\'</div>\';}).join("")+\n'
++ '    \'</div>\';\n'
++ '  }\n'
++ '  if(parent){\n'
++ '    html+=\'<div class="detail-section"><div class="detail-section-title">Host</div>\'+\n'
++ '      \'<div class="child-device" data-detail-id="\'+esc(parent.id)+\'"><div><div class="child-device-name">\'+esc(parent.name)+\'</div><div class="child-device-info">\'+esc(parent.type)+\'</div></div>\'+typeBadge(parent.type)+\'</div>\'+\n'
++ '    \'</div>\';\n'
++ '  }\n'
++ '  if(d.notes){\n'
++ '    html+=\'<div class="detail-section"><div class="detail-section-title">Notes</div><div class="detail-notes">\'+esc(d.notes)+\'</div></div>\';\n'
++ '  }\n'
++ '  html+=\'</div>\';\n'
++ '  document.getElementById("detailPanel").innerHTML=html;\n'
++ '  document.getElementById("detailOverlay").classList.add("open");\n'
++ '}\n'
++ 'function closeDetail(){document.getElementById("detailOverlay").classList.remove("open");}\n'
++ 'document.getElementById("searchBox").addEventListener("input",function(){document.getElementById("searchWrap").classList.toggle("has-value",!!this.value);renderDevices();if(currentView==="topology")renderTopology();});\n'
++ 'document.getElementById("searchClear").addEventListener("click",function(){var b=document.getElementById("searchBox");b.value="";document.getElementById("searchWrap").classList.remove("has-value");b.focus();renderDevices();if(currentView==="topology")renderTopology();});\n'
++ 'document.getElementById("filterGroup").addEventListener("click",function(e){var b=e.target.closest("[data-filter]");if(b)setFilter(b.getAttribute("data-filter"));});\n'
++ 'document.getElementById("filterToggle").addEventListener("click",function(e){e.stopPropagation();toggleFilterMenu();});\n'
++ 'document.getElementById("filterMenu").addEventListener("click",function(e){var o=e.target.closest("[data-filter]");if(o){closeFilterMenu();setFilter(o.getAttribute("data-filter"));}});\n'
++ 'document.addEventListener("click",function(e){var w=document.getElementById("filterSelectWrap");if(w&&!w.contains(e.target))closeFilterMenu();});\n'
++ 'document.addEventListener("keydown",function(e){if(e.key==="Escape")closeFilterMenu();});\n'
++ 'document.getElementById("deviceGrid").addEventListener("click",function(e){var c=e.target.closest("[data-id]");if(c)showDetail(c.getAttribute("data-id"));});\n'
++ 'document.getElementById("deviceGrid").addEventListener("keydown",function(e){if(e.key==="Enter"||e.key===" "){var c=e.target.closest("[data-id]");if(c){e.preventDefault();showDetail(c.getAttribute("data-id"));}}});\n'
++ 'document.getElementById("topologyView").addEventListener("click",function(e){var n=e.target.closest("[data-id]");if(n)showDetail(n.getAttribute("data-id"));});\n'
++ 'document.querySelectorAll("[data-view]").forEach(function(b){b.addEventListener("click",function(){setView(b.getAttribute("data-view"));});});\n'
++ 'document.getElementById("detailPanel").addEventListener("click",function(e){var n=e.target.closest("[data-detail-id]");if(n){showDetail(n.getAttribute("data-detail-id"));return;}if(e.target.closest("[data-action=close-detail]"))closeDetail();});\n'
++ 'document.getElementById("detailOverlay").addEventListener("click",function(e){if(e.target.id==="detailOverlay")closeDetail();});\n'
++ 'document.addEventListener("keydown",function(e){if(e.key==="Escape")closeDetail();});\n'
++ 'applyViewUI();renderStats();renderFilters();renderDevices();if(currentView==="topology")renderTopology();\n'
++ '<\/script>\n'
++ '</body>\n'
++ '</html>\n';
+
+function exportAll() {
+  const devices = loadDevices();
+  if (!devices.length) { toast('No devices to export', 'error'); return; }
+
+  let combined = `# Homelab Inventory\n\n`;
+  combined += `> Exported ${new Date().toLocaleString()} — ${devices.length} devices\n\n---\n\n`;
+  devices.forEach(d => { combined += deviceToMarkdown(d, devices) + '\n'; });
+
+  downloadFile('homelab.md', combined, () => {
+    markExported();
+    toast(`Exported ${devices.length} devices`);
+  });
+}
+
+function importMarkdown() { document.getElementById('fileInput').click(); }
+
+function handleImport(event) {
+  const files = event.target.files;
+  if (!files.length) return;
+
+  const filePromises = Array.from(files).map(file => new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = (e) => resolve(e.target.result);
+    reader.onerror = () => reject(reader.error);
+    reader.readAsText(file);
+  }));
+
+  Promise.all(filePromises).then(results => {
+    const devices = [];
+
+    results.forEach(text => {
+      const sections = text.split(/(?=^# [^#])/m).filter(s => s.trim());
+      sections.forEach(section => {
+        if (section.startsWith('# Homelab Inventory')) return;
+        const device = markdownToDevice(section);
+        if (device.name) devices.push(device);
+      });
+    });
+
+    if (!devices.length) {
+      toast('No devices found in file — nothing imported', 'error');
+      return;
+    }
+
+    const commit = () => {
+      devices.forEach(d => {
+        if (d._parentName && !d.parentId) {
+          const parent = devices.find(p => p.name === d._parentName);
+          if (parent) d.parentId = parent.id;
+        }
+        delete d._parentName;
+      });
+      saveDevices(devices);
+      markExported();
+      refresh();
+      toast(`Imported ${devices.length} device${devices.length !== 1 ? 's' : ''}`);
+    };
+
+    const existing = loadDevices();
+    if (existing.length) {
+      confirmAction({
+        title: 'Replace existing data?',
+        message: `Importing will replace your current ${existing.length} device${existing.length !== 1 ? 's' : ''} with ${devices.length} from the file. This cannot be undone.`,
+        confirmLabel: 'Replace',
+        danger: true,
+        onConfirm: commit,
+      });
+    } else {
+      commit();
+    }
+  });
+  event.target.value = '';
+}
+
+function refresh() {
+  renderStats();
+  renderFilters();
+  renderDevices();
+  if (currentView === 'topology') renderTopology();
+  updateExportIndicator();
+}
+
+// Topology click delegation: open device detail when a node is clicked.
+document.getElementById('topologyView').addEventListener('click', (e) => {
+  const node = e.target.closest('[data-id]');
+  if (node) showDetail(node.getAttribute('data-id'));
+});
+
+// --- Unsaved-since-last-export indicator ---
+const LAST_EXPORT_KEY = 'homelab_last_export';
+
+function markExported() {
+  localStorage.setItem(LAST_EXPORT_KEY, new Date().toISOString());
+  updateExportIndicator();
+}
+
+function hasUnsavedChanges() {
+  const devices = loadDevices();
+  if (!devices.length) return false;
+  const lastExport = localStorage.getItem(LAST_EXPORT_KEY);
+  if (!lastExport) return true;
+  return devices.some(d => d.updatedAt && d.updatedAt > lastExport);
+}
+
+function updateExportIndicator() {
+  const btn = document.getElementById('exportBtn');
+  if (!btn) return;
+  const unsaved = hasUnsavedChanges();
+  btn.classList.toggle('has-unsaved', unsaved);
+  btn.title = unsaved
+    ? 'Export options — unsaved changes since last full export'
+    : 'Export options';
+}
+
+// --- CSV export ---
+function exportCsv() {
+  const devices = loadDevices();
+  if (!devices.length) { toast('No devices to export', 'error'); return; }
+
+  const headers = ['Name', 'Type', 'Status', 'IP', 'System', 'OS', 'CPU', 'RAM', 'Storage', 'Location', 'Services', 'Notes', 'Parent', 'ID'];
+  const csvEscape = v => {
+    if (v === undefined || v === null) return '';
+    const s = String(v);
+    return /[",\n\r]/.test(s) ? '"' + s.replace(/"/g, '""') + '"' : s;
+  };
+
+  const rows = devices.map(d => {
+    const parent = d.parentId ? devices.find(x => x.id === d.parentId) : null;
+    const storage = Array.isArray(d.storage)
+      ? d.storage.map(s => [s.type, s.size, s.notes].filter(Boolean).join(' ')).join('; ')
+      : (d.storage || '');
+    const services = (d.services || []).map(s => {
+      if (typeof s === 'string') return s;
+      return s.name + (s.port ? ':' + s.port : '');
+    }).join('; ');
+    return [
+      d.name, d.type, d.status, d.ip, d.system, d.os, d.cpu, d.ram,
+      storage, d.location, services, d.notes, parent ? parent.name : '', d.id,
+    ].map(csvEscape).join(',');
+  });
+
+  const csv = headers.join(',') + '\n' + rows.join('\n');
+  const blob = new Blob([csv], { type: 'text/csv;charset=utf-8' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url; a.download = 'homelab.csv'; a.click();
+  setTimeout(() => { URL.revokeObjectURL(url); toast('Exported CSV'); }, 500);
+}
+
+// --- Generic confirm modal ---
+let _confirmHandler = null;
+let _lastFocused = null;
+
+function confirmAction({ title, message, confirmLabel = 'Confirm', danger = false, onConfirm }) {
+  document.getElementById('confirmTitle').textContent = title;
+  document.getElementById('confirmMessage').textContent = message;
+  const ok = document.getElementById('confirmOkBtn');
+  ok.textContent = confirmLabel;
+  ok.className = 'btn ' + (danger ? 'btn-danger' : 'btn-primary');
+  _confirmHandler = onConfirm;
+  openModalEl(document.getElementById('confirmModal'), ok);
+}
+
+function closeConfirm() {
+  _confirmHandler = null;
+  closeModalEl(document.getElementById('confirmModal'));
+}
+
+document.getElementById('confirmOkBtn').addEventListener('click', () => {
+  const h = _confirmHandler;
+  closeConfirm();
+  if (h) h();
+});
+
+// --- Modal helpers (focus restore + open/close shims) ---
+function openModalEl(el, focusTarget) {
+  _lastFocused = document.activeElement;
+  el.classList.add('open');
+  setTimeout(() => {
+    const target = focusTarget || el.querySelector('input:not([type=hidden]), select, textarea, button');
+    if (target) target.focus();
+  }, 30);
+}
+
+function closeModalEl(el) {
+  el.classList.remove('open');
+  if (_lastFocused && typeof _lastFocused.focus === 'function') {
+    try { _lastFocused.focus(); } catch (_) {}
+  }
+  _lastFocused = null;
+}
+
+// --- Focus trap for the topmost open modal ---
+function getTopmostOpenModal() {
+  const candidates = [
+    document.getElementById('confirmModal'),
+    document.getElementById('htmlExportModal'),
+    document.getElementById('formModal'),
+    document.getElementById('detailOverlay'),
+  ];
+  return candidates.find(el => el && el.classList.contains('open')) || null;
+}
+
+document.addEventListener('keydown', (e) => {
+  if (e.key !== 'Tab') return;
+  const modal = getTopmostOpenModal();
+  if (!modal) return;
+  const focusables = Array.from(modal.querySelectorAll(
+    'input:not([type=hidden]):not([disabled]), select:not([disabled]), textarea:not([disabled]), button:not([disabled]), a[href], [tabindex]:not([tabindex="-1"])'
+  )).filter(el => el.offsetParent !== null);
+  if (!focusables.length) return;
+  const first = focusables[0];
+  const last = focusables[focusables.length - 1];
+  if (e.shiftKey && document.activeElement === first) {
+    e.preventDefault();
+    last.focus();
+  } else if (!e.shiftKey && document.activeElement === last) {
+    e.preventDefault();
+    first.focus();
+  }
+});
+
+// --- Undo-on-delete state (set by deleteDevice) ---
+window._lastDeleted = null;
+function undoDelete() {
+  const snapshot = window._lastDeleted;
+  if (!snapshot) return;
+  window._lastDeleted = null;
+  const devices = loadDevices();
+  const insertAt = Math.min(snapshot.index, devices.length);
+  devices.splice(insertAt, 0, snapshot.device);
+  devices.forEach(c => {
+    if (snapshot.orphans.indexOf(c.id) !== -1) c.parentId = snapshot.device.id;
+  });
+  saveDevices(devices);
+  refresh();
+  toast(`${snapshot.device.name} restored`);
+}
+
+// Outside-click closes detail overlay; form modal intentionally has no
+// outside-click-to-close to prevent accidental data loss.
+document.getElementById('detailOverlay').addEventListener('click', (e) => {
+  if (e.target === document.getElementById('detailOverlay')) closeDetail();
+});
+document.getElementById('htmlExportModal').addEventListener('click', (e) => {
+  if (e.target === document.getElementById('htmlExportModal')) closeHtmlExportModal();
+});
+document.getElementById('confirmModal').addEventListener('click', (e) => {
+  if (e.target === document.getElementById('confirmModal')) closeConfirm();
+});
+
+// Escape closes detail/export/confirm modals only — NOT the form modal (prevents data loss).
+document.addEventListener('keydown', (e) => {
+  if (e.key !== 'Escape') return;
+  const openSelect = document.querySelector('.form-select-toggle[aria-expanded="true"]');
+  if (openSelect) { closeAllFormSelects(); openSelect.focus(); return; }
+  if (document.getElementById('confirmModal').classList.contains('open')) { closeConfirm(); return; }
+  if (document.getElementById('htmlExportModal').classList.contains('open')) { closeHtmlExportModal(); return; }
+  if (document.getElementById('detailOverlay').classList.contains('open')) { closeDetail(); return; }
+});
+
+applyViewUI();
+refresh();
+</script>
+</body>
+</html>
