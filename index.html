@@ -832,7 +832,7 @@
         </div>
       </div>
 
-      <div class="form-row">
+      <div class="form-row" id="fPowerRow">
         <div class="form-group">
           <label class="form-label">Power Source</label>
           <div class="form-select-wrap" id="fPowerWrap">
@@ -1396,12 +1396,10 @@ function renderTopology() {
     return { device, children: kids.map(k => buildPowerTree(k, seen)) };
   }
 
-  // UPS devices without a network parent are normally hidden from the Network
-  // view (they live in the Power view). Show them here when the user has
-  // explicitly filtered to UPS, otherwise they'd silently disappear.
-  const networkRoots = filtered.filter(d =>
-    !d.parentId && (d.type !== 'ups' || currentFilter === 'ups')
-  );
+  // UPS devices without a network parent live in the Power view, not the
+  // Network view. A UPS with a parentId set (e.g. its management card on a
+  // switch) still appears as a child of that parent in the network tree.
+  const networkRoots = filtered.filter(d => !d.parentId && d.type !== 'ups');
   const networkOrphans = filtered.filter(d => d.parentId && !filteredIds.has(d.parentId));
   const networkTrees = networkRoots.concat(networkOrphans)
     .map(buildNetworkTree)
@@ -1432,9 +1430,14 @@ function renderTopology() {
     : { showStatus: true };
 
   if (!trees.length) {
-    const msg = topoMode === 'power'
-      ? 'No power relationships yet. Set a Power Source on any device.'
-      : 'No matches for the current search/filter.';
+    let msg;
+    if (topoMode === 'power') {
+      msg = 'No power relationships yet. Set a Power Source on any device.';
+    } else if (currentFilter === 'ups') {
+      msg = 'UPS devices are shown in the Power view — switch the topology mode above.';
+    } else {
+      msg = 'No matches for the current search/filter.';
+    }
     container.innerHTML = `<div class="topology-empty">${msg}</div>`;
     return;
   }
@@ -1568,8 +1571,21 @@ function selectFormSelect(id, optionEl) {
   const value = optionEl.getAttribute('data-value') || '';
   setFormSelectValue(id, value);
   closeAllFormSelects();
+  if (id === 'fType') syncPowerFieldVisibility();
   const toggle = document.getElementById(id + 'Toggle');
   if (toggle) toggle.focus();
+}
+
+// VMs and containers can't physically have their own power cord — their
+// power comes from the host they run on. Hide the Power Source field for
+// those types so users don't enter physically impossible state.
+function syncPowerFieldVisibility() {
+  const row = document.getElementById('fPowerRow');
+  if (!row) return;
+  const type = document.getElementById('fType').value;
+  const virtual = type === 'vm' || type === 'container';
+  row.hidden = virtual;
+  if (virtual) setFormSelectValue('fPower', '');
 }
 
 function setFormSelectValue(id, value) {
@@ -1611,6 +1627,7 @@ function openAddModal() {
   clearForm();
   populateParentDropdown();
   populatePowerDropdown();
+  syncPowerFieldVisibility();
   openModalEl(document.getElementById('formModal'), document.getElementById('fName'));
 }
 
@@ -1637,6 +1654,7 @@ function openEditModal(id) {
 
   populatePowerDropdown(id);
   setFormSelectValue('fPower', d.poweredById || '');
+  syncPowerFieldVisibility();
 
   openModalEl(document.getElementById('formModal'), document.getElementById('fName'));
 
@@ -1684,12 +1702,14 @@ function saveDevice() {
     type: s.type.trim(), size: s.size.trim(), notes: s.notes.trim()
   }));
 
+  const type = document.getElementById('fType').value;
+  const virtual = type === 'vm' || type === 'container';
   const device = {
     name,
-    type: document.getElementById('fType').value,
+    type,
     ip: document.getElementById('fIp').value.trim(),
     parentId: document.getElementById('fParent').value || null,
-    poweredById: document.getElementById('fPower').value || null,
+    poweredById: virtual ? null : (document.getElementById('fPower').value || null),
     system: document.getElementById('fSystem').value.trim(),
     os: document.getElementById('fOs').value.trim(),
     status: document.getElementById('fStatus').value,
@@ -2630,7 +2650,7 @@ const PUBLIC_HTML_TEMPLATE = '<!DOCTYPE html>\n'
 + '      .sort(function(a,b){return (a.name||"").localeCompare(b.name||"",undefined,{sensitivity:"base"});});\n'
 + '    return {device:device,children:kids.map(function(k){return buildPowerTree(k,seen);})};\n'
 + '  }\n'
-+ '  var networkRoots=filtered.filter(function(d){return !d.parentId&&(d.type!=="ups"||currentFilter==="ups");});\n'
++ '  var networkRoots=filtered.filter(function(d){return !d.parentId&&d.type!=="ups";});\n'
 + '  var networkOrphans=filtered.filter(function(d){return d.parentId&&!filteredIds[d.parentId];});\n'
 + '  var networkTrees=networkRoots.concat(networkOrphans).map(buildNetworkTree)\n'
 + '    .sort(function(a,b){return (a.device.name||"").localeCompare(b.device.name||"",undefined,{sensitivity:"base"});});\n'
@@ -2642,7 +2662,10 @@ const PUBLIC_HTML_TEMPLATE = '<!DOCTYPE html>\n'
 + '  var trees=topoMode==="power"?powerTrees:networkTrees;\n'
 + '  var opts=topoMode==="power"?{edgeType:"power"}:{};\n'
 + '  if(!trees.length){\n'
-+ '    var msg=topoMode==="power"?"No power relationships in this set.":"No matches for the current search/filter.";\n'
++ '    var msg;\n'
++ '    if(topoMode==="power")msg="No power relationships in this set.";\n'
++ '    else if(currentFilter==="ups")msg="UPS devices are shown in the Power view — switch the topology mode above.";\n'
++ '    else msg="No matches for the current search/filter.";\n'
 + '    container.innerHTML=\'<div class="topology-empty">\'+msg+\'</div>\';return;\n'
 + '  }\n'
 + '  container.innerHTML=\'<div class="topology-clusters">\'+trees.map(function(t){return topologyClusterSvg(t,opts);}).join("")+\'</div>\';\n'
