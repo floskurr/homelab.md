@@ -1388,7 +1388,7 @@ function renderTopology() {
     return { device, children: kids.map(k => buildPowerTree(k, seen)) };
   }
 
-  const networkRoots = filtered.filter(d => !d.parentId);
+  const networkRoots = filtered.filter(d => !d.parentId && d.type !== 'ups');
   const networkOrphans = filtered.filter(d => d.parentId && !filteredIds.has(d.parentId));
   const networkTrees = networkRoots.concat(networkOrphans)
     .map(buildNetworkTree)
@@ -2622,7 +2622,7 @@ const PUBLIC_HTML_TEMPLATE = '<!DOCTYPE html>\n'
 + '      .sort(function(a,b){return (a.name||"").localeCompare(b.name||"",undefined,{sensitivity:"base"});});\n'
 + '    return {device:device,children:kids.map(function(k){return buildPowerTree(k,seen);})};\n'
 + '  }\n'
-+ '  var networkRoots=filtered.filter(function(d){return !d.parentId;});\n'
++ '  var networkRoots=filtered.filter(function(d){return !d.parentId&&d.type!=="ups";});\n'
 + '  var networkOrphans=filtered.filter(function(d){return d.parentId&&!filteredIds[d.parentId];});\n'
 + '  var networkTrees=networkRoots.concat(networkOrphans).map(buildNetworkTree)\n'
 + '    .sort(function(a,b){return (a.device.name||"").localeCompare(b.device.name||"",undefined,{sensitivity:"base"});});\n'
