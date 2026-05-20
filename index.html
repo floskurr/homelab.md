@@ -857,8 +857,8 @@
           <input type="text" class="form-input" id="fSystem" placeholder="e.g. Dell PowerEdge R730">
         </div>
         <div class="form-group" id="fOsGroup">
-          <label class="form-label">Operating System</label>
-          <input type="text" class="form-input" id="fOs" placeholder="e.g. Proxmox VE 8.1">
+          <label class="form-label">Operating System / Firmware</label>
+          <input type="text" class="form-input" id="fOs" placeholder="e.g. Proxmox VE 8.1, OpenWrt 23.05">
         </div>
       </div>
 
@@ -1810,7 +1810,7 @@ function showDetail(id) {
         const overview = [
           field('IP Address', d.ip),
           field('System', d.system),
-          field('OS', d.os),
+          field('OS / Firmware', d.os),
           field('Status', d.status),
         ].filter(Boolean).join('');
         const hardware = [
@@ -2025,7 +2025,7 @@ function deviceToMarkdown(d, allDevices) {
   md += `- **Status:** ${d.status || '—'}\n`;
   md += `- **IP Address:** ${d.ip || '—'}\n`;
   md += `- **System:** ${d.system || '—'}\n`;
-  md += `- **OS:** ${d.os || '—'}\n`;
+  md += `- **OS / Firmware:** ${d.os || '—'}\n`;
   md += `- **CPU:** ${d.cpu || '—'}\n`;
   md += `- **RAM:** ${d.ram || '—'}\n`;
   if (Array.isArray(d.storage) && d.storage.length) {
@@ -2084,7 +2084,7 @@ function markdownToDevice(md) {
 
   const fieldMap = {
     'Type': 'type', 'Status': 'status', 'IP Address': 'ip', 'System': 'system',
-    'OS': 'os', 'CPU': 'cpu', 'RAM': 'ram', 'Location': 'location',
+    'OS / Firmware': 'os', 'OS': 'os', 'CPU': 'cpu', 'RAM': 'ram', 'Location': 'location',
     'Host': '_parentName', 'Power Source': '_powerName'
   };
 
@@ -2223,7 +2223,7 @@ function deviceToPublicSection(d, allDevices) {
   md += meta + '\n\n';
 
   const specs = [
-    ['System', d.system], ['OS', d.os], ['CPU', d.cpu],
+    ['System', d.system], ['OS / Firmware', d.os], ['CPU', d.cpu],
     ['RAM', d.ram],
   ].map(([k, v]) => [k, sanitizePublic(v || '')]).filter(([, v]) => v);
 
@@ -2766,7 +2766,7 @@ const PUBLIC_HTML_TEMPLATE = '<!DOCTYPE html>\n'
 + '  if(hasOverview){\n'
 + '    html+=\'<div class="detail-section"><div class="detail-section-title">Overview</div><div class="detail-grid">\'+\n'
 + '      \'<div><div class="detail-field-label">System</div><div class="detail-field-value">\'+(esc(d.system)||"\\u2014")+\'</div></div>\'+\n'
-+ '      \'<div><div class="detail-field-label">OS</div><div class="detail-field-value">\'+(esc(d.os)||"\\u2014")+\'</div></div>\'+\n'
++ '      \'<div><div class="detail-field-label">OS / Firmware</div><div class="detail-field-value">\'+(esc(d.os)||"\\u2014")+\'</div></div>\'+\n'
 + '    \'</div></div>\';\n'
 + '  }\n'
 + '  if(hasHardware){\n'
