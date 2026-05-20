@@ -1516,13 +1516,8 @@ function populatePowerDropdown(excludeId = null) {
   const current = document.getElementById('fPower').value || '';
   const opts = [{ value: '', label: '— None —' }];
   devices
-    .filter(d => d.id !== excludeId)
-    .sort((a, b) => {
-      const aUps = a.type === 'ups' ? 0 : 1;
-      const bUps = b.type === 'ups' ? 0 : 1;
-      if (aUps !== bUps) return aUps - bUps;
-      return (a.name || '').localeCompare(b.name || '', undefined, { sensitivity: 'base' });
-    })
+    .filter(d => d.id !== excludeId && (d.type === 'ups' || d.id === current))
+    .sort((a, b) => (a.name || '').localeCompare(b.name || '', undefined, { sensitivity: 'base' }))
     .forEach(d => {
       opts.push({ value: d.id, label: `${d.name} (${d.type})` });
     });
