@@ -14,6 +14,7 @@ homelab.md gives you a clean interface to catalog every device in your homelab: 
 
 - **Full CRUD** — Add, edit, view, and delete devices from the browser UI
 - **Parent-child relationships** — Link VMs and containers to their host servers (e.g. LXCs on Proxmox, VMs on TrueNAS)
+- **Power-source relationships** — Independently track which UPS (or other power source) each device is plugged into, so you can see your power dependencies separately from the network tree
 - **Structured services** — Each device can have multiple services with name, port, notes, and a clickable URL
 - **Structured storage** — Track multiple drives per device with type, size, and notes
 - **Markdown import/export** — The `homelab.md` file is the source of truth. Import to load, export to save
@@ -23,7 +24,7 @@ homelab.md gives you a clean interface to catalog every device in your homelab: 
 - **Unsaved-changes indicator** — A small dot appears on the **↓ Export** button whenever the in-browser data is newer than your last full export, so you don't forget to save changes back to the file
 - **Undo on delete** — Deleting a device shows a toast with an **Undo** button (~6 seconds) that fully restores the device and any parent links
 - **Safe import** — Importing prompts before replacing existing data and refuses to import a file with no parseable devices, so you can't accidentally wipe your inventory
-- **Topology view** — Toggle between Cards and Topology to see a tree-style SVG graph of parent → child relationships (servers with their VMs/containers below). Type filter and search apply to both views. Available in the main app and the public HTML export.
+- **Topology view** — Toggle between Cards and Topology to see a tree-style SVG graph of your homelab. The Topology view has its own **Network / Power / Both** mode switch: Network shows parent → child relationships (solid lines), Power shows UPS → powered-devices relationships (dashed lines), and Both stacks the two side-by-side. Multi-level chains (e.g. Modem → Router → Switch 1 → Switch 2 → Server) render fully. Type filter and search apply to all modes. Available in the main app and the public HTML export.
 - **Search and filter** — Filter by device type or search across hostnames, IPs, services, and notes
 - **Stats overview** — At-a-glance counts for devices, online status, hosts, VMs/LXCs, and total services
 - **Completely offline** — No server, no API calls, no CDN. Just one HTML file
@@ -35,7 +36,8 @@ homelab.md gives you a clean interface to catalog every device in your homelab: 
 3. Click **+** to add your first device
 4. Fill in the details — hostname, type, IP, system, OS, CPU, RAM, storage, services, notes
 5. For VMs and containers, use the **Host / Parent Device** dropdown to link them to their host
-6. Click **↓ Export** and choose **homelab.md Full** to save your data as `homelab.md`
+6. For devices plugged into a UPS or other power source, use the **Power Source** dropdown — this is independent of the network parent so a single device can have both (e.g. a Server hosted on a Switch, powered by a UPS)
+7. Click **↓ Export** and choose **homelab.md Full** to save your data as `homelab.md`
 
 ### How Data Is Stored
 
@@ -54,7 +56,7 @@ The intended workflow is:
 
 ### The Markdown File
 
-The exported `homelab.md` is human-readable Markdown. Each device is an `h1` section with metadata as a bullet list, and services/storage as Markdown tables. You can read it, edit it in any text editor, or render it on GitHub. Parent-child relationships are preserved via IDs in the footer of each device section.
+The exported `homelab.md` is human-readable Markdown. Each device is an `h1` section with metadata as a bullet list, and services/storage as Markdown tables. You can read it, edit it in any text editor, or render it on GitHub. Parent-child and power-source relationships are preserved via IDs in the footer of each device section (`ParentID` and `PowerID`).
 
 Pipe characters (`|`) and newlines inside service or storage notes are escaped on export (`\|`) and unescaped on import, so a note containing `|` won't break the table or get truncated on re-import.
 
@@ -96,7 +98,8 @@ When you choose this export, you'll be prompted for a **Site Name** that replace
 - **Container / LXC** — Containers running on a host
 - **Network Device** — Switches, routers, gateways, access points
 - **Storage** — Dedicated NAS or storage appliances
-- **Other** — UPS units, KVMs, or anything else
+- **UPS / Power** — Battery backups and other power sources; appears in the Power topology view as the root of whatever it powers
+- **Other** — KVMs, sensors, or anything that doesn't fit the categories above
 
 ## Requirements
 

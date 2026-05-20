@@ -294,6 +294,7 @@
   .badge-container { background: var(--purple-bg); color: var(--purple); }
   .badge-network { background: rgba(230, 180, 60, 0.15); color: #e6b43c; }
   .badge-storage { background: rgba(230, 120, 80, 0.15); color: #e67850; }
+  .badge-ups { background: rgba(180, 230, 120, 0.15); color: #b4e678; }
   .badge-other { background: rgba(150, 150, 170, 0.15); color: #9696aa; }
 
   .device-ip { font-family: 'JetBrains Mono', monospace; font-size: 15px; color: var(--accent); margin-bottom: 8px; }
@@ -561,6 +562,23 @@
   .view-btn:hover { color: var(--text-primary); background: var(--bg-tertiary); }
   .view-btn.active { color: var(--accent); background: var(--accent-glow); }
   .view-btn + .view-btn { border-left: 1px solid var(--border); }
+  .topo-mode-toggle[hidden] { display: none; }
+  .topology-section-header {
+    grid-column: 1 / -1;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 11px;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    color: var(--text-muted);
+    border-top: 1px solid var(--border);
+    padding-top: 16px;
+    margin-top: 8px;
+  }
+  .topology-section-header:first-child {
+    border-top: none;
+    padding-top: 0;
+    margin-top: 0;
+  }
 
   /* Topology view */
   .topology-view { display: none; }
@@ -610,6 +628,13 @@
     stroke-width: 1;
     fill: none;
   }
+  .topo-cluster .topo-edge-power {
+    stroke: #b4e678;
+    stroke-width: 1.25;
+    stroke-dasharray: 4 3;
+    fill: none;
+    opacity: 0.85;
+  }
   .topo-cluster .topo-status { stroke: none; pointer-events: none; }
   .topo-status.status-online { fill: var(--success); }
   .topo-status.status-offline { fill: var(--danger); }
@@ -620,6 +645,7 @@
   .topo-accent-container { fill: var(--purple); }
   .topo-accent-network { fill: #e6b43c; }
   .topo-accent-storage { fill: #e67850; }
+  .topo-accent-ups { fill: #b4e678; }
   .topo-accent-other { fill: #9696aa; }
   .topo-cluster .topo-type-icon { pointer-events: none; }
   .topo-type-icon-server { color: var(--accent); }
@@ -627,6 +653,7 @@
   .topo-type-icon-container { color: var(--purple); }
   .topo-type-icon-network { color: #e6b43c; }
   .topo-type-icon-storage { color: #e67850; }
+  .topo-type-icon-ups { color: #b4e678; }
   .topo-type-icon-other { color: #9696aa; }
 
   @media (max-width: 640px) {
@@ -745,6 +772,11 @@
       <button type="button" class="view-btn active" data-view="grid" onclick="setView('grid')" role="tab" aria-selected="true" title="Card view">Cards</button>
       <button type="button" class="view-btn" data-view="topology" onclick="setView('topology')" role="tab" aria-selected="false" title="Topology view">Topology</button>
     </div>
+    <div class="view-toggle topo-mode-toggle" id="topoModeToggle" role="tablist" aria-label="Topology mode" hidden>
+      <button type="button" class="view-btn active" data-topo-mode="network" onclick="setTopoMode('network')" role="tab" aria-selected="true" title="Show network parent → child tree">Network</button>
+      <button type="button" class="view-btn" data-topo-mode="power" onclick="setTopoMode('power')" role="tab" aria-selected="false" title="Show UPS → powered devices">Power</button>
+      <button type="button" class="view-btn" data-topo-mode="both" onclick="setTopoMode('both')" role="tab" aria-selected="false" title="Show both network and power">Both</button>
+    </div>
   </div>
   <div class="device-grid" id="deviceGrid"></div>
   <div class="topology-view" id="topologyView" aria-live="polite"></div>
@@ -777,6 +809,7 @@
               <li class="form-select-option" role="option" aria-selected="false" data-value="container" onclick="selectFormSelect('fType', this)">Container / LXC</li>
               <li class="form-select-option" role="option" aria-selected="false" data-value="network" onclick="selectFormSelect('fType', this)">Network Device</li>
               <li class="form-select-option" role="option" aria-selected="false" data-value="storage" onclick="selectFormSelect('fType', this)">Storage</li>
+              <li class="form-select-option" role="option" aria-selected="false" data-value="ups" onclick="selectFormSelect('fType', this)">UPS / Power</li>
               <li class="form-select-option" role="option" aria-selected="false" data-value="other" onclick="selectFormSelect('fType', this)">Other</li>
             </ul>
             <input type="hidden" id="fType" value="server">
@@ -802,6 +835,23 @@
             <input type="hidden" id="fParent" value="">
           </div>
           <span class="form-hint">e.g. the Proxmox host this VM runs on</span>
+        </div>
+      </div>
+
+      <div class="form-row">
+        <div class="form-group">
+          <label class="form-label">Power Source</label>
+          <div class="form-select-wrap" id="fPowerWrap">
+            <button type="button" class="form-select-toggle" id="fPowerToggle" aria-haspopup="listbox" aria-expanded="false" onclick="toggleFormSelect('fPower', event)">
+              <span class="form-select-value" id="fPowerLabel">— None —</span>
+              <svg class="form-select-chevron" width="12" height="12" viewBox="0 0 12 12" aria-hidden="true"><path fill="none" stroke="currentColor" stroke-width="1.5" d="M2 4l4 4 4-4"/></svg>
+            </button>
+            <ul class="form-select-menu" id="fPowerMenu" role="listbox" hidden>
+              <li class="form-select-option active" role="option" aria-selected="true" data-value="" onclick="selectFormSelect('fPower', this)">— None —</li>
+            </ul>
+            <input type="hidden" id="fPower" value="">
+          </div>
+          <span class="form-hint">e.g. the UPS this device is plugged into</span>
         </div>
       </div>
 
@@ -983,7 +1033,7 @@ function toast(message, type = 'success', action = null) {
 }
 
 function getTypeClass(type) {
-  const map = { server: 'badge-server', vm: 'badge-vm', container: 'badge-container', network: 'badge-network', storage: 'badge-storage' };
+  const map = { server: 'badge-server', vm: 'badge-vm', container: 'badge-container', network: 'badge-network', storage: 'badge-storage', ups: 'badge-ups' };
   return map[type] || 'badge-other';
 }
 
@@ -993,6 +1043,8 @@ const TYPE_ICON_PATHS = {
   container: '<path d="M8 1.75l5.75 2.75v7L8 14.25 2.25 11.5v-7z"/><path d="M2.25 4.5L8 7.25l5.75-2.75"/><line x1="8" y1="7.25" x2="8" y2="14.25"/>',
   network: '<circle cx="8" cy="3" r="1.6"/><circle cx="3" cy="13" r="1.6"/><circle cx="13" cy="13" r="1.6"/><line x1="8" y1="4.6" x2="8" y2="7.5"/><line x1="8" y1="7.5" x2="3.8" y2="11.6"/><line x1="8" y1="7.5" x2="12.2" y2="11.6"/>',
   storage: '<ellipse cx="8" cy="3.5" rx="5.25" ry="1.75"/><path d="M2.75 3.5v9c0 .97 2.35 1.75 5.25 1.75s5.25-.78 5.25-1.75v-9"/><path d="M2.75 8c0 .97 2.35 1.75 5.25 1.75s5.25-.78 5.25-1.75"/>',
+  ups: '<rect x="2.5" y="3" width="11" height="10" rx="1"/><rect x="6" y="1.75" width="4" height="1.5" rx="0.4" fill="currentColor" stroke="none"/><path d="M8.5 5.5l-2.25 3.5h1.75l-0.5 2.5 2.25-3.5h-1.75z" fill="currentColor" stroke="none"/>'
+,
   other: '<circle cx="8" cy="8" r="6"/><circle cx="8" cy="8" r="1.4" fill="currentColor" stroke="none"/>'
 };
 
@@ -1164,9 +1216,16 @@ function renderDevices() {
 
 // --- Topology view ---
 const VIEW_KEY = 'homelab_view';
+const TOPO_MODE_KEY = 'homelab_topo_mode';
 let currentView = (function () {
   try { return localStorage.getItem(VIEW_KEY) || 'grid'; }
   catch (_) { return 'grid'; }
+})();
+let topoMode = (function () {
+  try {
+    const v = localStorage.getItem(TOPO_MODE_KEY);
+    return v === 'power' || v === 'both' ? v : 'network';
+  } catch (_) { return 'network'; }
 })();
 
 function applyViewUI() {
@@ -1177,6 +1236,13 @@ function applyViewUI() {
   });
   document.getElementById('deviceGrid').style.display = currentView === 'grid' ? '' : 'none';
   document.getElementById('topologyView').classList.toggle('active', currentView === 'topology');
+  const modeToggle = document.getElementById('topoModeToggle');
+  if (modeToggle) modeToggle.hidden = currentView !== 'topology';
+  document.querySelectorAll('[data-topo-mode]').forEach(btn => {
+    const active = btn.dataset.topoMode === topoMode;
+    btn.classList.toggle('active', active);
+    btn.setAttribute('aria-selected', active ? 'true' : 'false');
+  });
 }
 
 function setView(v) {
@@ -1184,6 +1250,13 @@ function setView(v) {
   try { localStorage.setItem(VIEW_KEY, v); } catch (_) {}
   applyViewUI();
   if (v === 'topology') renderTopology();
+}
+
+function setTopoMode(m) {
+  topoMode = m;
+  try { localStorage.setItem(TOPO_MODE_KEY, m); } catch (_) {}
+  applyViewUI();
+  renderTopology();
 }
 
 function truncateLabel(s, n) {
@@ -1226,6 +1299,7 @@ function topologyClusterSvg(rootNode, opts) {
   const childGap = 10;
   const childTopGap = 20;
   const pad = 6;
+  const edgeClass = (opts && opts.edgeType === 'power') ? 'topo-edge-power' : 'topo-edge';
 
   let descendantCount = 0;
   function countDescendants(n) {
@@ -1254,13 +1328,13 @@ function topologyClusterSvg(rootNode, opts) {
         if (i > 0) y += childGap;
         const cy = y + childH / 2;
         childCenters.push(cy);
-        childSvg += `<line x1="${trunkX}" y1="${cy}" x2="${childX}" y2="${cy}" class="topo-edge"/>`;
+        childSvg += `<line x1="${trunkX}" y1="${cy}" x2="${childX}" y2="${cy}" class="${edgeClass}"/>`;
         const sub = layout(c, y, depth + 1);
         childSvg += sub.svg;
         y = sub.endY;
       });
       const trunkBottom = childCenters[childCenters.length - 1];
-      svg += `<line x1="${trunkX}" y1="${trunkTop}" x2="${trunkX}" y2="${trunkBottom}" class="topo-edge"/>`;
+      svg += `<line x1="${trunkX}" y1="${trunkTop}" x2="${trunkX}" y2="${trunkBottom}" class="${edgeClass}"/>`;
       svg += childSvg;
     }
 
@@ -1272,8 +1346,9 @@ function topologyClusterSvg(rootNode, opts) {
   const svgW = w + pad * 2;
   const svgH = contentH + pad * 2;
   const parent = rootNode.device;
+  const linkWord = (opts && opts.edgeType === 'power') ? 'powered device' : 'descendant device';
 
-  return `<svg class="topo-cluster" viewBox="${-pad} ${-pad} ${svgW} ${svgH}" width="${svgW}" height="${svgH}" xmlns="http://www.w3.org/2000/svg" role="group" aria-label="${esc(parent.name)}${descendantCount ? ' with ' + descendantCount + ' descendant device' + (descendantCount === 1 ? '' : 's') : ''}">${result.svg}</svg>`;
+  return `<svg class="topo-cluster" viewBox="${-pad} ${-pad} ${svgW} ${svgH}" width="${svgW}" height="${svgH}" xmlns="http://www.w3.org/2000/svg" role="group" aria-label="${esc(parent.name)}${descendantCount ? ' with ' + descendantCount + ' ' + linkWord + (descendantCount === 1 ? '' : 's') : ''}">${result.svg}</svg>`;
 }
 
 function renderTopology() {
@@ -1287,24 +1362,78 @@ function renderTopology() {
   }
 
   const filteredIds = new Set(filtered.map(d => d.id));
-  const roots = filtered.filter(d => !d.parentId);
-  const orphans = filtered.filter(d => d.parentId && !filteredIds.has(d.parentId));
 
-  function buildSubtree(device) {
+  function buildNetworkTree(device) {
     const kids = filtered
       .filter(c => c.parentId === device.id)
       .sort((a, b) => (a.name || '').localeCompare(b.name || '', undefined, { sensitivity: 'base' }));
-    return { device, children: kids.map(buildSubtree) };
+    return { device, children: kids.map(buildNetworkTree) };
   }
 
-  const trees = roots.concat(orphans).map(buildSubtree);
+  function buildPowerTree(device, seen) {
+    seen = seen || new Set();
+    if (seen.has(device.id)) return { device, children: [] };
+    seen.add(device.id);
+    const powerKids = filtered.filter(c => c.poweredById === device.id);
+    // VMs and containers inherit power from their host unless they declare
+    // their own. They can't physically have a separate plug, so showing them
+    // under the host's UPS reflects real failure-domain semantics.
+    const virtualKids = filtered.filter(c =>
+      c.parentId === device.id &&
+      (c.type === 'vm' || c.type === 'container') &&
+      !c.poweredById
+    );
+    const kids = powerKids.concat(virtualKids)
+      .sort((a, b) => (a.name || '').localeCompare(b.name || '', undefined, { sensitivity: 'base' }));
+    return { device, children: kids.map(k => buildPowerTree(k, seen)) };
+  }
 
-  // Alphabetical by root name.
-  trees.sort((a, b) =>
-    (a.device.name || '').localeCompare(b.device.name || '', undefined, { sensitivity: 'base' })
-  );
+  const networkRoots = filtered.filter(d => !d.parentId);
+  const networkOrphans = filtered.filter(d => d.parentId && !filteredIds.has(d.parentId));
+  const networkTrees = networkRoots.concat(networkOrphans)
+    .map(buildNetworkTree)
+    .sort((a, b) =>
+      (a.device.name || '').localeCompare(b.device.name || '', undefined, { sensitivity: 'base' })
+    );
 
-  container.innerHTML = `<div class="topology-clusters">${trees.map(t => topologyClusterSvg(t, { showStatus: true })).join('')}</div>`;
+  // Power roots: any device that powers ≥1 filtered device, and itself is not
+  // powered by something in the filtered set (so the tree starts at the top
+  // of the power chain visible). Orphans: devices whose power source isn't
+  // in the filtered set still need a root, handled by treating them as roots
+  // when their referenced UPS exists in the filtered set but they themselves
+  // are not powered.
+  const poweringIds = new Set(filtered.filter(d => d.poweredById && filteredIds.has(d.poweredById)).map(d => d.poweredById));
+  const powerRoots = filtered.filter(d => poweringIds.has(d.id) && (!d.poweredById || !filteredIds.has(d.poweredById)));
+  const powerOrphans = filtered.filter(d => d.poweredById && !filteredIds.has(d.poweredById));
+  const powerTrees = powerRoots.concat(powerOrphans)
+    .map(d => buildPowerTree(d))
+    .sort((a, b) =>
+      (a.device.name || '').localeCompare(b.device.name || '', undefined, { sensitivity: 'base' })
+    );
+
+  const sections = [];
+  const showNetwork = topoMode === 'network' || topoMode === 'both';
+  const showPower = topoMode === 'power' || topoMode === 'both';
+
+  if (showNetwork && networkTrees.length) {
+    if (topoMode === 'both') sections.push(`<div class="topology-section-header">Network</div>`);
+    sections.push(networkTrees.map(t => topologyClusterSvg(t, { showStatus: true })).join(''));
+  }
+
+  if (showPower && powerTrees.length) {
+    if (topoMode === 'both') sections.push(`<div class="topology-section-header">Power</div>`);
+    sections.push(powerTrees.map(t => topologyClusterSvg(t, { showStatus: true, edgeType: 'power' })).join(''));
+  }
+
+  if (!sections.length) {
+    const msg = topoMode === 'power'
+      ? 'No power relationships yet. Set a Power Source on any device.'
+      : 'No matches for the current search/filter.';
+    container.innerHTML = `<div class="topology-empty">${msg}</div>`;
+    return;
+  }
+
+  container.innerHTML = `<div class="topology-clusters">${sections.join('')}</div>`;
 }
 
 function esc(str) {
@@ -1389,6 +1518,23 @@ function populateParentDropdown(excludeId = null) {
   setFormSelectValue('fParent', current);
 }
 
+function populatePowerDropdown(excludeId = null) {
+  const menu = document.getElementById('fPowerMenu');
+  const devices = loadDevices();
+  const current = document.getElementById('fPower').value || '';
+  const opts = [{ value: '', label: '— None —' }];
+  devices
+    .filter(d => d.id !== excludeId && (d.type === 'ups' || d.id === current))
+    .sort((a, b) => (a.name || '').localeCompare(b.name || '', undefined, { sensitivity: 'base' }))
+    .forEach(d => {
+      opts.push({ value: d.id, label: `${d.name} (${d.type})` });
+    });
+  menu.innerHTML = opts.map(o =>
+    `<li class="form-select-option" role="option" aria-selected="false" data-value="${esc(o.value)}" onclick="selectFormSelect('fPower', this)">${esc(o.label)}</li>`
+  ).join('');
+  setFormSelectValue('fPower', current);
+}
+
 function toggleFormSelect(id, e) {
   if (e) e.stopPropagation();
   const wrap = document.getElementById(id + 'Wrap');
@@ -1458,6 +1604,7 @@ function openAddModal() {
   document.getElementById('editId').value = '';
   clearForm();
   populateParentDropdown();
+  populatePowerDropdown();
   openModalEl(document.getElementById('formModal'), document.getElementById('fName'));
 }
 
@@ -1481,6 +1628,9 @@ function openEditModal(id) {
 
   populateParentDropdown(id);
   setFormSelectValue('fParent', d.parentId || '');
+
+  populatePowerDropdown(id);
+  setFormSelectValue('fPower', d.poweredById || '');
 
   openModalEl(document.getElementById('formModal'), document.getElementById('fName'));
 
@@ -1509,6 +1659,7 @@ function clearForm() {
   setFormSelectValue('fType', 'server');
   setFormSelectValue('fStatus', 'online');
   setFormSelectValue('fParent', '');
+  setFormSelectValue('fPower', '');
   serviceRowData = [];
   renderServiceRows();
   storageRowData = [];
@@ -1532,6 +1683,7 @@ function saveDevice() {
     type: document.getElementById('fType').value,
     ip: document.getElementById('fIp').value.trim(),
     parentId: document.getElementById('fParent').value || null,
+    poweredById: document.getElementById('fPower').value || null,
     system: document.getElementById('fSystem').value.trim(),
     os: document.getElementById('fOs').value.trim(),
     status: document.getElementById('fStatus').value,
@@ -1574,6 +1726,10 @@ function showDetail(id) {
 
   const children = getChildren(d.id, devices);
   const parent = d.parentId ? getDevice(d.parentId, devices) : null;
+  const powerSource = d.poweredById ? getDevice(d.poweredById, devices) : null;
+  const poweredDevices = devices
+    .filter(x => x.poweredById === d.id)
+    .sort((a, b) => (a.name || '').localeCompare(b.name || '', undefined, { sensitivity: 'base' }));
 
   const panel = document.getElementById('detailPanel');
   panel.innerHTML = `
@@ -1677,6 +1833,38 @@ function showDetail(id) {
           </div>
         </div>
       ` : ''}
+      ${powerSource ? `
+        <div class="detail-section">
+          <div class="detail-section-title">Power Source</div>
+          <div class="child-device" onclick="event.stopPropagation(); showDetail('${powerSource.id}')">
+            <div>
+              <div class="child-device-name">
+                <span class="device-status status-${powerSource.status || 'unknown'}"></span>
+                ${esc(powerSource.name)}
+              </div>
+              <div class="child-device-info">${esc(powerSource.type)}${powerSource.ip ? ' · ' + esc(powerSource.ip) : ''}</div>
+            </div>
+            ${typeBadge(powerSource.type)}
+          </div>
+        </div>
+      ` : ''}
+      ${poweredDevices.length ? `
+        <div class="detail-section">
+          <div class="detail-section-title">Powered devices (${poweredDevices.length})</div>
+          ${poweredDevices.map(c => `
+            <div class="child-device" onclick="event.stopPropagation(); showDetail('${c.id}')">
+              <div>
+                <div class="child-device-name">
+                  <span class="device-status status-${c.status || 'unknown'}"></span>
+                  ${esc(c.name)}
+                </div>
+                <div class="child-device-info">${esc(c.type)}${c.ip ? ' · ' + esc(c.ip) : ''}</div>
+              </div>
+              ${typeBadge(c.type)}
+            </div>
+          `).join('')}
+        </div>
+      ` : ''}
       ${d.notes ? `
         <div class="detail-section">
           <div class="detail-section-title">Notes</div>
@@ -1733,9 +1921,11 @@ function deleteDevice(id) {
   const d = devices.find(x => x.id === id);
   if (!d) return;
   const orphans = devices.filter(c => c.parentId === id).map(c => c.id);
+  const powerOrphans = devices.filter(c => c.poweredById === id).map(c => c.id);
   const index = devices.findIndex(x => x.id === id);
-  window._lastDeleted = { device: JSON.parse(JSON.stringify(d)), orphans, index };
+  window._lastDeleted = { device: JSON.parse(JSON.stringify(d)), orphans, powerOrphans, index };
   devices.forEach(c => { if (c.parentId === id) c.parentId = null; });
+  devices.forEach(c => { if (c.poweredById === id) c.poweredById = null; });
   devices = devices.filter(x => x.id !== id);
   saveDevices(devices);
   closeDetail();
@@ -1762,6 +1952,7 @@ function splitMdRow(line) {
 function deviceToMarkdown(d, allDevices) {
   let md = `# ${d.name}\n\n`;
   const parent = d.parentId ? allDevices.find(x => x.id === d.parentId) : null;
+  const powerSource = d.poweredById ? allDevices.find(x => x.id === d.poweredById) : null;
 
   md += `- **Type:** ${d.type || '—'}\n`;
   md += `- **Status:** ${d.status || '—'}\n`;
@@ -1783,6 +1974,7 @@ function deviceToMarkdown(d, allDevices) {
   }
   md += `- **Location:** ${d.location || '—'}\n`;
   if (parent) md += `- **Host:** ${parent.name}\n`;
+  if (powerSource) md += `- **Power Source:** ${powerSource.name}\n`;
 
   if (d.services && d.services.length) {
     md += `\n## Services\n\n`;
@@ -1800,10 +1992,20 @@ function deviceToMarkdown(d, allDevices) {
     children.forEach(c => { md += `- **${c.name}** (${c.type})${c.ip ? ' — ' + c.ip : ''}\n`; });
   }
 
+  const powered = allDevices.filter(c => c.poweredById === d.id).sort((a, b) => (a.name || '').localeCompare(b.name || '', undefined, { sensitivity: 'base' }));
+  if (powered.length) {
+    md += `\n## Powered devices\n\n`;
+    powered.forEach(c => { md += `- **${c.name}** (${c.type})\n`; });
+  }
+
   if (d.notes) md += `\n## Notes\n\n${d.notes}\n`;
 
   md += `\n---\n`;
-  md += `*Created: ${d.createdAt || '—'} | Updated: ${d.updatedAt || '—'} | ID: ${d.id}${d.parentId ? ' | ParentID: ' + d.parentId : ''}*\n`;
+  let footer = `*Created: ${d.createdAt || '—'} | Updated: ${d.updatedAt || '—'} | ID: ${d.id}`;
+  if (d.parentId) footer += ` | ParentID: ${d.parentId}`;
+  if (d.poweredById) footer += ` | PowerID: ${d.poweredById}`;
+  footer += '*\n';
+  md += footer;
   return md;
 }
 
@@ -1816,7 +2018,7 @@ function markdownToDevice(md) {
   const fieldMap = {
     'Type': 'type', 'Status': 'status', 'IP Address': 'ip', 'System': 'system',
     'OS': 'os', 'CPU': 'cpu', 'RAM': 'ram', 'Location': 'location',
-    'Host': '_parentName'
+    'Host': '_parentName', 'Power Source': '_powerName'
   };
 
   for (const [label, key] of Object.entries(fieldMap)) {
@@ -1867,6 +2069,9 @@ function markdownToDevice(md) {
 
   const parentIdMatch = md.match(/ParentID:\s*([a-z0-9]+)/);
   if (parentIdMatch) device.parentId = parentIdMatch[1];
+
+  const powerIdMatch = md.match(/PowerID:\s*([a-z0-9]+)/);
+  if (powerIdMatch) device.poweredById = powerIdMatch[1];
 
   return device;
 }
@@ -1939,6 +2144,7 @@ function isPublicUrl(url) {
 function deviceToPublicSection(d, allDevices) {
   const children = allDevices.filter(c => c.parentId === d.id).sort((a, b) => (a.name || '').localeCompare(b.name || '', undefined, { sensitivity: 'base' }));
   const parent = d.parentId ? allDevices.find(x => x.id === d.parentId) : null;
+  const powerSource = d.poweredById ? allDevices.find(x => x.id === d.poweredById) : null;
 
   const cap = s => s ? s.charAt(0).toUpperCase() + s.slice(1) : '';
 
@@ -1946,6 +2152,7 @@ function deviceToPublicSection(d, allDevices) {
 
   let meta = `**${cap(d.type || 'Device')}**`;
   if (parent) meta += ` · Hosted on ${sanitizePublic(parent.name)}`;
+  if (powerSource) meta += ` · Powered by ${sanitizePublic(powerSource.name)}`;
   md += meta + '\n\n';
 
   const specs = [
@@ -2070,6 +2277,7 @@ function sanitizeDeviceForPublic(d) {
   return {
     id: d.id,
     parentId: d.parentId || null,
+    poweredById: d.poweredById || null,
     name: sanitizePublic(d.name || ''),
     type: d.type || 'other',
     system: sanitizePublic(d.system || ''),
@@ -2164,7 +2372,7 @@ const PUBLIC_HTML_TEMPLATE = '<!DOCTYPE html>\n'
 + '.device-name{font-family:\'JetBrains Mono\',monospace;font-size:17px;font-weight:600;color:var(--text-primary);}\n'
 + '.device-type-badge{font-family:\'JetBrains Mono\',monospace;font-size:12px;text-transform:uppercase;letter-spacing:0.8px;padding:3px 8px;border-radius:3px;font-weight:600;white-space:nowrap;display:inline-flex;align-items:center;gap:5px;}\n'
 + '.device-type-badge svg{flex-shrink:0;display:block;}\n'
-+ '.badge-server{background:rgba(57,197,187,0.15);color:var(--accent);}.badge-vm{background:var(--blue-bg);color:var(--blue);}.badge-container{background:var(--purple-bg);color:var(--purple);}.badge-network{background:rgba(230,180,60,0.15);color:#e6b43c;}.badge-storage{background:rgba(230,120,80,0.15);color:#e67850;}.badge-other{background:rgba(150,150,170,0.15);color:#9696aa;}\n'
++ '.badge-server{background:rgba(57,197,187,0.15);color:var(--accent);}.badge-vm{background:var(--blue-bg);color:var(--blue);}.badge-container{background:var(--purple-bg);color:var(--purple);}.badge-network{background:rgba(230,180,60,0.15);color:#e6b43c;}.badge-storage{background:rgba(230,120,80,0.15);color:#e67850;}.badge-ups{background:rgba(180,230,120,0.15);color:#b4e678;}.badge-other{background:rgba(150,150,170,0.15);color:#9696aa;}\n'
 + '.device-parent-link{font-size:13px;color:var(--text-muted);margin-bottom:8px;}.device-parent-link strong{color:var(--text-secondary);}\n'
 + '.device-meta{display:flex;flex-wrap:wrap;gap:12px;margin-bottom:8px;}.meta-item{font-size:14px;color:var(--text-secondary);}.meta-item strong{color:var(--text-primary);font-weight:500;}\n'
 + '.device-services{display:flex;flex-wrap:wrap;gap:4px;margin-top:8px;}\n'
@@ -2196,10 +2404,14 @@ const PUBLIC_HTML_TEMPLATE = '<!DOCTYPE html>\n'
 + '.topo-cluster .topo-text-name{font-family:\'JetBrains Mono\',monospace;font-size:14px;font-weight:600;fill:var(--text-primary);pointer-events:none;}\n'
 + '.topo-cluster .topo-text-type{font-family:\'JetBrains Mono\',monospace;font-size:10px;fill:var(--text-muted);letter-spacing:0.5px;pointer-events:none;}\n'
 + '.topo-cluster .topo-edge{stroke:var(--border-active);stroke-width:1;fill:none;}\n'
++ '.topo-cluster .topo-edge-power{stroke:#b4e678;stroke-width:1.25;stroke-dasharray:4 3;fill:none;opacity:0.85;}\n'
 + '.topo-cluster .topo-accent{pointer-events:none;}\n'
-+ '.topo-accent-server{fill:var(--accent);}.topo-accent-vm{fill:var(--blue);}.topo-accent-container{fill:var(--purple);}.topo-accent-network{fill:#e6b43c;}.topo-accent-storage{fill:#e67850;}.topo-accent-other{fill:#9696aa;}\n'
++ '.topo-accent-server{fill:var(--accent);}.topo-accent-vm{fill:var(--blue);}.topo-accent-container{fill:var(--purple);}.topo-accent-network{fill:#e6b43c;}.topo-accent-storage{fill:#e67850;}.topo-accent-ups{fill:#b4e678;}.topo-accent-other{fill:#9696aa;}\n'
 + '.topo-cluster .topo-type-icon{pointer-events:none;}\n'
-+ '.topo-type-icon-server{color:var(--accent);}.topo-type-icon-vm{color:var(--blue);}.topo-type-icon-container{color:var(--purple);}.topo-type-icon-network{color:#e6b43c;}.topo-type-icon-storage{color:#e67850;}.topo-type-icon-other{color:#9696aa;}\n'
++ '.topo-type-icon-server{color:var(--accent);}.topo-type-icon-vm{color:var(--blue);}.topo-type-icon-container{color:var(--purple);}.topo-type-icon-network{color:#e6b43c;}.topo-type-icon-storage{color:#e67850;}.topo-type-icon-ups{color:#b4e678;}.topo-type-icon-other{color:#9696aa;}\n'
++ '.topo-mode-toggle[hidden]{display:none;}\n'
++ '.topology-section-header{grid-column:1/-1;font-family:\'JetBrains Mono\',monospace;font-size:11px;text-transform:uppercase;letter-spacing:1px;color:var(--text-muted);border-top:1px solid var(--border);padding-top:16px;margin-top:8px;}\n'
++ '.topology-section-header:first-child{border-top:none;padding-top:0;margin-top:0;}\n'
 + '@media (max-width:640px){.header{padding:12px 16px;}.main{padding:16px;}.device-grid{grid-template-columns:1fr;}.detail-grid{grid-template-columns:1fr;}.toolbar{flex-direction:column;align-items:stretch;}.search-wrap{display:block;}.search-box{width:100%;}.stats-bar{flex-wrap:wrap;gap:16px;}.view-toggle{display:flex;}.view-toggle .view-btn{flex:1;text-align:center;justify-content:center;}.topology-clusters{grid-template-columns:1fr;max-width:320px;margin:0 auto;justify-content:center;}.topo-cluster{width:100%;height:auto;}.filter-group{display:none;}.filter-select{display:block;}}\n'
 + '</style>\n'
 + '</head>\n'
@@ -2221,6 +2433,11 @@ const PUBLIC_HTML_TEMPLATE = '<!DOCTYPE html>\n'
 + '      <button type="button" class="view-btn active" data-view="grid" role="tab" aria-selected="true" title="Card view">Cards</button>\n'
 + '      <button type="button" class="view-btn" data-view="topology" role="tab" aria-selected="false" title="Topology view">Topology</button>\n'
 + '    </div>\n'
++ '    <div class="view-toggle topo-mode-toggle" id="topoModeToggle" role="tablist" aria-label="Topology mode" hidden>\n'
++ '      <button type="button" class="view-btn active" data-topo-mode="network" role="tab" aria-selected="true" title="Network parent &rarr; child tree">Network</button>\n'
++ '      <button type="button" class="view-btn" data-topo-mode="power" role="tab" aria-selected="false" title="UPS &rarr; powered devices">Power</button>\n'
++ '      <button type="button" class="view-btn" data-topo-mode="both" role="tab" aria-selected="false" title="Show both network and power">Both</button>\n'
++ '    </div>\n'
 + '  </div>\n'
 + '  <div class="device-grid" id="deviceGrid"></div>\n'
 + '  <div class="topology-view" id="topologyView" aria-live="polite"></div>\n'
@@ -2233,13 +2450,14 @@ const PUBLIC_HTML_TEMPLATE = '<!DOCTYPE html>\n'
 + 'var currentFilter = "all";\n'
 + 'var currentView = "grid";\n'
 + 'function esc(str){if(!str&&str!==0)return "";var d=document.createElement("div");d.textContent=String(str);return d.innerHTML;}\n'
-+ 'function getTypeClass(type){var map={server:"badge-server",vm:"badge-vm",container:"badge-container",network:"badge-network",storage:"badge-storage"};return map[type]||"badge-other";}\n'
++ 'function getTypeClass(type){var map={server:"badge-server",vm:"badge-vm",container:"badge-container",network:"badge-network",storage:"badge-storage",ups:"badge-ups"};return map[type]||"badge-other";}\n'
 + 'var TYPE_ICON_PATHS={'
 + 'server:\'<rect x="2" y="2.5" width="12" height="4.5" rx="1"/><rect x="2" y="9" width="12" height="4.5" rx="1"/><circle cx="4.5" cy="4.75" r="0.6" fill="currentColor" stroke="none"/><circle cx="4.5" cy="11.25" r="0.6" fill="currentColor" stroke="none"/><line x1="7" y1="4.75" x2="12" y2="4.75"/><line x1="7" y1="11.25" x2="12" y2="11.25"/>\','
 + 'vm:\'<rect x="1.75" y="2.75" width="12.5" height="8.5" rx="1"/><line x1="5.5" y1="14" x2="10.5" y2="14"/><line x1="8" y1="11.25" x2="8" y2="14"/><circle cx="8" cy="7" r="2" fill="currentColor" stroke="none"/>\','
 + 'container:\'<path d="M8 1.75l5.75 2.75v7L8 14.25 2.25 11.5v-7z"/><path d="M2.25 4.5L8 7.25l5.75-2.75"/><line x1="8" y1="7.25" x2="8" y2="14.25"/>\','
 + 'network:\'<circle cx="8" cy="3" r="1.6"/><circle cx="3" cy="13" r="1.6"/><circle cx="13" cy="13" r="1.6"/><line x1="8" y1="4.6" x2="8" y2="7.5"/><line x1="8" y1="7.5" x2="3.8" y2="11.6"/><line x1="8" y1="7.5" x2="12.2" y2="11.6"/>\','
 + 'storage:\'<ellipse cx="8" cy="3.5" rx="5.25" ry="1.75"/><path d="M2.75 3.5v9c0 .97 2.35 1.75 5.25 1.75s5.25-.78 5.25-1.75v-9"/><path d="M2.75 8c0 .97 2.35 1.75 5.25 1.75s5.25-.78 5.25-1.75"/>\','
++ 'ups:\'<rect x="2.5" y="3" width="11" height="10" rx="1"/><rect x="6" y="1.75" width="4" height="1.5" rx="0.4" fill="currentColor" stroke="none"/><path d="M8.5 5.5l-2.25 3.5h1.75l-0.5 2.5 2.25-3.5h-1.75z" fill="currentColor" stroke="none"/>\','
 + 'other:\'<circle cx="8" cy="8" r="6"/><circle cx="8" cy="8" r="1.4" fill="currentColor" stroke="none"/>\''
 + '};\n'
 + 'function getTypeIcon(type){var t=TYPE_ICON_PATHS[type]?type:"other";return \'<svg width="12" height="12" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round" aria-hidden="true">\'+TYPE_ICON_PATHS[t]+\'</svg>\';}\n'
@@ -2345,8 +2563,9 @@ const PUBLIC_HTML_TEMPLATE = '<!DOCTYPE html>\n'
 + '    \'<title>\'+esc(d.name)+(d.type?" (\'+esc(d.type)+\')":"")+\'</title>\'+\n'
 + '  \'</g>\';\n'
 + '}\n'
-+ 'function topologyClusterSvg(rootNode){\n'
++ 'function topologyClusterSvg(rootNode,opts){\n'
 + '  var w=280,parentH=60,childH=50,childIndent=26,childGap=10,childTopGap=20,pad=6;\n'
++ '  var edgeClass=(opts&&opts.edgeType==="power")?"topo-edge-power":"topo-edge";\n'
 + '  var descendantCount=0;\n'
 + '  function countDescendants(n){if(!n.children)return;descendantCount+=n.children.length;n.children.forEach(countDescendants);}\n'
 + '  countDescendants(rootNode);\n'
@@ -2365,13 +2584,13 @@ const PUBLIC_HTML_TEMPLATE = '<!DOCTYPE html>\n'
 + '        if(i>0)y+=childGap;\n'
 + '        var cy=y+childH/2;\n'
 + '        childCenters.push(cy);\n'
-+ '        childSvg+=\'<line x1="\'+trunkX+\'" y1="\'+cy+\'" x2="\'+childX+\'" y2="\'+cy+\'" class="topo-edge"/>\';\n'
++ '        childSvg+=\'<line x1="\'+trunkX+\'" y1="\'+cy+\'" x2="\'+childX+\'" y2="\'+cy+\'" class="\'+edgeClass+\'"/>\';\n'
 + '        var sub=layout(c,y,depth+1);\n'
 + '        childSvg+=sub.svg;\n'
 + '        y=sub.endY;\n'
 + '      });\n'
 + '      var trunkBottom=childCenters[childCenters.length-1];\n'
-+ '      svg+=\'<line x1="\'+trunkX+\'" y1="\'+trunkTop+\'" x2="\'+trunkX+\'" y2="\'+trunkBottom+\'" class="topo-edge"/>\';\n'
++ '      svg+=\'<line x1="\'+trunkX+\'" y1="\'+trunkTop+\'" x2="\'+trunkX+\'" y2="\'+trunkBottom+\'" class="\'+edgeClass+\'"/>\';\n'
 + '      svg+=childSvg;\n'
 + '    }\n'
 + '    return {svg:svg,endY:y};\n'
@@ -2379,7 +2598,8 @@ const PUBLIC_HTML_TEMPLATE = '<!DOCTYPE html>\n'
 + '  var result=layout(rootNode,0,0);\n'
 + '  var contentH=result.endY,svgW=w+pad*2,svgH=contentH+pad*2;\n'
 + '  var parent=rootNode.device;\n'
-+ '  var ariaLabel=esc(parent.name)+(descendantCount?" with "+descendantCount+" descendant device"+(descendantCount===1?"":"s"):"");\n'
++ '  var linkWord=(opts&&opts.edgeType==="power")?"powered device":"descendant device";\n'
++ '  var ariaLabel=esc(parent.name)+(descendantCount?" with "+descendantCount+" "+linkWord+(descendantCount===1?"":"s"):"");\n'
 + '  return \'<svg class="topo-cluster" viewBox="\'+(-pad)+\' \'+(-pad)+\' \'+svgW+\' \'+svgH+\'" width="\'+svgW+\'" height="\'+svgH+\'" xmlns="http://www.w3.org/2000/svg" role="group" aria-label="\'+ariaLabel+\'">\'+result.svg+\'</svg>\';\n'
 + '}\n'
 + 'function renderTopology(){\n'
@@ -2387,24 +2607,61 @@ const PUBLIC_HTML_TEMPLATE = '<!DOCTYPE html>\n'
 + '  var container=document.getElementById("topologyView");\n'
 + '  if(!filtered.length){container.innerHTML=\'<div class="topology-empty">\'+(DEVICES.length===0?"No devices yet.":"No matches for the current search/filter.")+\'</div>\';return;}\n'
 + '  var filteredIds={};filtered.forEach(function(d){filteredIds[d.id]=1;});\n'
-+ '  var roots=filtered.filter(function(d){return !d.parentId;});\n'
-+ '  var orphans=filtered.filter(function(d){return d.parentId&&!filteredIds[d.parentId];});\n'
-+ '  function buildSubtree(device){\n'
++ '  function buildNetworkTree(device){\n'
 + '    var kids=filtered.filter(function(c){return c.parentId===device.id;})\n'
 + '      .sort(function(a,b){return (a.name||"").localeCompare(b.name||"",undefined,{sensitivity:"base"});});\n'
-+ '    return {device:device,children:kids.map(buildSubtree)};\n'
++ '    return {device:device,children:kids.map(buildNetworkTree)};\n'
 + '  }\n'
-+ '  var trees=roots.concat(orphans).map(buildSubtree);\n'
-+ '  trees.sort(function(a,b){return (a.device.name||"").localeCompare(b.device.name||"",undefined,{sensitivity:"base"});});\n'
-+ '  container.innerHTML=\'<div class="topology-clusters">\'+trees.map(function(t){return topologyClusterSvg(t);}).join("")+\'</div>\';\n'
++ '  function buildPowerTree(device,seen){\n'
++ '    seen=seen||{};\n'
++ '    if(seen[device.id])return {device:device,children:[]};\n'
++ '    seen[device.id]=1;\n'
++ '    var powerKids=filtered.filter(function(c){return c.poweredById===device.id;});\n'
++ '    var virtualKids=filtered.filter(function(c){return c.parentId===device.id&&(c.type==="vm"||c.type==="container")&&!c.poweredById;});\n'
++ '    var kids=powerKids.concat(virtualKids)\n'
++ '      .sort(function(a,b){return (a.name||"").localeCompare(b.name||"",undefined,{sensitivity:"base"});});\n'
++ '    return {device:device,children:kids.map(function(k){return buildPowerTree(k,seen);})};\n'
++ '  }\n'
++ '  var networkRoots=filtered.filter(function(d){return !d.parentId;});\n'
++ '  var networkOrphans=filtered.filter(function(d){return d.parentId&&!filteredIds[d.parentId];});\n'
++ '  var networkTrees=networkRoots.concat(networkOrphans).map(buildNetworkTree)\n'
++ '    .sort(function(a,b){return (a.device.name||"").localeCompare(b.device.name||"",undefined,{sensitivity:"base"});});\n'
++ '  var poweringIds={};filtered.forEach(function(d){if(d.poweredById&&filteredIds[d.poweredById])poweringIds[d.poweredById]=1;});\n'
++ '  var powerRoots=filtered.filter(function(d){return poweringIds[d.id]&&(!d.poweredById||!filteredIds[d.poweredById]);});\n'
++ '  var powerOrphans=filtered.filter(function(d){return d.poweredById&&!filteredIds[d.poweredById];});\n'
++ '  var powerTrees=powerRoots.concat(powerOrphans).map(function(d){return buildPowerTree(d);})\n'
++ '    .sort(function(a,b){return (a.device.name||"").localeCompare(b.device.name||"",undefined,{sensitivity:"base"});});\n'
++ '  var sections=[];\n'
++ '  var showNetwork=topoMode==="network"||topoMode==="both";\n'
++ '  var showPower=topoMode==="power"||topoMode==="both";\n'
++ '  if(showNetwork&&networkTrees.length){\n'
++ '    if(topoMode==="both")sections.push(\'<div class="topology-section-header">Network</div>\');\n'
++ '    sections.push(networkTrees.map(function(t){return topologyClusterSvg(t);}).join(""));\n'
++ '  }\n'
++ '  if(showPower&&powerTrees.length){\n'
++ '    if(topoMode==="both")sections.push(\'<div class="topology-section-header">Power</div>\');\n'
++ '    sections.push(powerTrees.map(function(t){return topologyClusterSvg(t,{edgeType:"power"});}).join(""));\n'
++ '  }\n'
++ '  if(!sections.length){\n'
++ '    var msg=topoMode==="power"?"No power relationships in this set.":"No matches for the current search/filter.";\n'
++ '    container.innerHTML=\'<div class="topology-empty">\'+msg+\'</div>\';return;\n'
++ '  }\n'
++ '  container.innerHTML=\'<div class="topology-clusters">\'+sections.join("")+\'</div>\';\n'
 + '}\n'
 + 'var VIEW_KEY="homelab_view";\n'
++ 'var TOPO_MODE_KEY="homelab_topo_mode";\n'
++ 'var topoMode="network";\n'
 + 'try{var savedView=localStorage.getItem(VIEW_KEY);if(savedView==="topology"||savedView==="grid")currentView=savedView;}catch(_){}\n'
++ 'try{var savedMode=localStorage.getItem(TOPO_MODE_KEY);if(savedMode==="power"||savedMode==="both")topoMode=savedMode;}catch(_){}\n'
 + 'function applyViewUI(){\n'
 + '  var btns=document.querySelectorAll("[data-view]");\n'
 + '  for(var i=0;i<btns.length;i++){var active=btns[i].getAttribute("data-view")===currentView;btns[i].classList.toggle("active",active);btns[i].setAttribute("aria-selected",active?"true":"false");}\n'
 + '  document.getElementById("deviceGrid").style.display=currentView==="grid"?"":"none";\n'
 + '  document.getElementById("topologyView").classList.toggle("active",currentView==="topology");\n'
++ '  var modeToggle=document.getElementById("topoModeToggle");\n'
++ '  if(modeToggle)modeToggle.hidden=currentView!=="topology";\n'
++ '  var mbtns=document.querySelectorAll("[data-topo-mode]");\n'
++ '  for(var j=0;j<mbtns.length;j++){var a=mbtns[j].getAttribute("data-topo-mode")===topoMode;mbtns[j].classList.toggle("active",a);mbtns[j].setAttribute("aria-selected",a?"true":"false");}\n'
 + '}\n'
 + 'function setView(v){\n'
 + '  currentView=v;\n'
@@ -2412,10 +2669,18 @@ const PUBLIC_HTML_TEMPLATE = '<!DOCTYPE html>\n'
 + '  applyViewUI();\n'
 + '  if(v==="topology")renderTopology();\n'
 + '}\n'
++ 'function setTopoMode(m){\n'
++ '  topoMode=m;\n'
++ '  try{localStorage.setItem(TOPO_MODE_KEY,m);}catch(_){}\n'
++ '  applyViewUI();\n'
++ '  renderTopology();\n'
++ '}\n'
 + 'function showDetail(id){\n'
 + '  var d=getDevice(id);if(!d)return;\n'
 + '  var children=getChildren(d.id);\n'
 + '  var parent=d.parentId?getDevice(d.parentId):null;\n'
++ '  var powerSource=d.poweredById?getDevice(d.poweredById):null;\n'
++ '  var poweredDevices=DEVICES.filter(function(x){return x.poweredById===d.id;}).sort(function(a,b){return (a.name||"").localeCompare(b.name||"",undefined,{sensitivity:"base"});});\n'
 + '  var html=\'<div class="detail-header"><div>\'+\n'
 + '    \'<div style="font-family:\\\'JetBrains Mono\\\',monospace;font-size:22px;font-weight:700;margin-bottom:4px;">\'+esc(d.name)+\'</div>\'+\n'
 + '    typeBadge(d.type)+\n'
@@ -2460,6 +2725,16 @@ const PUBLIC_HTML_TEMPLATE = '<!DOCTYPE html>\n'
 + '      \'<div class="child-device" data-detail-id="\'+esc(parent.id)+\'"><div><div class="child-device-name">\'+esc(parent.name)+\'</div><div class="child-device-info">\'+esc(parent.type)+\'</div></div>\'+typeBadge(parent.type)+\'</div>\'+\n'
 + '    \'</div>\';\n'
 + '  }\n'
++ '  if(powerSource){\n'
++ '    html+=\'<div class="detail-section"><div class="detail-section-title">Power Source</div>\'+\n'
++ '      \'<div class="child-device" data-detail-id="\'+esc(powerSource.id)+\'"><div><div class="child-device-name">\'+esc(powerSource.name)+\'</div><div class="child-device-info">\'+esc(powerSource.type)+\'</div></div>\'+typeBadge(powerSource.type)+\'</div>\'+\n'
++ '    \'</div>\';\n'
++ '  }\n'
++ '  if(poweredDevices.length){\n'
++ '    html+=\'<div class="detail-section"><div class="detail-section-title">Powered devices (\'+poweredDevices.length+\')</div>\'+\n'
++ '      poweredDevices.map(function(c){return \'<div class="child-device" data-detail-id="\'+esc(c.id)+\'"><div><div class="child-device-name">\'+esc(c.name)+\'</div><div class="child-device-info">\'+esc(c.type)+\'</div></div>\'+typeBadge(c.type)+\'</div>\';}).join("")+\n'
++ '    \'</div>\';\n'
++ '  }\n'
 + '  if(d.notes){\n'
 + '    html+=\'<div class="detail-section"><div class="detail-section-title">Notes</div><div class="detail-notes">\'+esc(d.notes)+\'</div></div>\';\n'
 + '  }\n'
@@ -2479,6 +2754,7 @@ const PUBLIC_HTML_TEMPLATE = '<!DOCTYPE html>\n'
 + 'document.getElementById("deviceGrid").addEventListener("keydown",function(e){if(e.key==="Enter"||e.key===" "){var c=e.target.closest("[data-id]");if(c){e.preventDefault();showDetail(c.getAttribute("data-id"));}}});\n'
 + 'document.getElementById("topologyView").addEventListener("click",function(e){var n=e.target.closest("[data-id]");if(n)showDetail(n.getAttribute("data-id"));});\n'
 + 'document.querySelectorAll("[data-view]").forEach(function(b){b.addEventListener("click",function(){setView(b.getAttribute("data-view"));});});\n'
++ 'document.querySelectorAll("[data-topo-mode]").forEach(function(b){b.addEventListener("click",function(){setTopoMode(b.getAttribute("data-topo-mode"));});});\n'
 + 'document.getElementById("detailPanel").addEventListener("click",function(e){var n=e.target.closest("[data-detail-id]");if(n){showDetail(n.getAttribute("data-detail-id"));return;}if(e.target.closest("[data-action=close-detail]"))closeDetail();});\n'
 + 'document.getElementById("detailOverlay").addEventListener("click",function(e){if(e.target.id==="detailOverlay")closeDetail();});\n'
 + 'document.addEventListener("keydown",function(e){if(e.key==="Escape")closeDetail();});\n'
@@ -2537,7 +2813,12 @@ function handleImport(event) {
           const parent = devices.find(p => p.name === d._parentName);
           if (parent) d.parentId = parent.id;
         }
+        if (d._powerName && !d.poweredById) {
+          const ps = devices.find(p => p.name === d._powerName);
+          if (ps) d.poweredById = ps.id;
+        }
         delete d._parentName;
+        delete d._powerName;
       });
       saveDevices(devices);
       markExported();
@@ -2606,7 +2887,7 @@ function exportCsv() {
   const devices = loadDevices();
   if (!devices.length) { toast('No devices to export', 'error'); return; }
 
-  const headers = ['Name', 'Type', 'Status', 'IP', 'System', 'OS', 'CPU', 'RAM', 'Storage', 'Location', 'Services', 'Notes', 'Parent', 'ID'];
+  const headers = ['Name', 'Type', 'Status', 'IP', 'System', 'OS', 'CPU', 'RAM', 'Storage', 'Location', 'Services', 'Notes', 'Parent', 'PowerSource', 'ID'];
   const csvEscape = v => {
     if (v === undefined || v === null) return '';
     const s = String(v);
@@ -2615,6 +2896,7 @@ function exportCsv() {
 
   const rows = devices.map(d => {
     const parent = d.parentId ? devices.find(x => x.id === d.parentId) : null;
+    const powerSource = d.poweredById ? devices.find(x => x.id === d.poweredById) : null;
     const storage = Array.isArray(d.storage)
       ? d.storage.map(s => [s.type, s.size, s.notes].filter(Boolean).join(' ')).join('; ')
       : (d.storage || '');
@@ -2624,7 +2906,7 @@ function exportCsv() {
     }).join('; ');
     return [
       d.name, d.type, d.status, d.ip, d.system, d.os, d.cpu, d.ram,
-      storage, d.location, services, d.notes, parent ? parent.name : '', d.id,
+      storage, d.location, services, d.notes, parent ? parent.name : '', powerSource ? powerSource.name : '', d.id,
     ].map(csvEscape).join(',');
   });
 
@@ -2720,6 +3002,7 @@ function undoDelete() {
   devices.splice(insertAt, 0, snapshot.device);
   devices.forEach(c => {
     if (snapshot.orphans.indexOf(c.id) !== -1) c.parentId = snapshot.device.id;
+    if (snapshot.powerOrphans && snapshot.powerOrphans.indexOf(c.id) !== -1) c.poweredById = snapshot.device.id;
   });
   saveDevices(devices);
   refresh();
