@@ -1433,7 +1433,7 @@ function renderTopology() {
   if (!trees.length) {
     let msg;
     if (topoMode === 'power' && (currentFilter === 'vm' || currentFilter === 'container')) {
-      msg = `${currentFilter === 'vm' ? 'VMs' : 'Containers'} inherit power from their host — set a Power Source on the host instead.`;
+      msg = `${currentFilter === 'vm' ? 'VMs' : 'Containers'} inherit power from their host, so they don’t appear here on their own.`;
     } else if (topoMode === 'power') {
       msg = 'No power relationships yet. Set a Power Source on any device.';
     } else if (currentFilter === 'ups') {
@@ -2666,7 +2666,7 @@ const PUBLIC_HTML_TEMPLATE = '<!DOCTYPE html>\n'
 + '  var opts=topoMode==="power"?{edgeType:"power"}:{};\n'
 + '  if(!trees.length){\n'
 + '    var msg;\n'
-+ '    if(topoMode==="power"&&(currentFilter==="vm"||currentFilter==="container"))msg=(currentFilter==="vm"?"VMs":"Containers")+" inherit power from their host — they don\\u2019t have their own power source.";\n'
++ '    if(topoMode==="power"&&(currentFilter==="vm"||currentFilter==="container"))msg=(currentFilter==="vm"?"VMs":"Containers")+" inherit power from their host, so they don\\u2019t appear here on their own.";\n'
 + '    else if(topoMode==="power")msg="No power relationships in this set.";\n'
 + '    else if(currentFilter==="ups")msg="UPS devices are shown in the Power view — switch the topology mode above.";\n'
 + '    else msg="No matches for the current search/filter.";\n'
