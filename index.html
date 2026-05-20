@@ -1606,9 +1606,10 @@ function syncPowerFieldVisibility() {
     servicesRow.hidden = isUps;
     if (isUps) { serviceRowData = []; renderServiceRows(); }
   }
+  const hideCpuRam = isUps || type === 'network';
   if (cpuRamRow) {
-    cpuRamRow.hidden = isUps;
-    if (isUps) {
+    cpuRamRow.hidden = hideCpuRam;
+    if (hideCpuRam) {
       document.getElementById('fCpu').value = '';
       document.getElementById('fRam').value = '';
     }
@@ -1745,8 +1746,8 @@ function saveDevice() {
     system: document.getElementById('fSystem').value.trim(),
     os: isUps ? '' : document.getElementById('fOs').value.trim(),
     status: document.getElementById('fStatus').value,
-    cpu: isUps ? '' : document.getElementById('fCpu').value.trim(),
-    ram: isUps ? '' : document.getElementById('fRam').value.trim(),
+    cpu: (isUps || type === 'network') ? '' : document.getElementById('fCpu').value.trim(),
+    ram: (isUps || type === 'network') ? '' : document.getElementById('fRam').value.trim(),
     storage,
     location: document.getElementById('fLocation').value.trim(),
     services,
