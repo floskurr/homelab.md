@@ -267,7 +267,6 @@
   }
   .device-card:hover, .device-card:focus-visible { border-color: var(--border-active); box-shadow: var(--shadow); }
   .device-card:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
-  .device-card.has-children { border-left: 3px solid var(--accent); }
 
   .device-card-header { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 10px; }
 
@@ -1163,7 +1162,7 @@ function renderDevices() {
     const storage = sortedStorage(d.storage);
 
     return `
-    <div class="device-card ${children.length ? 'has-children' : ''}" tabindex="0" role="button" onclick="showDetail('${d.id}')" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();showDetail('${d.id}');}">
+    <div class="device-card" tabindex="0" role="button" onclick="showDetail('${d.id}')" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();showDetail('${d.id}');}">
       <div class="device-card-header">
         <div>
           <div class="device-name">
@@ -2435,7 +2434,7 @@ const PUBLIC_HTML_TEMPLATE = '<!DOCTYPE html>\n'
 + '.filter-select-option.active{background:var(--accent-glow);color:var(--accent);}\n'
 + '.device-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(360px,1fr));gap:14px;}\n'
 + '.device-card{background:var(--bg-card);border:1px solid var(--border);border-radius:var(--radius);padding:18px;transition:all 0.15s ease;cursor:pointer;position:relative;}\n'
-+ '.device-card:hover,.device-card:focus-visible{border-color:var(--border-active);box-shadow:var(--shadow);}.device-card:focus-visible{outline:2px solid var(--accent);outline-offset:2px;}.device-card.has-children{border-left:3px solid var(--accent);}\n'
++ '.device-card:hover,.device-card:focus-visible{border-color:var(--border-active);box-shadow:var(--shadow);}.device-card:focus-visible{outline:2px solid var(--accent);outline-offset:2px;}\n'
 + '.device-card-header{display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:10px;}\n'
 + '.device-name{font-family:\'JetBrains Mono\',monospace;font-size:17px;font-weight:600;color:var(--text-primary);}\n'
 + '.device-type-badge{font-family:\'JetBrains Mono\',monospace;font-size:12px;text-transform:uppercase;letter-spacing:0.8px;padding:3px 8px;border-radius:3px;font-weight:600;white-space:nowrap;display:inline-flex;align-items:center;gap:5px;}\n'
@@ -2584,7 +2583,7 @@ const PUBLIC_HTML_TEMPLATE = '<!DOCTYPE html>\n'
 + '      if(storage.length>2){storageHtml=firstLabel+", +"+(storage.length-1)+" more";}\n'
 + '      else{storageHtml=storage.map(function(s){return esc(s.size?s.type+" "+s.size:s.type);}).join(", ");}\n'
 + '    }\n'
-+ '    return \'<div class="device-card \'+(children.length?"has-children":"")+\'" tabindex="0" role="button" data-id="\'+esc(d.id)+\'">\'+\n'
++ '    return \'<div class="device-card" tabindex="0" role="button" data-id="\'+esc(d.id)+\'">\'+\n'
 + '      \'<div class="device-card-header"><div><div class="device-name">\'+esc(d.name)+\'</div></div>\'+\n'
 + '      typeBadge(d.type)+\'</div>\'+\n'
 + '      (parent?\'<div class="device-parent-link">on <strong>\'+esc(parent.name)+\'</strong></div>\':"")+\n'
