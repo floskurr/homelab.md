@@ -890,6 +890,13 @@
         </div>
       </div>
 
+      <div class="form-row full" id="fGpuRow">
+        <div class="form-group">
+          <label class="form-label">GPU</label>
+          <input type="text" class="form-input" id="fGpu" placeholder="e.g. NVIDIA RTX 4090, Intel Arc A770">
+        </div>
+      </div>
+
       <div class="form-row full" id="fStorageRow">
         <div class="form-group">
           <label class="form-label">Storage</label>
@@ -1138,7 +1145,7 @@ function getFilteredDevices() {
     if (query) {
       const svcText = (d.services || []).map(s => typeof s === 'string' ? s : `${s.name} ${s.port} ${s.notes} ${s.url}`).join(' ');
       const storageText = Array.isArray(d.storage) ? d.storage.map(s => `${s.type} ${s.size} ${s.notes}`).join(' ') : (d.storage || '');
-      const searchable = [d.name, d.ip, d.os, d.system, d.type, d.location, d.notes, svcText, storageText].join(' ').toLowerCase();
+      const searchable = [d.name, d.ip, d.os, d.system, d.type, d.cpu, d.ram, d.gpu, d.location, d.notes, svcText, storageText].join(' ').toLowerCase();
       if (!searchable.includes(query)) return false;
     }
     return true;
@@ -1189,6 +1196,7 @@ function renderDevices() {
         ${d.os ? `<span class="meta-item"><strong>OS / Firmware:</strong> ${esc(d.os)}</span>` : ''}
         ${d.cpu ? `<span class="meta-item"><strong>CPU:</strong> ${esc(d.cpu)}</span>` : ''}
         ${d.ram ? `<span class="meta-item"><strong>RAM:</strong> ${esc(d.ram)}</span>` : ''}
+        ${d.gpu ? `<span class="meta-item"><strong>GPU:</strong> ${esc(d.gpu)}</span>` : ''}
         ${storage && (Array.isArray(storage) ? storage.length : storage) ? `<span class="meta-item"><strong>Storage:</strong> ${Array.isArray(storage) ? (storage.length > 2 ? esc(storage[0].size ? storage[0].type + ' ' + storage[0].size : storage[0].type) + ', +' + (storage.length - 1) + ' more' : storage.map(s => esc(s.size ? s.type + ' ' + s.size : s.type)).join(', ')) : esc(storage)}</span>` : ''}
       </div>
       ${svcCount ? `
@@ -1650,6 +1658,12 @@ function syncPowerFieldVisibility() {
       document.getElementById('fRam').value = '';
     }
   }
+  const hideGpu = isUps || type === 'network' || type === 'storage';
+  const gpuRow = document.getElementById('fGpuRow');
+  if (gpuRow) {
+    gpuRow.hidden = hideGpu;
+    if (hideGpu) document.getElementById('fGpu').value = '';
+  }
   if (osGroup) {
     osGroup.hidden = isUps;
     if (isUps) document.getElementById('fOs').value = '';
@@ -1714,6 +1728,7 @@ function openEditModal(id) {
   setFormSelectValue('fStatus', d.status || 'unknown');
   document.getElementById('fCpu').value = d.cpu || '';
   document.getElementById('fRam').value = d.ram || '';
+  document.getElementById('fGpu').value = d.gpu || '';
   document.getElementById('fLocation').value = d.location || '';
   document.getElementById('fNotes').value = d.notes || '';
 
@@ -1745,7 +1760,7 @@ function openEditModal(id) {
 function closeModal() { closeModalEl(document.getElementById('formModal')); }
 
 function clearForm() {
-  ['fName','fIp','fSystem','fOs','fCpu','fRam','fLocation','fNotes'].forEach(id => {
+  ['fName','fIp','fSystem','fOs','fCpu','fRam','fGpu','fLocation','fNotes'].forEach(id => {
     document.getElementById(id).value = '';
   });
   setFormSelectValue('fType', 'server');
@@ -1784,6 +1799,7 @@ function saveDevice() {
     status: document.getElementById('fStatus').value,
     cpu: (isUps || type === 'network') ? '' : document.getElementById('fCpu').value.trim(),
     ram: (isUps || type === 'network') ? '' : document.getElementById('fRam').value.trim(),
+    gpu: (isUps || type === 'network' || type === 'storage') ? '' : document.getElementById('fGpu').value.trim(),
     storage,
     location: document.getElementById('fLocation').value.trim(),
     services,
@@ -1851,6 +1867,7 @@ function showDetail(id) {
         const hardware = [
           field('CPU', d.cpu),
           field('RAM', d.ram),
+          field('GPU', d.gpu),
           field('Location', d.location),
         ].filter(Boolean).join('');
         return `
@@ -2039,6 +2056,7 @@ function deviceToMarkdown(d, allDevices) {
   md += `- **OS / Firmware:** ${d.os || '—'}\n`;
   md += `- **CPU:** ${d.cpu || '—'}\n`;
   md += `- **RAM:** ${d.ram || '—'}\n`;
+  md += `- **GPU:** ${d.gpu || '—'}\n`;
   if (Array.isArray(d.storage) && d.storage.length) {
     md += `\n## Storage\n\n`;
     md += `| Type / Device | Size | Notes |\n`;
@@ -2095,7 +2113,7 @@ function markdownToDevice(md) {
 
   const fieldMap = {
     'Type': 'type', 'Status': 'status', 'IP Address': 'ip', 'System': 'system',
-    'OS / Firmware': 'os', 'OS': 'os', 'CPU': 'cpu', 'RAM': 'ram', 'Location': 'location',
+    'OS / Firmware': 'os', 'OS': 'os', 'CPU': 'cpu', 'RAM': 'ram', 'GPU': 'gpu', 'Location': 'location',
     'Host': '_parentName', 'Power Source': '_powerName'
   };
 
@@ -2235,7 +2253,7 @@ function deviceToPublicSection(d, allDevices) {
 
   const specs = [
     ['System', d.system], ['OS / Firmware', d.os], ['CPU', d.cpu],
-    ['RAM', d.ram],
+    ['RAM', d.ram], ['GPU', d.gpu],
   ].map(([k, v]) => [k, sanitizePublic(v || '')]).filter(([, v]) => v);
 
   if (specs.length) {
@@ -2374,6 +2392,7 @@ function sanitizeDeviceForPublic(d) {
     os: sanitizePublic(d.os || ''),
     cpu: sanitizePublic(d.cpu || ''),
     ram: sanitizePublic(d.ram || ''),
+    gpu: sanitizePublic(d.gpu || ''),
     storage: Array.isArray(d.storage) ? sortedStorage(d.storage)
       .filter(s => s && s.type)
       .map(s => ({
@@ -2577,7 +2596,7 @@ const PUBLIC_HTML_TEMPLATE = '<!DOCTYPE html>\n'
 + '    if(query){\n'
 + '      var svcText=(d.services||[]).map(function(s){return s.name+" "+s.notes;}).join(" ");\n'
 + '      var storageText=(d.storage||[]).map(function(s){return s.type+" "+s.size+" "+s.notes;}).join(" ");\n'
-+ '      var hay=[d.name,d.os,d.system,d.type,d.cpu,d.ram,d.notes,svcText,storageText].join(" ").toLowerCase();\n'
++ '      var hay=[d.name,d.os,d.system,d.type,d.cpu,d.ram,d.gpu,d.notes,svcText,storageText].join(" ").toLowerCase();\n'
 + '      return hay.indexOf(query)!==-1;\n'
 + '    }\n'
 + '    return true;\n'
@@ -2613,6 +2632,7 @@ const PUBLIC_HTML_TEMPLATE = '<!DOCTYPE html>\n'
 + '        (d.os?\'<span class="meta-item"><strong>OS / Firmware:</strong> \'+esc(d.os)+\'</span>\':"")+\n'
 + '        (d.cpu?\'<span class="meta-item"><strong>CPU:</strong> \'+esc(d.cpu)+\'</span>\':"")+\n'
 + '        (d.ram?\'<span class="meta-item"><strong>RAM:</strong> \'+esc(d.ram)+\'</span>\':"")+\n'
++ '        (d.gpu?\'<span class="meta-item"><strong>GPU:</strong> \'+esc(d.gpu)+\'</span>\':"")+\n'
 + '        (storageHtml?\'<span class="meta-item"><strong>Storage:</strong> \'+storageHtml+\'</span>\':"")+\n'
 + '      \'</div>\'+\n'
 + '      (svcs.length?\'<div class="device-services">\'+\n'
@@ -2772,7 +2792,7 @@ const PUBLIC_HTML_TEMPLATE = '<!DOCTYPE html>\n'
 + '  \'</div><button class="btn btn-ghost btn-sm" data-action="close-detail">\\u2715</button></div>\';\n'
 + '  var field=function(label,val){return val?\'<div><div class="detail-field-label">\'+label+\'</div><div class="detail-field-value">\'+esc(val)+\'</div></div>\':"";};\n'
 + '  var overview=field("System",d.system)+field("OS / Firmware",d.os);\n'
-+ '  var hardware=field("CPU",d.cpu)+field("RAM",d.ram);\n'
++ '  var hardware=field("CPU",d.cpu)+field("RAM",d.ram)+field("GPU",d.gpu);\n'
 + '  html+=\'<div class="detail-body">\';\n'
 + '  if(overview){\n'
 + '    html+=\'<div class="detail-section"><div class="detail-section-title">Overview</div><div class="detail-grid">\'+overview+\'</div></div>\';\n'
@@ -2965,7 +2985,7 @@ function exportCsv() {
   const devices = loadDevices();
   if (!devices.length) { toast('No entries to export', 'error'); return; }
 
-  const headers = ['Name', 'Type', 'Status', 'IP', 'System', 'OS', 'CPU', 'RAM', 'Storage', 'Location', 'Services', 'Notes', 'Parent', 'PowerSource', 'ID'];
+  const headers = ['Name', 'Type', 'Status', 'IP', 'System', 'OS', 'CPU', 'RAM', 'GPU', 'Storage', 'Location', 'Services', 'Notes', 'Parent', 'PowerSource', 'ID'];
   const csvEscape = v => {
     if (v === undefined || v === null) return '';
     const s = String(v);
@@ -2983,7 +3003,7 @@ function exportCsv() {
       return s.name + (s.port ? ':' + s.port : '');
     }).join('; ');
     return [
-      d.name, d.type, d.status, d.ip, d.system, d.os, d.cpu, d.ram,
+      d.name, d.type, d.status, d.ip, d.system, d.os, d.cpu, d.ram, d.gpu,
       storage, d.location, services, d.notes, parent ? parent.name : '', powerSource ? powerSource.name : '', d.id,
     ].map(csvEscape).join(',');
   });
