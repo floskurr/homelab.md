@@ -1895,7 +1895,7 @@ function showDetail(id) {
       `; })() : ''}
       ${children.length ? `
         <div class="detail-section">
-          <div class="detail-section-title">Running on this host (${children.length})</div>
+          <div class="detail-section-title">Running on this Host / Parent (${children.length})</div>
           ${children.map(c => `
             <div class="child-device" onclick="event.stopPropagation(); showDetail('${c.id}')">
               <div class="child-device-name"><span class="device-status status-${c.status || 'unknown'}"></span>${esc(c.name)}</div>
@@ -2056,7 +2056,7 @@ function deviceToMarkdown(d, allDevices) {
 
   const children = allDevices.filter(c => c.parentId === d.id).sort((a, b) => (a.name || '').localeCompare(b.name || '', undefined, { sensitivity: 'base' }));
   if (children.length) {
-    md += `\n## Running on this host\n\n`;
+    md += `\n## Running on this Host / Parent\n\n`;
     children.forEach(c => { md += `- **${c.name}** (${c.type})${c.ip ? ' — ' + c.ip : ''}\n`; });
   }
 
@@ -2259,7 +2259,7 @@ function deviceToPublicSection(d, allDevices) {
   }
 
   if (children.length) {
-    md += `**Running on this device**\n\n`;
+    md += `**Running on this Host / Parent**\n\n`;
     children.forEach(c => {
       const cName = sanitizePublic(c.name || '');
       if (!cName) return;
@@ -2774,7 +2774,7 @@ const PUBLIC_HTML_TEMPLATE = '<!DOCTYPE html>\n'
 + '      \'</tbody></table></div>\';\n'
 + '  }\n'
 + '  if(children.length){\n'
-+ '    html+=\'<div class="detail-section"><div class="detail-section-title">Running on this host (\'+children.length+\')</div>\'+\n'
++ '    html+=\'<div class="detail-section"><div class="detail-section-title">Running on this Host / Parent (\'+children.length+\')</div>\'+\n'
 + '      children.map(function(c){return \'<div class="child-device" data-detail-id="\'+esc(c.id)+\'"><div class="child-device-name">\'+esc(c.name)+\'</div>\'+typeBadge(c.type)+\'</div>\';}).join("")+\n'
 + '    \'</div>\';\n'
 + '  }\n'
