@@ -1900,13 +1900,7 @@ function showDetail(id) {
           <div class="detail-section-title">Running on this host (${children.length})</div>
           ${children.map(c => `
             <div class="child-device" onclick="event.stopPropagation(); showDetail('${c.id}')">
-              <div>
-                <div class="child-device-name">
-                  <span class="device-status status-${c.status || 'unknown'}"></span>
-                  ${esc(c.name)}
-                </div>
-                <div class="child-device-info">${esc(c.type)}${c.ip ? ' · ' + esc(c.ip) : ''}${c.services && c.services.length ? ' · ' + c.services.length + ' services' : ''}</div>
-              </div>
+              <div class="child-device-name">${esc(c.name)}</div>
               ${typeBadge(c.type)}
             </div>
           `).join('')}
@@ -1916,13 +1910,7 @@ function showDetail(id) {
         <div class="detail-section">
           <div class="detail-section-title">Host / Parent Device</div>
           <div class="child-device" onclick="event.stopPropagation(); showDetail('${parent.id}')">
-            <div>
-              <div class="child-device-name">
-                <span class="device-status status-${parent.status || 'unknown'}"></span>
-                ${esc(parent.name)}
-              </div>
-              <div class="child-device-info">${esc(parent.type)}${parent.ip ? ' · ' + esc(parent.ip) : ''}</div>
-            </div>
+            <div class="child-device-name">${esc(parent.name)}</div>
             ${typeBadge(parent.type)}
           </div>
         </div>
@@ -1931,13 +1919,7 @@ function showDetail(id) {
         <div class="detail-section">
           <div class="detail-section-title">Power Source</div>
           <div class="child-device" onclick="event.stopPropagation(); showDetail('${powerSource.id}')">
-            <div>
-              <div class="child-device-name">
-                <span class="device-status status-${powerSource.status || 'unknown'}"></span>
-                ${esc(powerSource.name)}
-              </div>
-              <div class="child-device-info">${esc(powerSource.type)}${powerSource.ip ? ' · ' + esc(powerSource.ip) : ''}</div>
-            </div>
+            <div class="child-device-name">${esc(powerSource.name)}</div>
             ${typeBadge(powerSource.type)}
           </div>
         </div>
@@ -1947,13 +1929,7 @@ function showDetail(id) {
           <div class="detail-section-title">Powered devices (${poweredDevices.length})</div>
           ${poweredDevices.map(c => `
             <div class="child-device" onclick="event.stopPropagation(); showDetail('${c.id}')">
-              <div>
-                <div class="child-device-name">
-                  <span class="device-status status-${c.status || 'unknown'}"></span>
-                  ${esc(c.name)}
-                </div>
-                <div class="child-device-info">${esc(c.type)}${c.ip ? ' · ' + esc(c.ip) : ''}</div>
-              </div>
+              <div class="child-device-name">${esc(c.name)}</div>
               ${typeBadge(c.type)}
             </div>
           `).join('')}
@@ -2801,22 +2777,22 @@ const PUBLIC_HTML_TEMPLATE = '<!DOCTYPE html>\n'
 + '  }\n'
 + '  if(children.length){\n'
 + '    html+=\'<div class="detail-section"><div class="detail-section-title">Running on this host (\'+children.length+\')</div>\'+\n'
-+ '      children.map(function(c){return \'<div class="child-device" data-detail-id="\'+esc(c.id)+\'"><div><div class="child-device-name">\'+esc(c.name)+\'</div><div class="child-device-info">\'+esc(c.type)+(c.services&&c.services.length?" \\u00B7 "+c.services.length+" services":"")+\'</div></div>\'+typeBadge(c.type)+\'</div>\';}).join("")+\n'
++ '      children.map(function(c){return \'<div class="child-device" data-detail-id="\'+esc(c.id)+\'"><div class="child-device-name">\'+esc(c.name)+\'</div>\'+typeBadge(c.type)+\'</div>\';}).join("")+\n'
 + '    \'</div>\';\n'
 + '  }\n'
 + '  if(parent){\n'
 + '    html+=\'<div class="detail-section"><div class="detail-section-title">Host / Parent Device</div>\'+\n'
-+ '      \'<div class="child-device" data-detail-id="\'+esc(parent.id)+\'"><div><div class="child-device-name">\'+esc(parent.name)+\'</div><div class="child-device-info">\'+esc(parent.type)+\'</div></div>\'+typeBadge(parent.type)+\'</div>\'+\n'
++ '      \'<div class="child-device" data-detail-id="\'+esc(parent.id)+\'"><div class="child-device-name">\'+esc(parent.name)+\'</div>\'+typeBadge(parent.type)+\'</div>\'+\n'
 + '    \'</div>\';\n'
 + '  }\n'
 + '  if(powerSource){\n'
 + '    html+=\'<div class="detail-section"><div class="detail-section-title">Power Source</div>\'+\n'
-+ '      \'<div class="child-device" data-detail-id="\'+esc(powerSource.id)+\'"><div><div class="child-device-name">\'+esc(powerSource.name)+\'</div><div class="child-device-info">\'+esc(powerSource.type)+\'</div></div>\'+typeBadge(powerSource.type)+\'</div>\'+\n'
++ '      \'<div class="child-device" data-detail-id="\'+esc(powerSource.id)+\'"><div class="child-device-name">\'+esc(powerSource.name)+\'</div>\'+typeBadge(powerSource.type)+\'</div>\'+\n'
 + '    \'</div>\';\n'
 + '  }\n'
 + '  if(poweredDevices.length){\n'
 + '    html+=\'<div class="detail-section"><div class="detail-section-title">Powered devices (\'+poweredDevices.length+\')</div>\'+\n'
-+ '      poweredDevices.map(function(c){return \'<div class="child-device" data-detail-id="\'+esc(c.id)+\'"><div><div class="child-device-name">\'+esc(c.name)+\'</div><div class="child-device-info">\'+esc(c.type)+\'</div></div>\'+typeBadge(c.type)+\'</div>\';}).join("")+\n'
++ '      poweredDevices.map(function(c){return \'<div class="child-device" data-detail-id="\'+esc(c.id)+\'"><div class="child-device-name">\'+esc(c.name)+\'</div>\'+typeBadge(c.type)+\'</div>\';}).join("")+\n'
 + '    \'</div>\';\n'
 + '  }\n'
 + '  if(d.notes){\n'
