@@ -769,7 +769,7 @@
 <div class="modal-overlay" id="formModal" role="dialog" aria-modal="true" aria-labelledby="formTitle">
   <div class="modal">
     <div class="modal-header">
-      <div class="modal-title" id="formTitle">Add Device</div>
+      <div class="modal-title" id="formTitle">Add Entry</div>
       <button class="btn btn-ghost btn-sm" onclick="closeModal()" aria-label="Close">✕</button>
     </div>
     <div class="modal-body">
@@ -835,7 +835,7 @@
             </ul>
             <input type="hidden" id="fPower" value="">
           </div>
-          <span class="form-hint">e.g. the UPS this device is plugged into</span>
+          <span class="form-hint">e.g. the UPS this entry is plugged into</span>
         </div>
       </div>
 
@@ -925,7 +925,7 @@
     </div>
     <div class="modal-footer">
       <button class="btn" onclick="closeModal()">Cancel</button>
-      <button class="btn btn-primary" onclick="saveDevice()">Save Device</button>
+      <button class="btn btn-primary" onclick="saveDevice()">Save Entry</button>
     </div>
   </div>
 </div>
@@ -934,7 +934,7 @@
   <a href="https://github.com/jeremehancock/homelab.md" target="_blank" class="footer-link">homelab.md</a>
 </footer>
 
-<div class="detail-overlay" id="detailOverlay" role="dialog" aria-modal="true" aria-label="Device details">
+<div class="detail-overlay" id="detailOverlay" role="dialog" aria-modal="true" aria-label="Entry details">
   <div class="detail-panel" id="detailPanel"></div>
 </div>
 
@@ -1147,9 +1147,9 @@ function renderDevices() {
     grid.innerHTML = `
       <div class="empty-state" style="grid-column:1/-1;">
         <div class="empty-icon">⬡</div>
-        <div class="empty-title">${devices.length === 0 ? 'No devices yet' : 'No matches'}</div>
-        <div class="empty-text">${devices.length === 0 ? 'Add your first homelab device to get started.' : 'Try adjusting your search or filter.'}</div>
-        ${devices.length === 0 ? '<button class="btn btn-primary" onclick="openAddModal()">+ Add Device</button>' : ''}
+        <div class="empty-title">${devices.length === 0 ? 'No entries yet' : 'No matches'}</div>
+        <div class="empty-text">${devices.length === 0 ? 'Add your first homelab entry to get started.' : 'Try adjusting your search or filter.'}</div>
+        ${devices.length === 0 ? '<button class="btn btn-primary" onclick="openAddModal()">+ Add Entry</button>' : ''}
       </div>`;
     return;
   }
@@ -1355,7 +1355,7 @@ function renderTopology() {
   const container = document.getElementById('topologyView');
 
   if (filtered.length === 0) {
-    container.innerHTML = `<div class="topology-empty">${allDevices.length === 0 ? 'No devices yet.' : 'No matches for the current search/filter.'}</div>`;
+    container.innerHTML = `<div class="topology-empty">${allDevices.length === 0 ? 'No entries yet.' : 'No matches for the current search/filter.'}</div>`;
     return;
   }
 
@@ -1424,7 +1424,7 @@ function renderTopology() {
     if (topoMode === 'power' && (currentFilter === 'vm' || currentFilter === 'container')) {
       msg = `${currentFilter === 'vm' ? 'VMs' : 'Containers'} inherit power from their host, so they don’t appear here on their own.`;
     } else if (topoMode === 'power') {
-      msg = 'No power relationships yet. Set a Power Source on any device.';
+      msg = 'No power relationships yet. Set a Power Source on any entry.';
     } else if (currentFilter === 'ups') {
       msg = 'UPS devices are shown in the Power view — switch the topology mode above.';
     } else {
@@ -1680,7 +1680,7 @@ document.addEventListener('click', (e) => {
 });
 
 function openAddModal() {
-  document.getElementById('formTitle').textContent = 'Add Device';
+  document.getElementById('formTitle').textContent = 'Add Entry';
   document.getElementById('editId').value = '';
   clearForm();
   populateParentDropdown();
@@ -1694,7 +1694,7 @@ function openEditModal(id) {
   const d = devices.find(x => x.id === id);
   if (!d) return;
 
-  document.getElementById('formTitle').textContent = 'Edit Device';
+  document.getElementById('formTitle').textContent = 'Edit Entry';
   document.getElementById('editId').value = id;
   document.getElementById('fName').value = d.name || '';
   setFormSelectValue('fType', d.type || 'server');
@@ -1948,7 +1948,7 @@ function showDetail(id) {
       <button class="btn btn-danger" onclick="confirmDelete('${d.id}')">Delete</button>
       <div style="flex:1;"></div>
       <button class="btn" onclick="closeDetail()">Cancel</button>
-      <button class="btn btn-primary" onclick="closeDetail(); openEditModal('${d.id}')">Edit Device</button>
+      <button class="btn btn-primary" onclick="closeDetail(); openEditModal('${d.id}')">Edit Entry</button>
     </div>
   `;
   openModalEl(document.getElementById('detailOverlay'));
@@ -1974,7 +1974,7 @@ function confirmDelete(id) {
     </div>
     <div class="modal-body">
       <div class="confirm-dialog">
-        <p>Delete <strong>${esc(d.name)}</strong>?${children.length ? ` This will unlink ${children.length} child device${children.length > 1 ? 's' : ''}.` : ''}</p>
+        <p>Delete <strong>${esc(d.name)}</strong>?${children.length ? ` This will unlink ${children.length} child ${children.length === 1 ? 'entry' : 'entries'}.` : ''}</p>
         <div class="btn-group">
           <button class="btn" onclick="closeDetail()">Cancel</button>
           <button class="btn btn-danger" onclick="deleteDevice('${id}')">Delete</button>
@@ -2285,7 +2285,7 @@ function deviceToPublicSection(d, allDevices) {
 
 function exportPublic() {
   const devices = loadDevices();
-  if (!devices.length) { toast('No devices to export', 'error'); return; }
+  if (!devices.length) { toast('No entries to export', 'error'); return; }
 
   const typeOrder = ['server', 'network', 'storage', 'ups', 'vm', 'container', 'other'];
   const typeLabels = {
@@ -2327,7 +2327,7 @@ function exportPublic() {
 
 function openHtmlExportModal() {
   const devices = loadDevices();
-  if (!devices.length) { toast('No devices to export', 'error'); return; }
+  if (!devices.length) { toast('No entries to export', 'error'); return; }
   document.getElementById('htmlSiteName').value = '';
   openModalEl(document.getElementById('htmlExportModal'), document.getElementById('htmlSiteName'));
 }
@@ -2370,7 +2370,7 @@ function sanitizeDeviceForPublic(d) {
 
 function exportHtml(siteName) {
   const devices = loadDevices();
-  if (!devices.length) { toast('No devices to export', 'error'); return; }
+  if (!devices.length) { toast('No entries to export', 'error'); return; }
 
   const sanitized = devices.map(sanitizeDeviceForPublic);
   const html = buildPublicHtml(siteName, sanitized);
@@ -2568,7 +2568,7 @@ const PUBLIC_HTML_TEMPLATE = '<!DOCTYPE html>\n'
 + '  var filtered=getFilteredDevices();\n'
 + '  var grid=document.getElementById("deviceGrid");\n'
 + '  if(!filtered.length){\n'
-+ '    grid.innerHTML=\'<div class="empty-state" style="grid-column:1/-1;"><div class="empty-icon">\\u29E1</div><div class="empty-title">\'+(DEVICES.length===0?"No devices":"No matches")+\'</div><div class="empty-text">\'+(DEVICES.length===0?"":"Try adjusting your search or filter.")+\'</div></div>\';\n'
++ '    grid.innerHTML=\'<div class="empty-state" style="grid-column:1/-1;"><div class="empty-icon">\\u29E1</div><div class="empty-title">\'+(DEVICES.length===0?"No entries":"No matches")+\'</div><div class="empty-text">\'+(DEVICES.length===0?"":"Try adjusting your search or filter.")+\'</div></div>\';\n'
 + '    return;\n'
 + '  }\n'
 + '  grid.innerHTML=filtered.map(function(d){\n'
@@ -2664,7 +2664,7 @@ const PUBLIC_HTML_TEMPLATE = '<!DOCTYPE html>\n'
 + 'function renderTopology(){\n'
 + '  var filtered=getFilteredDevices();\n'
 + '  var container=document.getElementById("topologyView");\n'
-+ '  if(!filtered.length){container.innerHTML=\'<div class="topology-empty">\'+(DEVICES.length===0?"No devices yet.":"No matches for the current search/filter.")+\'</div>\';return;}\n'
++ '  if(!filtered.length){container.innerHTML=\'<div class="topology-empty">\'+(DEVICES.length===0?"No entries yet.":"No matches for the current search/filter.")+\'</div>\';return;}\n'
 + '  var filteredIds={};filtered.forEach(function(d){filteredIds[d.id]=1;});\n'
 + '  function buildNetworkTree(device){\n'
 + '    var kids=filtered.filter(function(c){return c.parentId===device.id;})\n'
@@ -2823,15 +2823,15 @@ const PUBLIC_HTML_TEMPLATE = '<!DOCTYPE html>\n'
 
 function exportAll() {
   const devices = loadDevices();
-  if (!devices.length) { toast('No devices to export', 'error'); return; }
+  if (!devices.length) { toast('No entries to export', 'error'); return; }
 
   let combined = `# Homelab Inventory\n\n`;
-  combined += `> Exported ${new Date().toLocaleString()} — ${devices.length} devices\n\n---\n\n`;
+  combined += `> Exported ${new Date().toLocaleString()} — ${devices.length} ${devices.length === 1 ? 'entry' : 'entries'}\n\n---\n\n`;
   devices.forEach(d => { combined += deviceToMarkdown(d, devices) + '\n'; });
 
   downloadFile('homelab.md', combined, () => {
     markExported();
-    toast(`Exported ${devices.length} devices`);
+    toast(`Exported ${devices.length} ${devices.length === 1 ? 'entry' : 'entries'}`);
   });
 }
 
@@ -2861,7 +2861,7 @@ function handleImport(event) {
     });
 
     if (!devices.length) {
-      toast('No devices found in file — nothing imported', 'error');
+      toast('No entries found in file — nothing imported', 'error');
       return;
     }
 
@@ -2881,14 +2881,14 @@ function handleImport(event) {
       saveDevices(devices);
       markExported();
       refresh();
-      toast(`Imported ${devices.length} device${devices.length !== 1 ? 's' : ''}`);
+      toast(`Imported ${devices.length} ${devices.length === 1 ? 'entry' : 'entries'}`);
     };
 
     const existing = loadDevices();
     if (existing.length) {
       confirmAction({
         title: 'Replace existing data?',
-        message: `Importing will replace your current ${existing.length} device${existing.length !== 1 ? 's' : ''} with ${devices.length} from the file. This cannot be undone.`,
+        message: `Importing will replace your current ${existing.length} ${existing.length === 1 ? 'entry' : 'entries'} with ${devices.length} from the file. This cannot be undone.`,
         confirmLabel: 'Replace',
         danger: true,
         onConfirm: commit,
@@ -2942,7 +2942,7 @@ function updateExportIndicator() {
 // --- CSV export ---
 function exportCsv() {
   const devices = loadDevices();
-  if (!devices.length) { toast('No devices to export', 'error'); return; }
+  if (!devices.length) { toast('No entries to export', 'error'); return; }
 
   const headers = ['Name', 'Type', 'Status', 'IP', 'System', 'OS', 'CPU', 'RAM', 'Storage', 'Location', 'Services', 'Notes', 'Parent', 'PowerSource', 'ID'];
   const csvEscape = v => {
