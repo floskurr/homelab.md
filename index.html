@@ -1914,7 +1914,7 @@ function showDetail(id) {
       ` : ''}
       ${parent ? `
         <div class="detail-section">
-          <div class="detail-section-title">Host</div>
+          <div class="detail-section-title">Host / Parent Device</div>
           <div class="child-device" onclick="event.stopPropagation(); showDetail('${parent.id}')">
             <div>
               <div class="child-device-name">
@@ -2805,7 +2805,7 @@ const PUBLIC_HTML_TEMPLATE = '<!DOCTYPE html>\n'
 + '    \'</div>\';\n'
 + '  }\n'
 + '  if(parent){\n'
-+ '    html+=\'<div class="detail-section"><div class="detail-section-title">Host</div>\'+\n'
++ '    html+=\'<div class="detail-section"><div class="detail-section-title">Host / Parent Device</div>\'+\n'
 + '      \'<div class="child-device" data-detail-id="\'+esc(parent.id)+\'"><div><div class="child-device-name">\'+esc(parent.name)+\'</div><div class="child-device-info">\'+esc(parent.type)+\'</div></div>\'+typeBadge(parent.type)+\'</div>\'+\n'
 + '    \'</div>\';\n'
 + '  }\n'
