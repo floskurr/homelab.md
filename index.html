@@ -791,15 +791,15 @@
       <button type="button" class="view-btn" data-view="topology" onclick="setView('topology')" role="tab" aria-selected="false" title="Topology view">Topology</button>
     </div>
   </div>
+  <div class="tag-filter-row" id="tagFilterRow" hidden aria-label="Filter by tag">
+    <span class="tag-filter-label">Tags</span>
+    <div class="filter-group" id="tagFilterGroup"></div>
+  </div>
   <div class="toolbar-secondary" id="topoModeRow" hidden>
     <div class="view-toggle topo-mode-toggle" id="topoModeToggle" role="tablist" aria-label="Topology mode">
       <button type="button" class="view-btn active" data-topo-mode="network" onclick="setTopoMode('network')" role="tab" aria-selected="true" title="Show network parent → child tree">Network</button>
       <button type="button" class="view-btn" data-topo-mode="power" onclick="setTopoMode('power')" role="tab" aria-selected="false" title="Show UPS → powered devices">Power</button>
     </div>
-  </div>
-  <div class="tag-filter-row" id="tagFilterRow" hidden aria-label="Filter by tag">
-    <span class="tag-filter-label">Tags</span>
-    <div class="filter-group" id="tagFilterGroup"></div>
   </div>
   <div class="device-grid" id="deviceGrid"></div>
   <div class="topology-view" id="topologyView" aria-live="polite"></div>
@@ -2758,15 +2758,15 @@ const PUBLIC_HTML_TEMPLATE = '<!DOCTYPE html>\n'
 + '      <button type="button" class="view-btn" data-view="topology" role="tab" aria-selected="false" title="Topology view">Topology</button>\n'
 + '    </div>\n'
 + '  </div>\n'
++ '  <div class="tag-filter-row" id="tagFilterRow" hidden aria-label="Filter by tag">\n'
++ '    <span class="tag-filter-label">Tags</span>\n'
++ '    <div class="filter-group" id="tagFilterGroup"></div>\n'
++ '  </div>\n'
 + '  <div class="toolbar-secondary" id="topoModeRow" hidden>\n'
 + '    <div class="view-toggle topo-mode-toggle" id="topoModeToggle" role="tablist" aria-label="Topology mode">\n'
 + '      <button type="button" class="view-btn active" data-topo-mode="network" role="tab" aria-selected="true" title="Network parent &rarr; child tree">Network</button>\n'
 + '      <button type="button" class="view-btn" data-topo-mode="power" role="tab" aria-selected="false" title="UPS &rarr; powered devices">Power</button>\n'
 + '    </div>\n'
-+ '  </div>\n'
-+ '  <div class="tag-filter-row" id="tagFilterRow" hidden aria-label="Filter by tag">\n'
-+ '    <span class="tag-filter-label">Tags</span>\n'
-+ '    <div class="filter-group" id="tagFilterGroup"></div>\n'
 + '  </div>\n'
 + '  <div class="device-grid" id="deviceGrid"></div>\n'
 + '  <div class="topology-view" id="topologyView" aria-live="polite"></div>\n'
