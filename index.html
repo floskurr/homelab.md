@@ -1939,7 +1939,7 @@ function showDetail(id) {
               <thead><tr><th>Type / Device</th><th>Size</th><th>Notes</th></tr></thead>
               <tbody>
                 ${storage.map(s => `<tr>
-                  <td>${esc(s.type)}</td>
+                  <td>${esc(s.type)}${s.private ? ' <span class="private-badge" title="Excluded from public exports">Private</span>' : ''}</td>
                   <td>${esc(s.size) || '—'}</td>
                   <td class="svc-notes">${esc(s.notes || '—')}</td>
                 </tr>`).join('')}
@@ -1959,8 +1959,9 @@ function showDetail(id) {
                 const sPort = typeof s === 'string' ? '' : s.port;
                 const sNotes = typeof s === 'string' ? '' : s.notes;
                 const sUrl = typeof s === 'string' ? '' : (s.url || '');
+                const sPriv = typeof s === 'string' ? false : !!s.private;
                 return `<tr>
-                  <td>${esc(sName)}</td>
+                  <td>${esc(sName)}${sPriv ? ' <span class="private-badge" title="Excluded from public exports">Private</span>' : ''}</td>
                   <td>${esc(sPort) || '—'}</td>
                   <td class="svc-notes">${esc(sNotes || '—')}</td>
                   <td>${sUrl && safeUrl(sUrl) ? `<a href="${safeUrl(sUrl)}" target="_blank" rel="noopener" style="color:var(--accent);text-decoration:none;">${esc(sUrl)}</a>` : (sUrl ? esc(sUrl) : '—')}</td>
@@ -2012,7 +2013,7 @@ function showDetail(id) {
       ` : ''}
       ${d.notes ? `
         <div class="detail-section">
-          <div class="detail-section-title">Notes</div>
+          <div class="detail-section-title">Notes${d.notesPrivate ? ' <span class="private-badge" title="Excluded from public exports">Private</span>' : ''}</div>
           <div class="detail-notes">${esc(d.notes)}</div>
         </div>
       ` : ''}
