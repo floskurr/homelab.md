@@ -310,9 +310,16 @@
     padding: 2px 8px; border-radius: 3px;
     background: var(--purple-bg); border: 1px solid rgba(180, 120, 230, 0.25); color: var(--purple);
   }
+  .secondary-row {
+    display: flex; align-items: center; gap: 12px; flex-wrap: wrap;
+    margin: -8px 0 20px;
+  }
+  .secondary-row[hidden] { display: none; }
+  .secondary-row > .tag-filter-row,
+  .secondary-row > .toolbar-secondary { margin: 0; }
+  .secondary-row > .toolbar-secondary { margin-left: auto; }
   .tag-filter-row {
     display: flex; align-items: center; gap: 8px; flex-wrap: wrap;
-    margin: -8px 0 20px;
   }
   .tag-filter-row[hidden] { display: none; }
   .tag-filter-label {
@@ -791,14 +798,16 @@
       <button type="button" class="view-btn" data-view="topology" onclick="setView('topology')" role="tab" aria-selected="false" title="Topology view">Topology</button>
     </div>
   </div>
-  <div class="tag-filter-row" id="tagFilterRow" hidden aria-label="Filter by tag">
-    <span class="tag-filter-label">Tags</span>
-    <div class="filter-group" id="tagFilterGroup"></div>
-  </div>
-  <div class="toolbar-secondary" id="topoModeRow" hidden>
-    <div class="view-toggle topo-mode-toggle" id="topoModeToggle" role="tablist" aria-label="Topology mode">
-      <button type="button" class="view-btn active" data-topo-mode="network" onclick="setTopoMode('network')" role="tab" aria-selected="true" title="Show network parent → child tree">Network</button>
-      <button type="button" class="view-btn" data-topo-mode="power" onclick="setTopoMode('power')" role="tab" aria-selected="false" title="Show UPS → powered devices">Power</button>
+  <div class="secondary-row" id="secondaryRow" hidden>
+    <div class="tag-filter-row" id="tagFilterRow" hidden aria-label="Filter by tag">
+      <span class="tag-filter-label">Tags</span>
+      <div class="filter-group" id="tagFilterGroup"></div>
+    </div>
+    <div class="toolbar-secondary" id="topoModeRow" hidden>
+      <div class="view-toggle topo-mode-toggle" id="topoModeToggle" role="tablist" aria-label="Topology mode">
+        <button type="button" class="view-btn active" data-topo-mode="network" onclick="setTopoMode('network')" role="tab" aria-selected="true" title="Show network parent → child tree">Network</button>
+        <button type="button" class="view-btn" data-topo-mode="power" onclick="setTopoMode('power')" role="tab" aria-selected="false" title="Show UPS → powered devices">Power</button>
+      </div>
     </div>
   </div>
   <div class="device-grid" id="deviceGrid"></div>
@@ -1209,6 +1218,7 @@ function renderTagFilters(devices) {
     row.hidden = true;
     group.innerHTML = '';
     currentTagFilter = null;
+    updateSecondaryRow();
     return;
   }
   if (currentTagFilter && !allTags.has(currentTagFilter)) currentTagFilter = null;
@@ -1216,6 +1226,15 @@ function renderTagFilters(devices) {
   group.innerHTML = tags.map(t =>
     `<button class="filter-btn filter-btn-tag ${t === currentTagFilter ? 'active' : ''}" data-tag="${esc(t)}">#${esc(t)}</button>`
   ).join('');
+  updateSecondaryRow();
+}
+
+function updateSecondaryRow() {
+  const wrap = document.getElementById('secondaryRow');
+  const tag = document.getElementById('tagFilterRow');
+  const topo = document.getElementById('topoModeRow');
+  if (!wrap) return;
+  wrap.hidden = (!tag || tag.hidden) && (!topo || topo.hidden);
 }
 
 function toggleFilterMenu(e) {
@@ -1390,6 +1409,7 @@ function applyViewUI() {
   document.getElementById('topologyView').classList.toggle('active', currentView === 'topology');
   const modeRow = document.getElementById('topoModeRow');
   if (modeRow) modeRow.hidden = currentView !== 'topology';
+  updateSecondaryRow();
   syncTopoToggleWidth();
   document.querySelectorAll('[data-topo-mode]').forEach(btn => {
     const active = btn.dataset.topoMode === topoMode;
@@ -2696,7 +2716,11 @@ const PUBLIC_HTML_TEMPLATE = '<!DOCTYPE html>\n'
 + '.service-tag{font-family:\'JetBrains Mono\',monospace;font-size:12px;padding:2px 8px;border-radius:3px;background:var(--tag-bg);border:1px solid var(--tag-border);color:var(--accent);}\n'
 + '.device-tags{display:flex;flex-wrap:wrap;gap:4px;margin-top:8px;}\n'
 + '.user-tag{font-family:\'JetBrains Mono\',monospace;font-size:12px;padding:2px 8px;border-radius:3px;background:var(--purple-bg);border:1px solid rgba(180,120,230,0.25);color:var(--purple);}\n'
-+ '.tag-filter-row{display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin:-8px 0 20px;}\n'
++ '.secondary-row{display:flex;align-items:center;gap:12px;flex-wrap:wrap;margin:-8px 0 20px;}\n'
++ '.secondary-row[hidden]{display:none;}\n'
++ '.secondary-row>.tag-filter-row,.secondary-row>.toolbar-secondary{margin:0;}\n'
++ '.secondary-row>.toolbar-secondary{margin-left:auto;}\n'
++ '.tag-filter-row{display:flex;align-items:center;gap:8px;flex-wrap:wrap;}\n'
 + '.tag-filter-row[hidden]{display:none;}\n'
 + '.tag-filter-label{font-family:\'JetBrains Mono\',monospace;font-size:12px;text-transform:uppercase;letter-spacing:0.8px;color:var(--text-muted);}\n'
 + '.filter-btn-tag{text-transform:none;letter-spacing:0;}\n'
@@ -2758,14 +2782,16 @@ const PUBLIC_HTML_TEMPLATE = '<!DOCTYPE html>\n'
 + '      <button type="button" class="view-btn" data-view="topology" role="tab" aria-selected="false" title="Topology view">Topology</button>\n'
 + '    </div>\n'
 + '  </div>\n'
-+ '  <div class="tag-filter-row" id="tagFilterRow" hidden aria-label="Filter by tag">\n'
-+ '    <span class="tag-filter-label">Tags</span>\n'
-+ '    <div class="filter-group" id="tagFilterGroup"></div>\n'
-+ '  </div>\n'
-+ '  <div class="toolbar-secondary" id="topoModeRow" hidden>\n'
-+ '    <div class="view-toggle topo-mode-toggle" id="topoModeToggle" role="tablist" aria-label="Topology mode">\n'
-+ '      <button type="button" class="view-btn active" data-topo-mode="network" role="tab" aria-selected="true" title="Network parent &rarr; child tree">Network</button>\n'
-+ '      <button type="button" class="view-btn" data-topo-mode="power" role="tab" aria-selected="false" title="UPS &rarr; powered devices">Power</button>\n'
++ '  <div class="secondary-row" id="secondaryRow" hidden>\n'
++ '    <div class="tag-filter-row" id="tagFilterRow" hidden aria-label="Filter by tag">\n'
++ '      <span class="tag-filter-label">Tags</span>\n'
++ '      <div class="filter-group" id="tagFilterGroup"></div>\n'
++ '    </div>\n'
++ '    <div class="toolbar-secondary" id="topoModeRow" hidden>\n'
++ '      <div class="view-toggle topo-mode-toggle" id="topoModeToggle" role="tablist" aria-label="Topology mode">\n'
++ '        <button type="button" class="view-btn active" data-topo-mode="network" role="tab" aria-selected="true" title="Network parent &rarr; child tree">Network</button>\n'
++ '        <button type="button" class="view-btn" data-topo-mode="power" role="tab" aria-selected="false" title="UPS &rarr; powered devices">Power</button>\n'
++ '      </div>\n'
 + '    </div>\n'
 + '  </div>\n'
 + '  <div class="device-grid" id="deviceGrid"></div>\n'
@@ -2799,12 +2825,20 @@ const PUBLIC_HTML_TEMPLATE = '<!DOCTYPE html>\n'
 + '  var tags=Object.keys(set).sort();\n'
 + '  var row=document.getElementById("tagFilterRow"),group=document.getElementById("tagFilterGroup");\n'
 + '  if(!row||!group)return;\n'
-+ '  if(!tags.length){row.hidden=true;group.innerHTML="";currentTagFilter=null;return;}\n'
++ '  if(!tags.length){row.hidden=true;group.innerHTML="";currentTagFilter=null;updateSecondaryRow();return;}\n'
 + '  if(currentTagFilter&&!set[currentTagFilter])currentTagFilter=null;\n'
 + '  row.hidden=false;\n'
 + '  group.innerHTML=tags.map(function(t){\n'
 + '    return \'<button class="filter-btn filter-btn-tag \'+(t===currentTagFilter?"active":"")+\'" data-tag="\'+esc(t)+\'">#\'+esc(t)+\'</button>\';\n'
 + '  }).join("");\n'
++ '  updateSecondaryRow();\n'
++ '}\n'
++ 'function updateSecondaryRow(){\n'
++ '  var wrap=document.getElementById("secondaryRow");\n'
++ '  var tag=document.getElementById("tagFilterRow");\n'
++ '  var topo=document.getElementById("topoModeRow");\n'
++ '  if(!wrap)return;\n'
++ '  wrap.hidden=(!tag||tag.hidden)&&(!topo||topo.hidden);\n'
 + '}\n'
 + 'function toggleFilterMenu(){var b=document.getElementById("filterToggle"),m=document.getElementById("filterMenu");var open=b.getAttribute("aria-expanded")==="true";b.setAttribute("aria-expanded",open?"false":"true");m.hidden=open;}\n'
 + 'function closeFilterMenu(){var b=document.getElementById("filterToggle"),m=document.getElementById("filterMenu");if(!b||!m)return;b.setAttribute("aria-expanded","false");m.hidden=true;}\n'
@@ -2921,6 +2955,7 @@ const PUBLIC_HTML_TEMPLATE = '<!DOCTYPE html>\n'
 + '  document.getElementById("topologyView").classList.toggle("active",currentView==="topology");\n'
 + '  var modeRow=document.getElementById("topoModeRow");\n'
 + '  if(modeRow)modeRow.hidden=currentView!=="topology";\n'
++ '  updateSecondaryRow();\n'
 + '  syncTopoToggleWidth();\n'
 + '  var mbtns=document.querySelectorAll("[data-topo-mode]");\n'
 + '  for(var j=0;j<mbtns.length;j++){var a=mbtns[j].getAttribute("data-topo-mode")===topoMode;mbtns[j].classList.toggle("active",a);mbtns[j].setAttribute("aria-selected",a?"true":"false");}\n'
