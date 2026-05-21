@@ -1301,7 +1301,10 @@ function topoBoxSvg(d, x, y, w, h, isParent, opts) {
   const iconY = typeY - 11;
   const typeTextX = textX + iconSize + 4;
   const t = d.type || 'other';
-  const nameMax = isParent ? 24 : 22;
+  // Derive the name char limit from the actual box width so deeply-nested
+  // children don't overflow. JetBrains Mono at 14px is ~8.4px per char.
+  const textAvail = Math.max(40, w - (textX - x) - 12);
+  const nameMax = Math.max(6, Math.floor(textAvail / 8.4));
   const clipId = 'topo-clip-' + esc(d.id);
   return `<g class="topo-node" data-id="${esc(d.id)}">
     <defs><clipPath id="${clipId}"><rect x="${x}" y="${y}" width="${w}" height="${h}" rx="6"/></clipPath></defs>
@@ -2672,7 +2675,8 @@ const PUBLIC_HTML_TEMPLATE = '<!DOCTYPE html>\n'
 + '  var typeY=y+h/2+13;\n'
 + '  var iconSize=12,iconX=textX,iconY=typeY-11,typeTextX=textX+iconSize+4;\n'
 + '  var t=d.type||"other";\n'
-+ '  var nameMax=isParent?24:22;\n'
++ '  var textAvail=Math.max(40,w-(textX-x)-12);\n'
++ '  var nameMax=Math.max(6,Math.floor(textAvail/8.4));\n'
 + '  var clipId="topo-clip-"+esc(d.id);\n'
 + '  return \'<g class="topo-node" data-id="\'+esc(d.id)+\'">\'+\n'
 + '    \'<defs><clipPath id="\'+clipId+\'"><rect x="\'+x+\'" y="\'+y+\'" width="\'+w+\'" height="\'+h+\'" rx="6"/></clipPath></defs>\'+\n'
