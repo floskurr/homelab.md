@@ -1837,7 +1837,7 @@ function showDetail(id) {
           field('IP Address', d.ip),
           field('System', d.system),
           field('OS / Firmware', d.os),
-          field('Status', d.status),
+          field('Status', d.status ? d.status.charAt(0).toUpperCase() + d.status.slice(1) : ''),
         ].filter(Boolean).join('');
         const hardware = [
           field('CPU', d.cpu),
