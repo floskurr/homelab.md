@@ -1025,19 +1025,40 @@
 <script>
 const STORAGE_KEY = 'homelab_devices';
 
+const sortByName = (a, b) => (a.name || '').localeCompare(b.name || '', undefined, { sensitivity: 'base' });
+const isUps = type => type === 'ups';
+const isNetworkType = type => type === 'network';
+const isVirtualType = type => type === 'vm' || type === 'container';
+const isStorageType = type => type === 'storage';
+
 function loadDevices() {
   try {
     const devices = JSON.parse(localStorage.getItem(STORAGE_KEY)) || [];
-    // Normalize parent relationships defensively so every render path can
-    // trust the data. UPS is always standalone; anything else is cleared
-    // if it points at a parent whose type isn't an allowed host for it.
     const byId = new Map(devices.filter(d => d && d.id).map(d => [d.id, d]));
     devices.forEach(d => {
       if (!d) return;
-      if (d.type === 'ups') { d.parentId = null; return; }
-      if (!d.parentId) return;
-      const parent = byId.get(d.parentId);
-      if (!parent || !isAllowedParent(d.type, parent.type)) d.parentId = null;
+      if (isUps(d.type)) d.parentId = null;
+      else if (d.parentId) {
+        const parent = byId.get(d.parentId);
+        if (!parent || !isAllowedParent(d.type, parent.type)) d.parentId = null;
+      }
+      // Power source must be a UPS in the same set (and not itself).
+      if (d.poweredById) {
+        const ps = byId.get(d.poweredById);
+        if (!ps || !isUps(ps.type) || ps.id === d.id) d.poweredById = null;
+      }
+    });
+    // Break parent cycles: if walking the chain revisits the starting node,
+    // clear its parentId. network→network is allowed, so cycles are possible.
+    devices.forEach(d => {
+      if (!d || !d.parentId) return;
+      const seen = new Set([d.id]);
+      let cur = byId.get(d.parentId);
+      while (cur) {
+        if (seen.has(cur.id)) { d.parentId = null; break; }
+        seen.add(cur.id);
+        cur = cur.parentId ? byId.get(cur.parentId) : null;
+      }
     });
     return devices;
   }
@@ -1046,7 +1067,7 @@ function loadDevices() {
 function saveDevices(devices) { localStorage.setItem(STORAGE_KEY, JSON.stringify(devices)); }
 function generateId() { return Date.now().toString(36) + Math.random().toString(36).slice(2, 8); }
 function getDevice(id, devices) { return (devices || loadDevices()).find(d => d.id === id); }
-function getChildren(parentId, devices) { return (devices || loadDevices()).filter(d => d.parentId === parentId).sort((a, b) => (a.name || '').localeCompare(b.name || '', undefined, { sensitivity: 'base' })); }
+function getChildren(parentId, devices) { return (devices || loadDevices()).filter(d => d.parentId === parentId).sort(sortByName); }
 function sortedStorage(storage) { return Array.isArray(storage) ? storage.slice().sort((a, b) => (a.type || '').localeCompare(b.type || '', undefined, { sensitivity: 'base' })) : storage; }
 function sortedServices(services) { return (services || []).slice().sort((a, b) => { const an = typeof a === 'string' ? a : (a.name || ''); const bn = typeof b === 'string' ? b : (b.name || ''); return an.localeCompare(bn, undefined, { sensitivity: 'base' }); }); }
 
@@ -1176,7 +1197,7 @@ function getFilteredDevices() {
     }
     return true;
   });
-  filtered.sort((a, b) => (a.name || '').localeCompare(b.name || '', undefined, { sensitivity: 'base' }));
+  filtered.sort(sortByName);
   return filtered;
 }
 
@@ -1406,58 +1427,48 @@ function renderTopology() {
 
   const filteredIds = new Set(filtered.map(d => d.id));
 
-  function buildNetworkTree(device) {
-    const kids = filtered
-      .filter(c => c.parentId === device.id)
-      .sort((a, b) => (a.name || '').localeCompare(b.name || '', undefined, { sensitivity: 'base' }));
-    return { device, children: kids.map(buildNetworkTree) };
+  function buildNetworkTree(device, seen) {
+    if (seen && seen.has(device.id)) return { device, children: [] };
+    const next = new Set(seen || []);
+    next.add(device.id);
+    const kids = filtered.filter(c => c.parentId === device.id).sort(sortByName);
+    return { device, children: kids.map(k => buildNetworkTree(k, next)) };
   }
 
+  // VMs and containers without their own power source inherit from their
+  // host, so they appear under the host's UPS in the Power view — that's
+  // the real failure-domain semantics.
   function buildPowerTree(device, seen) {
-    seen = seen || new Set();
-    if (seen.has(device.id)) return { device, children: [] };
-    seen.add(device.id);
+    if (seen && seen.has(device.id)) return { device, children: [] };
+    const next = new Set(seen || []);
+    next.add(device.id);
     const powerKids = filtered.filter(c => c.poweredById === device.id);
-    // VMs and containers inherit power from their host unless they declare
-    // their own. They can't physically have a separate plug, so showing them
-    // under the host's UPS reflects real failure-domain semantics.
     const virtualKids = filtered.filter(c =>
-      c.parentId === device.id &&
-      (c.type === 'vm' || c.type === 'container') &&
-      !c.poweredById
+      c.parentId === device.id && isVirtualType(c.type) && !c.poweredById
     );
-    const kids = powerKids.concat(virtualKids)
-      .sort((a, b) => (a.name || '').localeCompare(b.name || '', undefined, { sensitivity: 'base' }));
-    return { device, children: kids.map(k => buildPowerTree(k, seen)) };
+    const kids = powerKids.concat(virtualKids).sort(sortByName);
+    return { device, children: kids.map(k => buildPowerTree(k, next)) };
   }
 
-  // UPS devices are root-level infrastructure and live in the Power view,
-  // not the Network view. loadDevices strips any legacy parentId on UPS so
-  // this filter is enough to keep them out of the network tree entirely.
-  const networkRoots = filtered.filter(d => !d.parentId && d.type !== 'ups');
+  const networkRoots = filtered.filter(d => !d.parentId && !isUps(d.type));
   const networkOrphans = filtered.filter(d => d.parentId && !filteredIds.has(d.parentId));
   const networkTrees = networkRoots.concat(networkOrphans)
-    .map(buildNetworkTree)
-    .sort((a, b) =>
-      (a.device.name || '').localeCompare(b.device.name || '', undefined, { sensitivity: 'base' })
-    );
+    .map(d => buildNetworkTree(d))
+    .sort((a, b) => sortByName(a.device, b.device));
 
   // Power roots: any device that powers ≥1 filtered device, plus every UPS
-  // in the filtered set (so a UPS still shows up even when nothing it
-  // powers is currently visible — e.g. when the user has filtered to UPS).
-  // Roots themselves must not be powered by something in the filtered set,
-  // so a daisy-chained UPS becomes a child rather than a duplicate root.
+  // in the filtered set. Roots themselves must not be powered by something
+  // in the filtered set, so a daisy-chained UPS becomes a child instead of
+  // a duplicate root.
   const poweringIds = new Set(filtered.filter(d => d.poweredById && filteredIds.has(d.poweredById)).map(d => d.poweredById));
   const powerRoots = filtered.filter(d =>
-    (poweringIds.has(d.id) || d.type === 'ups') &&
+    (poweringIds.has(d.id) || isUps(d.type)) &&
     (!d.poweredById || !filteredIds.has(d.poweredById))
   );
   const powerOrphans = filtered.filter(d => d.poweredById && !filteredIds.has(d.poweredById));
   const powerTrees = powerRoots.concat(powerOrphans)
     .map(d => buildPowerTree(d))
-    .sort((a, b) =>
-      (a.device.name || '').localeCompare(b.device.name || '', undefined, { sensitivity: 'base' })
-    );
+    .sort((a, b) => sortByName(a.device, b.device));
 
   const trees = topoMode === 'power' ? powerTrees : networkTrees;
   const opts = topoMode === 'power'
@@ -1466,11 +1477,11 @@ function renderTopology() {
 
   if (!trees.length) {
     let msg;
-    if (topoMode === 'power' && (currentFilter === 'vm' || currentFilter === 'container')) {
+    if (topoMode === 'power' && isVirtualType(currentFilter)) {
       msg = `${currentFilter === 'vm' ? 'VMs' : 'Containers'} inherit power from their host, so they don’t appear here on their own.`;
     } else if (topoMode === 'power') {
       msg = 'No power relationships yet. Set a Power Source on any entry.';
-    } else if (currentFilter === 'ups') {
+    } else if (isUps(currentFilter)) {
       msg = 'UPS devices are shown in the Power view — switch the topology mode above.';
     } else {
       msg = 'No matches for the current search/filter.';
@@ -1578,42 +1589,39 @@ function isAllowedParent(childType, parentType) {
   return allowed.includes(parentType);
 }
 
-function populateParentDropdown(excludeId = null) {
-  const menu = document.getElementById('fParentMenu');
+function populateFormDeviceDropdown(inputId, { excludeId, filter, emptyLabel, dropInvalidCurrent }) {
+  const menu = document.getElementById(inputId + 'Menu');
   const devices = loadDevices();
-  const current = document.getElementById('fParent').value || '';
-  const childType = document.getElementById('fType').value;
-  const opts = [{ value: '', label: '— None (standalone) —' }];
+  const current = document.getElementById(inputId).value || '';
+  const opts = [{ value: '', label: emptyLabel }];
   devices
-    .filter(d => d.id !== excludeId && isAllowedParent(childType, d.type))
-    .sort((a, b) => (a.name || '').localeCompare(b.name || '', undefined, { sensitivity: 'base' }))
-    .forEach(d => {
-      opts.push({ value: d.id, label: `${d.name} (${d.type})` });
-    });
+    .filter(d => d.id !== excludeId && filter(d, current))
+    .sort(sortByName)
+    .forEach(d => { opts.push({ value: d.id, label: `${d.name} (${d.type})` }); });
   menu.innerHTML = opts.map(o =>
-    `<li class="form-select-option" role="option" aria-selected="false" data-value="${esc(o.value)}" onclick="selectFormSelect('fParent', this)">${esc(o.label)}</li>`
+    `<li class="form-select-option" role="option" aria-selected="false" data-value="${esc(o.value)}" onclick="selectFormSelect('${inputId}', this)">${esc(o.label)}</li>`
   ).join('');
-  // Drop the current selection if it no longer fits the type's allowed set,
-  // so changing type can't silently keep an invalid parent.
   const stillValid = current && opts.some(o => o.value === current);
-  setFormSelectValue('fParent', stillValid ? current : '');
+  setFormSelectValue(inputId, dropInvalidCurrent && !stillValid ? '' : current);
+}
+
+function populateParentDropdown(excludeId = null) {
+  const childType = document.getElementById('fType').value;
+  populateFormDeviceDropdown('fParent', {
+    excludeId,
+    filter: d => isAllowedParent(childType, d.type),
+    emptyLabel: '— None (standalone) —',
+    dropInvalidCurrent: true,
+  });
 }
 
 function populatePowerDropdown(excludeId = null) {
-  const menu = document.getElementById('fPowerMenu');
-  const devices = loadDevices();
-  const current = document.getElementById('fPower').value || '';
-  const opts = [{ value: '', label: '— None —' }];
-  devices
-    .filter(d => d.id !== excludeId && (d.type === 'ups' || d.id === current))
-    .sort((a, b) => (a.name || '').localeCompare(b.name || '', undefined, { sensitivity: 'base' }))
-    .forEach(d => {
-      opts.push({ value: d.id, label: `${d.name} (${d.type})` });
-    });
-  menu.innerHTML = opts.map(o =>
-    `<li class="form-select-option" role="option" aria-selected="false" data-value="${esc(o.value)}" onclick="selectFormSelect('fPower', this)">${esc(o.label)}</li>`
-  ).join('');
-  setFormSelectValue('fPower', current);
+  populateFormDeviceDropdown('fPower', {
+    excludeId,
+    filter: (d, current) => isUps(d.type) || d.id === current,
+    emptyLabel: '— None —',
+    dropInvalidCurrent: false,
+  });
 }
 
 function toggleFormSelect(id, e) {
@@ -1651,56 +1659,46 @@ function selectFormSelect(id, optionEl) {
   if (toggle) toggle.focus();
 }
 
-// VMs and containers can't physically have their own power cord — their
-// power comes from the host they run on. Hide the Power Source field for
-// those types so users don't enter physically impossible state. UPS devices
-// are themselves the power source, so they don't get one either — and they
-// don't host services or attached storage, so hide those rows too.
+// Per-type field visibility. Keys map to row/group element ids; predicates
+// return true when the row should be hidden for that type. Adding a new
+// device type or visibility rule should only require touching this table
+// (and the matching keys in fieldHiddenFor at save-time).
+const FORM_FIELD_RULES = {
+  fParentGroup: type => isUps(type),
+  fPowerRow:    type => isVirtualType(type) || isUps(type),
+  fOsGroup:     type => isUps(type),
+  fCpuRamRow:   type => isUps(type) || isNetworkType(type),
+  fGpuRow:      type => isUps(type) || isNetworkType(type) || isStorageType(type),
+  fStorageRow:  type => isUps(type) || isNetworkType(type),
+  fServicesRow: type => isUps(type),
+};
+
+function fieldHiddenFor(rowId, type) {
+  const rule = FORM_FIELD_RULES[rowId];
+  return !!(rule && rule(type));
+}
+
+// When a row is hidden, also clear its data so a stale value can't sneak
+// through on save (and toggling type back doesn't surface phantom inputs).
+const FIELD_CLEARERS = {
+  fParentGroup: () => setFormSelectValue('fParent', ''),
+  fPowerRow:    () => setFormSelectValue('fPower', ''),
+  fOsGroup:     () => { document.getElementById('fOs').value = ''; },
+  fCpuRamRow:   () => { document.getElementById('fCpu').value = ''; document.getElementById('fRam').value = ''; },
+  fGpuRow:      () => { document.getElementById('fGpu').value = ''; },
+  fStorageRow:  () => { storageRowData = []; renderStorageRows(); },
+  fServicesRow: () => { serviceRowData = []; renderServiceRows(); },
+};
+
 function syncPowerFieldVisibility() {
   const type = document.getElementById('fType').value;
-  const hidePower = type === 'vm' || type === 'container' || type === 'ups';
-  const powerRow = document.getElementById('fPowerRow');
-  if (powerRow) {
-    powerRow.hidden = hidePower;
-    if (hidePower) setFormSelectValue('fPower', '');
-  }
-  const isUps = type === 'ups';
-  const hideStorage = isUps || type === 'network';
-  const storageRow = document.getElementById('fStorageRow');
-  const servicesRow = document.getElementById('fServicesRow');
-  const cpuRamRow = document.getElementById('fCpuRamRow');
-  const osGroup = document.getElementById('fOsGroup');
-  const parentGroup = document.getElementById('fParentGroup');
-  if (parentGroup) {
-    parentGroup.hidden = isUps;
-    if (isUps) setFormSelectValue('fParent', '');
-  }
-  if (storageRow) {
-    storageRow.hidden = hideStorage;
-    if (hideStorage) { storageRowData = []; renderStorageRows(); }
-  }
-  if (servicesRow) {
-    servicesRow.hidden = isUps;
-    if (isUps) { serviceRowData = []; renderServiceRows(); }
-  }
-  const hideCpuRam = isUps || type === 'network';
-  if (cpuRamRow) {
-    cpuRamRow.hidden = hideCpuRam;
-    if (hideCpuRam) {
-      document.getElementById('fCpu').value = '';
-      document.getElementById('fRam').value = '';
-    }
-  }
-  const hideGpu = isUps || type === 'network' || type === 'storage';
-  const gpuRow = document.getElementById('fGpuRow');
-  if (gpuRow) {
-    gpuRow.hidden = hideGpu;
-    if (hideGpu) document.getElementById('fGpu').value = '';
-  }
-  if (osGroup) {
-    osGroup.hidden = isUps;
-    if (isUps) document.getElementById('fOs').value = '';
-  }
+  Object.keys(FORM_FIELD_RULES).forEach(rowId => {
+    const row = document.getElementById(rowId);
+    if (!row) return;
+    const hide = fieldHiddenFor(rowId, type);
+    row.hidden = hide;
+    if (hide) FIELD_CLEARERS[rowId]();
+  });
 }
 
 function setFormSelectValue(id, value) {
@@ -1817,28 +1815,27 @@ function saveDevice() {
   if (!name) { toast('Hostname / Name is required', 'error'); return; }
 
   const type = document.getElementById('fType').value;
-  const isUps = type === 'ups';
-  const noPowerSource = type === 'vm' || type === 'container' || isUps;
+  const hidden = rowId => fieldHiddenFor(rowId, type);
 
-  const services = isUps ? [] : serviceRowData.filter(s => s.name.trim()).map(s => ({
+  const services = hidden('fServicesRow') ? [] : serviceRowData.filter(s => s.name.trim()).map(s => ({
     name: s.name.trim(), port: s.port.trim(), notes: s.notes.trim(), url: s.url.trim(), private: !!s.private
   }));
 
-  const storage = (isUps || type === 'network') ? [] : storageRowData.filter(s => s.type.trim()).map(s => ({
+  const storage = hidden('fStorageRow') ? [] : storageRowData.filter(s => s.type.trim()).map(s => ({
     type: s.type.trim(), size: s.size.trim(), notes: s.notes.trim(), private: !!s.private
   }));
   const device = {
     name,
     type,
     ip: document.getElementById('fIp').value.trim(),
-    parentId: isUps ? null : (document.getElementById('fParent').value || null),
-    poweredById: noPowerSource ? null : (document.getElementById('fPower').value || null),
+    parentId: hidden('fParentGroup') ? null : (document.getElementById('fParent').value || null),
+    poweredById: hidden('fPowerRow') ? null : (document.getElementById('fPower').value || null),
     system: document.getElementById('fSystem').value.trim(),
-    os: isUps ? '' : document.getElementById('fOs').value.trim(),
+    os: hidden('fOsGroup') ? '' : document.getElementById('fOs').value.trim(),
     status: document.getElementById('fStatus').value,
-    cpu: (isUps || type === 'network') ? '' : document.getElementById('fCpu').value.trim(),
-    ram: (isUps || type === 'network') ? '' : document.getElementById('fRam').value.trim(),
-    gpu: (isUps || type === 'network' || type === 'storage') ? '' : document.getElementById('fGpu').value.trim(),
+    cpu: hidden('fCpuRamRow') ? '' : document.getElementById('fCpu').value.trim(),
+    ram: hidden('fCpuRamRow') ? '' : document.getElementById('fRam').value.trim(),
+    gpu: hidden('fGpuRow') ? '' : document.getElementById('fGpu').value.trim(),
     storage,
     location: document.getElementById('fLocation').value.trim(),
     services,
@@ -1879,9 +1876,7 @@ function showDetail(id) {
   const children = getChildren(d.id, devices);
   const parent = d.parentId ? getDevice(d.parentId, devices) : null;
   const powerSource = d.poweredById ? getDevice(d.poweredById, devices) : null;
-  const poweredDevices = devices
-    .filter(x => x.poweredById === d.id)
-    .sort((a, b) => (a.name || '').localeCompare(b.name || '', undefined, { sensitivity: 'base' }));
+  const poweredDevices = devices.filter(x => x.poweredById === d.id).sort(sortByName);
 
   const panel = document.getElementById('detailPanel');
   panel.innerHTML = `
@@ -2126,13 +2121,13 @@ function deviceToMarkdown(d, allDevices) {
     });
   }
 
-  const children = allDevices.filter(c => c.parentId === d.id).sort((a, b) => (a.name || '').localeCompare(b.name || '', undefined, { sensitivity: 'base' }));
+  const children = allDevices.filter(c => c.parentId === d.id).sort(sortByName);
   if (children.length) {
     md += `\n## Running on this Host / Parent\n\n`;
     children.forEach(c => { md += `- **${c.name}** (${c.type})${c.ip ? ' — ' + c.ip : ''}\n`; });
   }
 
-  const powered = allDevices.filter(c => c.poweredById === d.id).sort((a, b) => (a.name || '').localeCompare(b.name || '', undefined, { sensitivity: 'base' }));
+  const powered = allDevices.filter(c => c.poweredById === d.id).sort(sortByName);
   if (powered.length) {
     md += `\n## Powered devices\n\n`;
     powered.forEach(c => { md += `- **${c.name}** (${c.type})\n`; });
@@ -2174,8 +2169,7 @@ function markdownToDevice(md) {
 
   const parseBool = v => /true/i.test((v || '').trim());
 
-  // Parse storage table. A Private column was added later, so handle rows
-  // both with and without it.
+  // Storage rows may have either 3 cells (legacy) or 4 cells (with Private).
   const storageTableMatch = md.match(/## Storage\s*\n[\s\S]*?\n\|[-\s|]+\|\n([\s\S]*?)(?=\n##|\n---|\n*$)/);
   if (storageTableMatch) {
     device.storage = storageTableMatch[1].split('\n').filter(l => l.trim().startsWith('|')).map(l => {
@@ -2290,20 +2284,8 @@ function sanitizePublic(text) {
   return out;
 }
 
-function isPublicUrl(url) {
-  if (!url || url === '—') return false;
-  try {
-    const u = new URL(url);
-    if (u.protocol !== 'http:' && u.protocol !== 'https:') return false;
-    const h = u.hostname;
-    return !(/^(localhost|127\.|0\.|10\.|192\.168\.|172\.(1[6-9]|2\d|3[01])\.)/i.test(h));
-  } catch { return false; }
-}
-
 function deviceToPublicSection(d, allDevices) {
-  const children = allDevices
-    .filter(c => c.parentId === d.id && !c.private)
-    .sort((a, b) => (a.name || '').localeCompare(b.name || '', undefined, { sensitivity: 'base' }));
+  const children = allDevices.filter(c => c.parentId === d.id && !c.private).sort(sortByName);
   const parent = d.parentId ? allDevices.find(x => x.id === d.parentId && !x.private) : null;
   const powerSource = d.poweredById ? allDevices.find(x => x.id === d.poweredById && !x.private) : null;
 
@@ -2410,8 +2392,6 @@ function exportPublic() {
 
   let md = `*Last updated: ${date}*\n\n`;
   md += `**${devices.length} ${devices.length === 1 ? 'entry' : 'entries'}**\n\n---\n\n`;
-
-  const sortByName = (a, b) => (a.name || '').localeCompare(b.name || '', undefined, { sensitivity: 'base' });
 
   const handled = new Set();
   typeOrder.forEach(type => {
