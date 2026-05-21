@@ -379,11 +379,11 @@
   .services-editor { margin-top: 4px; }
 
   .service-entry {
-    display: grid; grid-template-columns: 1fr 70px 1fr 1fr 56px auto;
+    display: grid; grid-template-columns: 1fr 70px 1fr 1fr 80px auto;
     gap: 8px; align-items: center; margin-bottom: 8px;
   }
   .storage-entry {
-    display: grid; grid-template-columns: 1fr 80px 1fr 56px auto;
+    display: grid; grid-template-columns: 1fr 80px 1fr 80px auto;
     gap: 8px; align-items: center; margin-bottom: 8px;
   }
   .service-entry .form-input, .storage-entry .form-input { font-size: 14px; padding: 7px 10px; }
@@ -413,11 +413,11 @@
   .service-add-btn:hover { border-color: var(--accent); color: var(--accent); }
 
   .service-labels {
-    display: grid; grid-template-columns: 1fr 70px 1fr 1fr 56px auto;
+    display: grid; grid-template-columns: 1fr 70px 1fr 1fr 80px auto;
     gap: 8px; margin-bottom: 6px;
   }
   .storage-labels {
-    display: grid; grid-template-columns: 1fr 80px 1fr 56px auto;
+    display: grid; grid-template-columns: 1fr 80px 1fr 80px auto;
     gap: 8px; margin-bottom: 6px;
   }
   .service-labels span, .storage-labels span {
@@ -914,7 +914,7 @@
               <span>Type / Device</span>
               <span>Size</span>
               <span>Notes</span>
-              <span title="Hide this row from public exports">Private</span>
+              <span style="text-align:center;" title="Hide this row from public exports">Private</span>
               <span></span>
             </div>
             <div id="storageRows"></div>
@@ -932,7 +932,7 @@
               <span>Port</span>
               <span>Notes</span>
               <span>URL</span>
-              <span title="Hide this row from public exports">Private</span>
+              <span style="text-align:center;" title="Hide this row from public exports">Private</span>
               <span></span>
             </div>
             <div id="serviceRows"></div>
@@ -945,16 +945,21 @@
         <div class="form-group">
           <label class="form-label">Notes</label>
           <textarea class="form-textarea" id="fNotes" placeholder="Any additional notes, credentials references, links..."></textarea>
+          <label style="display:flex;align-items:center;gap:8px;margin-top:8px;cursor:pointer;font-size:14px;color:var(--text-secondary);">
+            <input type="checkbox" id="fNotesPrivate" style="width:16px;height:16px;accent-color:var(--accent);cursor:pointer;margin:0;">
+            <span>Hide the Notes field from public exports</span>
+          </label>
+          <span class="form-hint">Notes is free-form, so unsanitized content can leak there. Check this to omit just the Notes from homelab.md Public and homelab.html Public — the rest of this entry still gets exported.</span>
         </div>
       </div>
 
-      <div class="form-row full">
+      <div class="form-row full" style="border-top:1px solid var(--border);padding-top:14px;">
         <div class="form-group">
-          <label class="form-label" style="display:flex;align-items:center;gap:8px;cursor:pointer;font-weight:normal;">
+          <label style="display:flex;align-items:center;gap:8px;cursor:pointer;font-size:15px;color:var(--text-primary);font-weight:500;">
             <input type="checkbox" id="fPrivate" style="width:16px;height:16px;accent-color:var(--accent);cursor:pointer;margin:0;">
-            <span>Exclude this entry from public exports</span>
+            <span>Hide this entire entry from public exports</span>
           </label>
-          <span class="form-hint">When checked, this entry won't appear in the homelab.md Public or homelab.html Public exports.</span>
+          <span class="form-hint">When checked, the whole entry — name, all fields, and notes — is omitted from homelab.md Public and homelab.html Public. A "Private" badge appears on its card.</span>
         </div>
       </div>
     </div>
@@ -1200,7 +1205,7 @@ function renderDevices() {
     const storage = sortedStorage(d.storage);
 
     return `
-    <div class="device-card${d.private ? ' is-private' : ''}" tabindex="0" role="button" onclick="showDetail('${d.id}')" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();showDetail('${d.id}');}">
+    <div class="device-card" tabindex="0" role="button" onclick="showDetail('${d.id}')" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();showDetail('${d.id}');}">
       <div class="device-card-header">
         <div>
           <div class="device-name">
@@ -1759,6 +1764,7 @@ function openEditModal(id) {
   document.getElementById('fGpu').value = d.gpu || '';
   document.getElementById('fLocation').value = d.location || '';
   document.getElementById('fNotes').value = d.notes || '';
+  document.getElementById('fNotesPrivate').checked = !!d.notesPrivate;
   document.getElementById('fPrivate').checked = !!d.private;
 
   populateParentDropdown(id);
@@ -1798,6 +1804,7 @@ function clearForm() {
   setFormSelectValue('fStatus', 'online');
   setFormSelectValue('fParent', '');
   setFormSelectValue('fPower', '');
+  document.getElementById('fNotesPrivate').checked = false;
   document.getElementById('fPrivate').checked = false;
   serviceRowData = [];
   renderServiceRows();
@@ -1837,6 +1844,7 @@ function saveDevice() {
     services,
     notes: document.getElementById('fNotes').value.trim(),
     private: document.getElementById('fPrivate').checked,
+    notesPrivate: document.getElementById('fNotesPrivate').checked,
     updatedAt: new Date().toISOString(),
   };
 
@@ -2092,6 +2100,7 @@ function deviceToMarkdown(d, allDevices) {
   md += `- **RAM:** ${d.ram || '—'}\n`;
   md += `- **GPU:** ${d.gpu || '—'}\n`;
   md += `- **Private:** ${d.private ? 'true' : 'false'}\n`;
+  md += `- **Notes Private:** ${d.notesPrivate ? 'true' : 'false'}\n`;
   if (Array.isArray(d.storage) && d.storage.length) {
     md += `\n## Storage\n\n`;
     md += `| Type / Device | Size | Notes | Private |\n`;
@@ -2160,6 +2169,8 @@ function markdownToDevice(md) {
 
   const privateMatch = md.match(/-\s+\*\*Private:\*\*\s*(true|false)/i);
   device.private = !!(privateMatch && /true/i.test(privateMatch[1]));
+  const notesPrivMatch = md.match(/-\s+\*\*Notes Private:\*\*\s*(true|false)/i);
+  device.notesPrivate = !!(notesPrivMatch && /true/i.test(notesPrivMatch[1]));
 
   const parseBool = v => /true/i.test((v || '').trim());
 
@@ -2356,14 +2367,18 @@ function deviceToPublicSection(d, allDevices) {
         .map(n => sanitizePublic(n || ''))
         .filter(Boolean);
       if (cServices.length) md += `  - Services: ${cServices.join(', ')}\n`;
-      const cNotes = sanitizePublic((c.notes || '').trim());
-      if (cNotes) md += `  - ${cNotes}\n`;
+      if (!c.notesPrivate) {
+        const cNotes = sanitizePublic((c.notes || '').trim());
+        if (cNotes) md += `  - ${cNotes}\n`;
+      }
     });
     md += '\n';
   }
 
-  const sanitizedNotes = sanitizePublic((d.notes || '').trim());
-  if (sanitizedNotes) md += `${sanitizedNotes}\n\n`;
+  if (!d.notesPrivate) {
+    const sanitizedNotes = sanitizePublic((d.notes || '').trim());
+    if (sanitizedNotes) md += `${sanitizedNotes}\n\n`;
+  }
 
   return md;
 }
@@ -2463,7 +2478,7 @@ function sanitizeDeviceForPublic(d) {
       .map(s => typeof s === 'string' ? { name: s, notes: '', private: false } : { name: s.name || '', notes: s.notes || '', private: !!s.private })
       .filter(s => s.name && s.name !== '—' && !s.private)
       .map(s => ({ name: sanitizePublic(s.name), notes: sanitizePublic(s.notes) })),
-    notes: sanitizePublic(d.notes || ''),
+    notes: d.notesPrivate ? '' : sanitizePublic(d.notes || ''),
   };
 }
 
@@ -3046,7 +3061,7 @@ function exportCsv() {
   const devices = loadDevices();
   if (!devices.length) { toast('No entries to export', 'error'); return; }
 
-  const headers = ['Name', 'Type', 'Status', 'IP', 'System', 'OS', 'CPU', 'RAM', 'GPU', 'Storage', 'Location', 'Services', 'Notes', 'Parent', 'PowerSource', 'Private', 'ID'];
+  const headers = ['Name', 'Type', 'Status', 'IP', 'System', 'OS', 'CPU', 'RAM', 'GPU', 'Storage', 'Location', 'Services', 'Notes', 'Parent', 'PowerSource', 'Private', 'NotesPrivate', 'ID'];
   const csvEscape = v => {
     if (v === undefined || v === null) return '';
     const s = String(v);
@@ -3065,7 +3080,7 @@ function exportCsv() {
     }).join('; ');
     return [
       d.name, d.type, d.status, d.ip, d.system, d.os, d.cpu, d.ram, d.gpu,
-      storage, d.location, services, d.notes, parent ? parent.name : '', powerSource ? powerSource.name : '', d.private ? 'true' : 'false', d.id,
+      storage, d.location, services, d.notes, parent ? parent.name : '', powerSource ? powerSource.name : '', d.private ? 'true' : 'false', d.notesPrivate ? 'true' : 'false', d.id,
     ].map(csvEscape).join(',');
   });
 
