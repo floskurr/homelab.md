@@ -258,15 +258,6 @@
   .form-select-option:hover { background: var(--bg-tertiary); color: var(--text-primary); }
   .form-select-option.active { background: var(--accent-glow); color: var(--accent); }
 
-  .stats-bar {
-    display: flex; gap: 24px; margin-bottom: 24px;
-    padding: 14px 20px; background: var(--bg-secondary);
-    border: 1px solid var(--border); border-radius: var(--radius); flex-wrap: wrap;
-  }
-  .stat { display: flex; align-items: baseline; gap: 6px; }
-  .stat-value { font-family: 'JetBrains Mono', monospace; font-size: 24px; font-weight: 700; color: var(--accent); }
-  .stat-label { font-size: 14px; color: var(--text-secondary); text-transform: uppercase; letter-spacing: 0.5px; }
-
   .device-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(360px, 1fr)); gap: 14px; }
 
   .device-card {
@@ -658,7 +649,6 @@
     .toolbar { flex-direction: column; align-items: stretch; }
     .search-wrap { display: block; }
     .search-box { width: 100%; }
-    .stats-bar { flex-wrap: wrap; gap: 16px; }
     .detail-grid { grid-template-columns: 1fr; }
     .view-toggle { display: flex; }
     .view-toggle .view-btn { flex: 1; text-align: center; justify-content: center; }
@@ -749,7 +739,6 @@
 </header>
 
 <div class="main">
-  <div class="stats-bar" id="statsBar"></div>
   <div class="toolbar">
     <div class="search-wrap">
       <input type="text" class="search-box" id="searchBox" placeholder="Search..." oninput="onSearchInput()">
@@ -1071,22 +1060,6 @@ function getTopoTypeIcon(type, x, y, size) {
 function typeBadge(type, extraStyle) {
   const t = type || 'other';
   return `<span class="device-type-badge ${getTypeClass(t)}"${extraStyle ? ` style="${extraStyle}"` : ''}>${getTypeIcon(t)}<span>${esc(t)}</span></span>`;
-}
-
-function renderStats() {
-  const devices = loadDevices();
-  const online = devices.filter(d => d.status === 'online').length;
-  const hosts = devices.filter(d => !d.parentId).length;
-  const vmsAndContainers = devices.filter(d => d.type === 'vm' || d.type === 'container').length;
-  const totalServices = devices.reduce((sum, d) => sum + (d.services ? d.services.length : 0), 0);
-
-  document.getElementById('statsBar').innerHTML = `
-    <div class="stat"><span class="stat-value">${devices.length}</span><span class="stat-label">Devices</span></div>
-    <div class="stat"><span class="stat-value">${online}</span><span class="stat-label">Online</span></div>
-    <div class="stat"><span class="stat-value">${hosts}</span><span class="stat-label">Hosts</span></div>
-    <div class="stat"><span class="stat-value">${vmsAndContainers}</span><span class="stat-label">VMs/Containers</span></div>
-    <div class="stat"><span class="stat-value">${totalServices}</span><span class="stat-label">Services</span></div>
-  `;
 }
 
 function renderFilters() {
@@ -2485,8 +2458,6 @@ const PUBLIC_HTML_TEMPLATE = '<!DOCTYPE html>\n'
 + '.filter-select-option{font-family:\'JetBrains Mono\',monospace;font-size:14px;padding:8px 12px;border-radius:4px;color:var(--text-secondary);cursor:pointer;text-transform:uppercase;letter-spacing:0.5px;transition:background 0.1s,color 0.1s;}\n'
 + '.filter-select-option:hover{background:var(--bg-tertiary);color:var(--text-primary);}\n'
 + '.filter-select-option.active{background:var(--accent-glow);color:var(--accent);}\n'
-+ '.stats-bar{display:flex;gap:24px;margin-bottom:24px;padding:14px 20px;background:var(--bg-secondary);border:1px solid var(--border);border-radius:var(--radius);flex-wrap:wrap;}\n'
-+ '.stat{display:flex;align-items:baseline;gap:6px;}.stat-value{font-family:\'JetBrains Mono\',monospace;font-size:24px;font-weight:700;color:var(--accent);}.stat-label{font-size:14px;color:var(--text-secondary);text-transform:uppercase;letter-spacing:0.5px;}\n'
 + '.device-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(360px,1fr));gap:14px;}\n'
 + '.device-card{background:var(--bg-card);border:1px solid var(--border);border-radius:var(--radius);padding:18px;transition:all 0.15s ease;cursor:pointer;position:relative;}\n'
 + '.device-card:hover,.device-card:focus-visible{border-color:var(--border-active);box-shadow:var(--shadow);}.device-card:focus-visible{outline:2px solid var(--accent);outline-offset:2px;}.device-card.has-children{border-left:3px solid var(--accent);}\n'
@@ -2535,13 +2506,12 @@ const PUBLIC_HTML_TEMPLATE = '<!DOCTYPE html>\n'
 + '.toolbar-secondary{display:flex;justify-content:flex-end;margin:-8px 0 20px;}\n'
 + '.toolbar-secondary[hidden]{display:none;}\n'
 + '.toolbar-secondary .topo-mode-toggle .view-btn{flex:1;text-align:center;justify-content:center;}\n'
-+ '@media (max-width:640px){.header{padding:12px 16px;}.main{padding:16px;}.device-grid{grid-template-columns:1fr;}.detail-grid{grid-template-columns:1fr;}.toolbar{flex-direction:column;align-items:stretch;}.search-wrap{display:block;}.search-box{width:100%;}.stats-bar{flex-wrap:wrap;gap:16px;}.view-toggle{display:flex;}.view-toggle .view-btn{flex:1;text-align:center;justify-content:center;}.toolbar-secondary{margin:0 0 16px;}.toolbar-secondary .topo-mode-toggle{flex:1;}.topology-clusters{grid-template-columns:1fr;max-width:320px;margin:0 auto;justify-content:center;}.topo-cluster{width:100%;height:auto;}.filter-group{display:none;}.filter-select{display:block;}}\n'
++ '@media (max-width:640px){.header{padding:12px 16px;}.main{padding:16px;}.device-grid{grid-template-columns:1fr;}.detail-grid{grid-template-columns:1fr;}.toolbar{flex-direction:column;align-items:stretch;}.search-wrap{display:block;}.search-box{width:100%;}.view-toggle{display:flex;}.view-toggle .view-btn{flex:1;text-align:center;justify-content:center;}.toolbar-secondary{margin:0 0 16px;}.toolbar-secondary .topo-mode-toggle{flex:1;}.topology-clusters{grid-template-columns:1fr;max-width:320px;margin:0 auto;justify-content:center;}.topo-cluster{width:100%;height:auto;}.filter-group{display:none;}.filter-select{display:block;}}\n'
 + '</style>\n'
 + '</head>\n'
 + '<body>\n'
 + '<header class="header"><div class="logo">__SITE_NAME__</div></header>\n'
 + '<div class="main">\n'
-+ '  <div class="stats-bar" id="statsBar"></div>\n'
 + '  <div class="toolbar">\n'
 + '    <div class="search-wrap" id="searchWrap">\n'
 + '      <input type="text" class="search-box" id="searchBox" placeholder="Search...">\n'
@@ -2591,16 +2561,6 @@ const PUBLIC_HTML_TEMPLATE = '<!DOCTYPE html>\n'
 + 'function getChildren(parentId){return DEVICES.filter(function(d){return d.parentId===parentId;}).sort(function(a,b){return (a.name||"").localeCompare(b.name||"",undefined,{sensitivity:"base"});});}\n'
 + 'function sortedStorage(storage){return Array.isArray(storage)?storage.slice().sort(function(a,b){return (a.type||"").localeCompare(b.type||"",undefined,{sensitivity:"base"});}):storage;}\n'
 + 'function sortedServices(services){return (services||[]).slice().sort(function(a,b){var an=typeof a==="string"?a:(a.name||"");var bn=typeof b==="string"?b:(b.name||"");return an.localeCompare(bn,undefined,{sensitivity:"base"});});}\n'
-+ 'function renderStats(){\n'
-+ '  var hosts=DEVICES.filter(function(d){return !d.parentId;}).length;\n'
-+ '  var vmsAndContainers=DEVICES.filter(function(d){return d.type==="vm"||d.type==="container";}).length;\n'
-+ '  var totalServices=DEVICES.reduce(function(sum,d){return sum+(d.services?d.services.length:0);},0);\n'
-+ '  document.getElementById("statsBar").innerHTML=\n'
-+ '    \'<div class="stat"><span class="stat-value">\'+DEVICES.length+\'</span><span class="stat-label">Devices</span></div>\'+\n'
-+ '    \'<div class="stat"><span class="stat-value">\'+hosts+\'</span><span class="stat-label">Hosts</span></div>\'+\n'
-+ '    \'<div class="stat"><span class="stat-value">\'+vmsAndContainers+\'</span><span class="stat-label">VMs/Containers</span></div>\'+\n'
-+ '    \'<div class="stat"><span class="stat-value">\'+totalServices+\'</span><span class="stat-label">Services</span></div>\';\n'
-+ '}\n'
 + 'function renderFilters(){\n'
 + '  var seen={},types=["all"];\n'
 + '  DEVICES.forEach(function(d){if(!seen[d.type]){seen[d.type]=1;types.push(d.type);}});\n'
@@ -2882,7 +2842,7 @@ const PUBLIC_HTML_TEMPLATE = '<!DOCTYPE html>\n'
 + 'document.getElementById("detailPanel").addEventListener("click",function(e){var n=e.target.closest("[data-detail-id]");if(n){showDetail(n.getAttribute("data-detail-id"));return;}if(e.target.closest("[data-action=close-detail]"))closeDetail();});\n'
 + 'document.getElementById("detailOverlay").addEventListener("click",function(e){if(e.target.id==="detailOverlay")closeDetail();});\n'
 + 'document.addEventListener("keydown",function(e){if(e.key==="Escape")closeDetail();});\n'
-+ 'applyViewUI();renderStats();renderFilters();renderDevices();if(currentView==="topology")renderTopology();\n'
++ 'applyViewUI();renderFilters();renderDevices();if(currentView==="topology")renderTopology();\n'
 + '<\/script>\n'
 + '</body>\n'
 + '</html>\n';
@@ -2967,7 +2927,6 @@ function handleImport(event) {
 }
 
 function refresh() {
-  renderStats();
   renderFilters();
   renderDevices();
   if (currentView === 'topology') renderTopology();
