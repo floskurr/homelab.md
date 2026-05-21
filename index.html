@@ -379,11 +379,11 @@
   .services-editor { margin-top: 4px; }
 
   .service-entry {
-    display: grid; grid-template-columns: 1fr 70px 1fr 1fr 80px auto;
+    display: grid; grid-template-columns: 70px 1fr 70px 1fr 1fr auto;
     gap: 8px; align-items: center; margin-bottom: 8px;
   }
   .storage-entry {
-    display: grid; grid-template-columns: 1fr 80px 1fr 80px auto;
+    display: grid; grid-template-columns: 70px 1fr 80px 1fr auto;
     gap: 8px; align-items: center; margin-bottom: 8px;
   }
   .service-entry .form-input, .storage-entry .form-input { font-size: 14px; padding: 7px 10px; }
@@ -413,11 +413,11 @@
   .service-add-btn:hover { border-color: var(--accent); color: var(--accent); }
 
   .service-labels {
-    display: grid; grid-template-columns: 1fr 70px 1fr 1fr 80px auto;
+    display: grid; grid-template-columns: 70px 1fr 70px 1fr 1fr auto;
     gap: 8px; margin-bottom: 6px;
   }
   .storage-labels {
-    display: grid; grid-template-columns: 1fr 80px 1fr 80px auto;
+    display: grid; grid-template-columns: 70px 1fr 80px 1fr auto;
     gap: 8px; margin-bottom: 6px;
   }
   .service-labels span, .storage-labels span {
@@ -911,10 +911,10 @@
           <label class="form-label">Storage</label>
           <div class="services-editor">
             <div class="storage-labels">
+              <span style="text-align:center;" title="Hide this row from public exports">Private</span>
               <span>Type / Device</span>
               <span>Size</span>
               <span>Notes</span>
-              <span style="text-align:center;" title="Hide this row from public exports">Private</span>
               <span></span>
             </div>
             <div id="storageRows"></div>
@@ -928,11 +928,11 @@
           <label class="form-label">Services</label>
           <div class="services-editor">
             <div class="service-labels">
+              <span style="text-align:center;" title="Hide this row from public exports">Private</span>
               <span>Name</span>
               <span>Port</span>
               <span>Notes</span>
               <span>URL</span>
-              <span style="text-align:center;" title="Hide this row from public exports">Private</span>
               <span></span>
             </div>
             <div id="serviceRows"></div>
@@ -1504,13 +1504,13 @@ let serviceRowData = [];
 function renderServiceRows() {
   document.getElementById('serviceRows').innerHTML = serviceRowData.map((s, i) => `
     <div class="service-entry">
+      <label class="row-private-cell" title="Hide this service from public exports">
+        <input type="checkbox" ${s.private ? 'checked' : ''} onchange="serviceRowData[${i}].private=this.checked" aria-label="Private">
+      </label>
       <input type="text" class="form-input" placeholder="e.g. nginx" value="${esc(s.name)}" oninput="serviceRowData[${i}].name=this.value">
       <input type="text" class="form-input" placeholder="80" value="${esc(s.port)}" oninput="serviceRowData[${i}].port=this.value">
       <input type="text" class="form-input" placeholder="e.g. reverse proxy" value="${esc(s.notes)}" oninput="serviceRowData[${i}].notes=this.value">
       <input type="text" class="form-input" placeholder="https://..." value="${esc(s.url)}" oninput="serviceRowData[${i}].url=this.value">
-      <label class="row-private-cell" title="Hide this service from public exports">
-        <input type="checkbox" ${s.private ? 'checked' : ''} onchange="serviceRowData[${i}].private=this.checked" aria-label="Private">
-      </label>
       <button type="button" class="service-remove" onclick="removeServiceRow(${i})" aria-label="Remove service">✕</button>
     </div>
   `).join('');
@@ -1532,12 +1532,12 @@ let storageRowData = [];
 function renderStorageRows() {
   document.getElementById('storageRows').innerHTML = storageRowData.map((s, i) => `
     <div class="storage-entry">
-      <input type="text" class="form-input" placeholder="e.g. NVMe SSD" value="${esc(s.type)}" oninput="storageRowData[${i}].type=this.value">
-      <input type="text" class="form-input" placeholder="1TB" value="${esc(s.size)}" oninput="storageRowData[${i}].size=this.value">
-      <input type="text" class="form-input" placeholder="e.g. Samsung 980 Pro, /dev/sda" value="${esc(s.notes)}" oninput="storageRowData[${i}].notes=this.value">
       <label class="row-private-cell" title="Hide this storage row from public exports">
         <input type="checkbox" ${s.private ? 'checked' : ''} onchange="storageRowData[${i}].private=this.checked" aria-label="Private">
       </label>
+      <input type="text" class="form-input" placeholder="e.g. NVMe SSD" value="${esc(s.type)}" oninput="storageRowData[${i}].type=this.value">
+      <input type="text" class="form-input" placeholder="1TB" value="${esc(s.size)}" oninput="storageRowData[${i}].size=this.value">
+      <input type="text" class="form-input" placeholder="e.g. Samsung 980 Pro, /dev/sda" value="${esc(s.notes)}" oninput="storageRowData[${i}].notes=this.value">
       <button type="button" class="service-remove" onclick="removeStorageRow(${i})" aria-label="Remove storage">✕</button>
     </div>
   `).join('');
