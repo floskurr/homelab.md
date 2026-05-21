@@ -1,8 +1,147 @@
 # Homelab Inventory
 
-> Exported 3/16/2026, 7:42:26 PM — 14 devices
+> Exported 5/21/2026, 10:30:00 AM — 16 entries
 
 ---
+
+# isp-modem
+
+- **Type:** network
+- **Status:** online
+- **IP Address:** 192.168.100.1
+- **System:** Arris SBG10 Cable Modem
+- **OS / Firmware:** AT_01.06.000
+- **CPU:** —
+- **RAM:** —
+- **GPU:** —
+- **Private:** false
+- **Notes Private:** false
+- **Location:** Network Closet — Top Shelf
+
+## Running on this Host / Parent
+
+- **edge-router** (network) — 10.0.0.1
+
+## Notes
+
+Root of the network topology. Bridge mode — all NAT and firewalling happen on edge-router.
+ISP: 1 Gbit symmetric.
+
+---
+*Created: 2026-05-21T10:30:00.000Z | Updated: 2026-05-21T10:30:00.000Z | ID: ispmdm0001*
+
+# edge-router
+
+- **Type:** network
+- **Status:** online
+- **IP Address:** 10.0.0.1
+- **System:** Protectli Vault FW6B
+- **OS / Firmware:** pfSense CE 2.7.2
+- **CPU:** —
+- **RAM:** —
+- **GPU:** —
+- **Private:** false
+- **Notes Private:** true
+- **Location:** Network Closet — Shelf 3
+- **Host:** isp-modem
+- **Power Source:** ups-rack
+
+## Services
+
+| Service | Port | Notes | URL | Private |
+|---------|------|-------|-----|---------|
+| Firewall | — | Stateful packet filtering with pfBlockerNG | https://www.pfsense.org/ | false |
+| OpenVPN | 1194 | Remote-access VPN | — | false |
+| HAProxy | 443 | SSL termination for internal services | — | false |
+
+## Running on this Host / Parent
+
+- **core-switch** (network) — 10.0.0.2
+
+## Notes
+
+VLANs: 10 LAN, 20 IoT, 30 Guest, 40 Mgmt. Outbound DNS forced to pihole-lxc on the LAN VLAN.
+Inter-VLAN ACLs documented in the internal runbook — see vault-server.
+
+---
+*Created: 2026-05-21T10:30:00.000Z | Updated: 2026-05-21T10:30:00.000Z | ID: rtredge0001 | ParentID: ispmdm0001 | PowerID: upsrack0001*
+
+# core-switch
+
+- **Type:** network
+- **Status:** online
+- **IP Address:** 10.0.0.2
+- **System:** UniFi USW-Pro-24-PoE
+- **OS / Firmware:** 7.0.66
+- **CPU:** —
+- **RAM:** —
+- **GPU:** —
+- **Private:** false
+- **Notes Private:** false
+- **Location:** Network Closet — Shelf 3
+- **Host:** edge-router
+- **Power Source:** ups-rack
+
+## Running on this Host / Parent
+
+- **iot-switch** (network) — 10.0.0.3
+- **proxmox-01** (server) — 10.0.1.10
+- **truenas-01** (storage) — 10.0.1.50
+- **unifi-ap** (network) — 10.0.0.5
+- **workstation-01** (server) — 10.0.1.60
+
+## Notes
+
+24-port managed gigabit + 4 SFP+. PoE budget 400W — feeds the AP and the IoT switch.
+LAGG to truenas-01 on ports 23/24.
+
+---
+*Created: 2026-05-21T10:30:00.000Z | Updated: 2026-05-21T10:30:00.000Z | ID: swcore0001 | ParentID: rtredge0001 | PowerID: upsrack0001*
+
+# iot-switch
+
+- **Type:** network
+- **Status:** online
+- **IP Address:** 10.0.0.3
+- **System:** UniFi USW-Lite-8-PoE
+- **OS / Firmware:** 7.0.66
+- **CPU:** —
+- **RAM:** —
+- **GPU:** —
+- **Private:** false
+- **Notes Private:** false
+- **Location:** Living Room — TV Console
+- **Host:** core-switch
+- **Power Source:** ups-rack
+
+## Notes
+
+Trunked to core-switch on port 8. IoT VLAN 20 only; no inter-VLAN routing.
+
+---
+*Created: 2026-05-21T10:30:00.000Z | Updated: 2026-05-21T10:30:00.000Z | ID: swiot00001 | ParentID: swcore0001 | PowerID: upsrack0001*
+
+# unifi-ap
+
+- **Type:** network
+- **Status:** online
+- **IP Address:** 10.0.0.5
+- **System:** UniFi U6-Pro
+- **OS / Firmware:** 6.6.65
+- **CPU:** —
+- **RAM:** —
+- **GPU:** —
+- **Private:** false
+- **Notes Private:** false
+- **Location:** Hallway — Ceiling Mount
+- **Host:** core-switch
+
+## Notes
+
+Broadcasts 3 SSIDs: Home (VLAN 10), IoT (VLAN 20), Guest (VLAN 30). PoE+ powered from core-switch.
+
+---
+*Created: 2026-05-21T10:30:00.000Z | Updated: 2026-05-21T10:30:00.000Z | ID: apunifi001 | ParentID: swcore0001*
 
 # proxmox-01
 
@@ -10,63 +149,75 @@
 - **Status:** online
 - **IP Address:** 10.0.1.10
 - **System:** Dell OptiPlex 7080 Micro
-- **OS:** Proxmox VE 8.2
-- **CPU:** Intel Core i7-10700T / 8 cores
-- **RAM:** 64GB DDR4 2933MHz
-- **Location:** Network Closet - Shelf 2
+- **OS / Firmware:** Proxmox VE 8.2
+- **CPU:** Intel Core i7-10700T / 8c / 16t
+- **RAM:** 64 GB DDR4 2933 MHz
+- **GPU:** Intel UHD 630 (QuickSync transcoding)
+- **Private:** false
+- **Notes Private:** false
 
 ## Storage
 
-| Type / Device | Size | Notes |
-|---------------|------|-------|
-| Samsung 970 EVO Plus NVMe | 500GB | Boot drive |
-| Samsung 980 Pro NVMe | 2TB | VM storage |
-| WD Red Plus | 4TB | Backup storage |
+| Type / Device | Size | Notes | Private |
+|---------------|------|-------|---------|
+| Samsung 970 EVO Plus NVMe | 500 GB | Boot drive | false |
+| Samsung 980 Pro NVMe | 2 TB | VM / LXC storage pool | false |
+| WD Red Plus | 4 TB | Local backups (mirrored to truenas-01 nightly) | false |
 
-## Running on this host
+- **Location:** Network Closet — Shelf 2
+- **Host:** core-switch
+- **Power Source:** ups-rack
 
-- **docker-vm** (vm) — 10.0.1.20
+## Running on this Host / Parent
+
+- **docker-host-vm** (vm) — 10.0.1.20
+- **homeassistant-lxc** (container) — 10.0.1.40
 - **media-vm** (vm) — 10.0.1.21
 - **pihole-lxc** (container) — 10.0.1.53
-- **grafana-lxc** (container) — 10.0.1.30
-- **homeassistant-lxc** (container) — 10.0.1.40
 
 ## Notes
 
-Primary hypervisor. Runs all VMs and LXC containers.
-Backups run nightly at 2:00 AM to NAS via PBS.
+Primary hypervisor. PCI passthrough of the iGPU into media-vm for Plex transcoding.
+Backups run nightly at 02:00 via PBS to truenas-01.
 
 ---
-*Created: 2026-03-16T19:42:26.663Z | Updated: 2026-03-16T19:42:26.663Z | ID: pxmx000001*
+*Created: 2026-05-21T10:30:00.000Z | Updated: 2026-05-21T10:30:00.000Z | ID: pxmx000001 | ParentID: swcore0001 | PowerID: upsrack0001*
 
-# docker-vm
+# docker-host-vm
 
 - **Type:** vm
 - **Status:** online
 - **IP Address:** 10.0.1.20
 - **System:** —
-- **OS:** Ubuntu Server 24.04 LTS
+- **OS / Firmware:** Ubuntu Server 24.04 LTS
 - **CPU:** 4 vCPU
-- **RAM:** 16GB
+- **RAM:** 16 GB
+- **GPU:** —
+- **Private:** false
+- **Notes Private:** false
 - **Location:** —
 - **Host:** proxmox-01
 
 ## Services
 
-| Service | Port | Notes | URL |
-|---------|------|-------|-----|
-| Nginx Proxy Manager | 81 | Reverse proxy for all services | https://nginxproxymanager.com/ |
-| Portainer | 9443 | Container management | https://www.portainer.io/ |
-| Uptime Kuma | 3001 | Service monitoring | https://github.com/louislam/uptime-kuma |
-| Vaultwarden | 8222 | Password manager | https://github.com/dani-garcia/vaultwarden |
-| Homarr | 7575 | Dashboard | https://homarr.dev |
-| Watchtower | — | Auto-update containers | https://containrrr.dev/watchtower/ |
-| Dozzle | 9999 | Log viewer | https://dozzle.dev/ |
-| Paperless-ngx | 8000 | Document management | https://docs.paperless-ngx.com/ |
-| Nextcloud | 8080 | Cloud storage | https://nextcloud.com/ |
+| Service | Port | Notes | URL | Private |
+|---------|------|-------|-----|---------|
+| Nginx Proxy Manager | 81 | Reverse proxy for everything below | https://nginxproxymanager.com/ | false |
+| Portainer | 9443 | Container management UI | https://www.portainer.io/ | false |
+| Vaultwarden | 8222 | Bitwarden-compatible password manager | https://github.com/dani-garcia/vaultwarden | false |
+| Uptime Kuma | 3001 | Service monitoring | https://github.com/louislam/uptime-kuma | false |
+| Dozzle | 9999 | Live log viewer | https://dozzle.dev/ | false |
+
+## Running on this Host / Parent
+
+- **nextcloud-lxc** (container) — 10.0.1.22
+
+## Notes
+
+Power source is inherited from proxmox-01 → ups-rack in the Power view.
 
 ---
-*Created: 2026-03-16T19:42:26.663Z | Updated: 2026-03-16T19:42:26.663Z | ID: dkrvm00001 | ParentID: pxmx000001*
+*Created: 2026-05-21T10:30:00.000Z | Updated: 2026-05-21T10:30:00.000Z | ID: dkrvm00001 | ParentID: pxmx000001*
 
 # media-vm
 
@@ -74,26 +225,62 @@ Backups run nightly at 2:00 AM to NAS via PBS.
 - **Status:** online
 - **IP Address:** 10.0.1.21
 - **System:** —
-- **OS:** Ubuntu Server 24.04 LTS
+- **OS / Firmware:** Ubuntu Server 24.04 LTS
 - **CPU:** 4 vCPU
-- **RAM:** 8GB
+- **RAM:** 8 GB
+- **GPU:** Intel UHD 630 (passthrough from proxmox-01)
+- **Private:** false
+- **Notes Private:** false
 - **Location:** —
 - **Host:** proxmox-01
 
 ## Services
 
-| Service | Port | Notes | URL |
-|---------|------|-------|-----|
-| Plex | 32400 | Media server | https://www.plex.tv/ |
-| Radarr | 7878 | Movie management | https://radarr.video/ |
-| Sonarr | 8989 | TV show management | https://sonarr.tv/ |
-| Prowlarr | 9696 | Indexer management | https://prowlarr.com/ |
-| qBittorrent | 8080 | Torrent client via Gluetun VPN | — |
-| Tautulli | 8181 | Plex monitoring | https://tautulli.com/ |
-| Overseerr | 5055 | Media requests | https://overseerr.dev/ |
+| Service | Port | Notes | URL | Private |
+|---------|------|-------|-----|---------|
+| Plex | 32400 | Media server with hardware transcoding | https://www.plex.tv/ | false |
+| Radarr | 7878 | Movies | https://radarr.video/ | false |
+| Sonarr | 8989 | TV | https://sonarr.tv/ | false |
+| Prowlarr | 9696 | Indexer aggregator | https://prowlarr.com/ | false |
+| Overseerr | 5055 | Public request portal | https://overseerr.dev/ | false |
+| qBittorrent | 8080 | Behind Gluetun VPN | — | true |
+
+## Notes
+
+The qBittorrent service is marked Private so it does not appear in the public exports.
 
 ---
-*Created: 2026-03-16T19:42:26.663Z | Updated: 2026-03-16T19:42:26.663Z | ID: mdavm00001 | ParentID: pxmx000001*
+*Created: 2026-05-21T10:30:00.000Z | Updated: 2026-05-21T10:30:00.000Z | ID: mdavm00001 | ParentID: pxmx000001*
+
+# nextcloud-lxc
+
+- **Type:** container
+- **Status:** online
+- **IP Address:** 10.0.1.22
+- **System:** —
+- **OS / Firmware:** Debian 12
+- **CPU:** 2 vCPU
+- **RAM:** 4 GB
+- **GPU:** —
+- **Private:** false
+- **Notes Private:** false
+- **Location:** —
+- **Host:** docker-host-vm
+
+## Services
+
+| Service | Port | Notes | URL | Private |
+|---------|------|-------|-----|---------|
+| Nextcloud | 8443 | Personal cloud — files, calendar, contacts | https://nextcloud.com/ | false |
+
+## Notes
+
+Demonstrates a container nested inside a VM. In the Network topology you'll see
+isp-modem → edge-router → core-switch → proxmox-01 → docker-host-vm → nextcloud-lxc
+— six levels of nesting all rendered in one tree.
+
+---
+*Created: 2026-05-21T10:30:00.000Z | Updated: 2026-05-21T10:30:00.000Z | ID: nxtcld0001 | ParentID: dkrvm00001*
 
 # pihole-lxc
 
@@ -101,47 +288,29 @@ Backups run nightly at 2:00 AM to NAS via PBS.
 - **Status:** online
 - **IP Address:** 10.0.1.53
 - **System:** —
-- **OS:** Debian 12
+- **OS / Firmware:** Debian 12
 - **CPU:** 1 vCPU
-- **RAM:** 512MB
+- **RAM:** 512 MB
+- **GPU:** —
+- **Private:** false
+- **Notes Private:** false
 - **Location:** —
 - **Host:** proxmox-01
 
 ## Services
 
-| Service | Port | Notes | URL |
-|---------|------|-------|-----|
-| Pi-hole | 80 | DNS filtering & ad blocking | https://pi-hole.net/ |
+| Service | Port | Notes | URL | Private |
+|---------|------|-------|-----|---------|
+| Pi-hole | 80 | DNS sinkhole + LAN DNS | https://pi-hole.net/ | false |
+| Pi-hole Admin | 8081 | Admin UI — internal only | — | true |
 
 ## Notes
 
-Primary DNS for the network. Backup DNS is Cloudflare 1.1.1.1.
+Forwards upstream to Cloudflare 1.1.1.1 and Quad9.
+The Admin service is marked Private; only the public-facing Pi-hole service shows up in shared exports.
 
 ---
-*Created: 2026-03-16T19:42:26.663Z | Updated: 2026-03-16T19:42:26.663Z | ID: pihole0001 | ParentID: pxmx000001*
-
-# grafana-lxc
-
-- **Type:** container
-- **Status:** online
-- **IP Address:** 10.0.1.30
-- **System:** —
-- **OS:** Debian 12
-- **CPU:** 2 vCPU
-- **RAM:** 2GB
-- **Location:** —
-- **Host:** proxmox-01
-
-## Services
-
-| Service | Port | Notes | URL |
-|---------|------|-------|-----|
-| Grafana | 3000 | Dashboards & visualization | https://grafana.com/ |
-| Prometheus | 9090 | Metrics collection | https://prometheus.io/ |
-| Node Exporter | 9100 | Host metrics | https://github.com/prometheus/node_exporter |
-
----
-*Created: 2026-03-16T19:42:26.663Z | Updated: 2026-03-16T19:42:26.663Z | ID: grafna0001 | ParentID: pxmx000001*
+*Created: 2026-05-21T10:30:00.000Z | Updated: 2026-05-21T10:30:00.000Z | ID: pihole0001 | ParentID: pxmx000001*
 
 # homeassistant-lxc
 
@@ -149,252 +318,204 @@ Primary DNS for the network. Backup DNS is Cloudflare 1.1.1.1.
 - **Status:** online
 - **IP Address:** 10.0.1.40
 - **System:** —
-- **OS:** Debian 12
+- **OS / Firmware:** Debian 12
 - **CPU:** 2 vCPU
-- **RAM:** 4GB
+- **RAM:** 4 GB
+- **GPU:** —
+- **Private:** false
+- **Notes Private:** true
 - **Location:** —
 - **Host:** proxmox-01
 
 ## Services
 
-| Service | Port | Notes | URL |
-|---------|------|-------|-----|
-| Home Assistant | 8123 | Smart home automation | https://www.home-assistant.io/ |
-| Mosquitto | 1883 | MQTT broker | https://mosquitto.org/ |
-| Z-Wave JS | 3000 | Z-Wave controller | https://zwave-js.github.io/zwave-js-ui/ |
+| Service | Port | Notes | URL | Private |
+|---------|------|-------|-----|---------|
+| Home Assistant | 8123 | Smart-home hub | https://www.home-assistant.io/ | false |
+| Mosquitto | 1883 | MQTT broker | https://mosquitto.org/ | false |
+| Z-Wave JS | 3000 | Z-Wave controller | https://zwave-js.github.io/zwave-js-ui/ | false |
 
 ## Notes
 
-Controls 47 devices across Zigbee, Z-Wave, and WiFi.
-ConBee II USB stick for Zigbee.
-Zooz ZST39 for Z-Wave.
+Controls 47 devices across Zigbee, Z-Wave, and Wi-Fi. ConBee II for Zigbee on USB pass-through; Zooz ZST39 for Z-Wave.
+Door, window, and presence sensors mapped 1:1 to room names — full topology in the dashboard at https://home.example.lab/.
+Because Notes Private is set on this entry, this entire block is omitted from public exports while the rest of the entry still appears.
 
 ---
-*Created: 2026-03-16T19:42:26.663Z | Updated: 2026-03-16T19:42:26.663Z | ID: haoslxc001 | ParentID: pxmx000001*
+*Created: 2026-05-21T10:30:00.000Z | Updated: 2026-05-21T10:30:00.000Z | ID: halxc00001 | ParentID: pxmx000001*
 
-# nas-01
+# truenas-01
 
 - **Type:** storage
 - **Status:** online
 - **IP Address:** 10.0.1.50
-- **System:** Synology DS920+
-- **OS:** DSM 7.2
-- **CPU:** Intel Celeron J4125 / 4 cores
-- **RAM:** 8GB DDR4
-- **Location:** Network Closet - Shelf 1
+- **System:** Custom build — Fractal Node 304
+- **OS / Firmware:** TrueNAS SCALE 24.04
+- **CPU:** Intel Xeon E-2226G / 6c / 6t
+- **RAM:** 32 GB ECC DDR4
+- **GPU:** —
+- **Private:** false
+- **Notes Private:** false
 
 ## Storage
 
-| Type / Device | Size | Notes |
-|---------------|------|-------|
-| WD Red Plus CMR | 8TB x2 | SHR-1 Storage Pool |
-| WD Red Plus CMR | 8TB x2 | SHR-1 Storage Pool |
-| Samsung 970 EVO Plus NVMe | 500GB x2 | SSD Cache (R/W) |
+| Type / Device | Size | Notes | Private |
+|---------------|------|-------|---------|
+| Seagate IronWolf Pro | 8 TB × 4 | RAID-Z2 — main pool | false |
+| Samsung 970 EVO Plus NVMe | 1 TB × 2 | Mirrored metadata vdev | false |
+| Kingston DC600M SSD | 480 GB | Boot pool (mirrored with twin) | false |
+| Encrypted USB SSD | 1 TB | Off-site recovery key escrow | true |
+
+- **Location:** Network Closet — Shelf 1
+- **Host:** core-switch
+- **Power Source:** ups-rack
 
 ## Services
 
-| Service | Port | Notes | URL |
-|---------|------|-------|-----|
-| SMB/NFS Shares | 445 | Network file shares | — |
-| Synology Photos | — | Photo backup & management | https://www.synology.com/en-us/dsm/feature/photos |
-| Hyper Backup | — | Offsite backup to Backblaze B2 | — |
-| Tailscale | — | VPN access | https://tailscale.com/ |
+| Service | Port | Notes | URL | Private |
+|---------|------|-------|-----|---------|
+| SMB / NFS Shares | 445 | LAN file shares | — | false |
+| Proxmox Backup Server | 8007 | Nightly Proxmox backups | https://www.proxmox.com/en/proxmox-backup-server | false |
+| Tailscale | — | Mesh VPN for off-LAN access | https://tailscale.com/ | false |
 
 ## Notes
 
-~22TB usable storage after SHR-1 parity.
-UPS connected via USB for graceful shutdown.
+22 TB usable after RAID-Z2 parity. SMART monitoring + email alerts via internal SMTP relay.
+The encrypted USB drive row is marked Private and will not appear in public exports.
 
 ---
-*Created: 2026-03-16T19:42:26.663Z | Updated: 2026-03-16T19:42:26.663Z | ID: trnas00001*
+*Created: 2026-05-21T10:30:00.000Z | Updated: 2026-05-21T10:30:00.000Z | ID: trnas00001 | ParentID: swcore0001 | PowerID: upsrack0001*
 
-# pfsense-fw
+# workstation-01
 
-- **Type:** network
+- **Type:** server
 - **Status:** online
-- **IP Address:** 10.0.1.1
-- **System:** Protectli Vault FW4B
-- **OS:** pfSense CE 2.7.2
-- **CPU:** Intel Celeron J3160 / 4 cores
-- **RAM:** 8GB DDR3L
-- **Location:** Network Closet - Shelf 3
+- **IP Address:** 10.0.1.60
+- **System:** Custom build — Lian Li O11 Mini
+- **OS / Firmware:** Pop!_OS 22.04
+- **CPU:** AMD Ryzen 9 7900X / 12c / 24t
+- **RAM:** 64 GB DDR5 6000 MHz
+- **GPU:** NVIDIA RTX 4070 Ti / 12 GB
+- **Private:** false
+- **Notes Private:** false
 
 ## Storage
 
-| Type / Device | Size | Notes |
-|---------------|------|-------|
-| mSATA SSD | 120GB | Boot / OS drive |
+| Type / Device | Size | Notes | Private |
+|---------------|------|-------|---------|
+| WD Black SN850X NVMe | 2 TB | OS + projects | false |
+| Samsung 990 Pro NVMe | 4 TB | Datasets + model weights | false |
+
+- **Location:** Office — Under Desk
+- **Host:** core-switch
+- **Power Source:** ups-workstation
 
 ## Services
 
-| Service | Port | Notes | URL |
-|---------|------|-------|-----|
-| Firewall | — | Stateful packet filtering | https://www.pfsense.org/ |
-| OpenVPN | 1194 | Remote access VPN | — |
-| HAProxy | 443 | SSL termination & load balancing | — |
-| pfBlockerNG | — | IP/DNS blocklists | — |
+| Service | Port | Notes | URL | Private |
+|---------|------|-------|-----|---------|
+| Ollama | 11434 | Local LLM runtime — Llama 3 / Mistral | https://ollama.com/ | false |
+| Stable Diffusion WebUI | 7860 | Image generation | https://github.com/AUTOMATIC1111/stable-diffusion-webui | false |
+| Jupyter Lab | 8888 | Notebooks for ML experiments | https://jupyter.org/ | false |
 
 ## Notes
 
-ISP: Comcast 1 Gig
-4 Intel NICs: WAN, LAN, IoT VLAN, Guest VLAN
+Daily-driver desktop that also acts as the ML / inference box. GPU is the reason a first-class GPU field exists.
+Plugged into its own UPS so a flaky office circuit doesn't take down the rack.
 
 ---
-*Created: 2026-03-16T19:42:26.663Z | Updated: 2026-03-16T19:42:26.663Z | ID: pfsns00001*
+*Created: 2026-05-21T10:30:00.000Z | Updated: 2026-05-21T10:30:00.000Z | ID: wrkstn0001 | ParentID: swcore0001 | PowerID: upswrkst001*
 
-# core-switch
+# vault-server
 
-- **Type:** network
+- **Type:** server
 - **Status:** online
-- **IP Address:** 10.0.1.2
-- **System:** TP-Link TL-SG1024DE
-- **OS:** —
-- **CPU:** —
-- **RAM:** —
-- **Location:** Network Closet - Shelf 3
+- **IP Address:** 10.0.1.99
+- **System:** Raspberry Pi 5 / 8 GB
+- **OS / Firmware:** Raspberry Pi OS Lite (64-bit)
+- **CPU:** Broadcom BCM2712 / 4 cores
+- **RAM:** 8 GB LPDDR4X
+- **GPU:** —
+- **Private:** true
+- **Notes Private:** false
+
+## Storage
+
+| Type / Device | Size | Notes | Private |
+|---------------|------|-------|---------|
+| Samsung T7 USB SSD | 500 GB | Secrets vault — air-gapped backups | false |
+
+- **Location:** Safe
+- **Host:** core-switch
+
+## Services
+
+| Service | Port | Notes | URL | Private |
+|---------|------|-------|-----|---------|
+| HashiCorp Vault | 8200 | Secrets storage | https://www.vaultproject.io/ | false |
 
 ## Notes
 
-24-port managed gigabit switch
-VLAN trunking to pfSense
-VLAN 10: LAN, VLAN 20: IoT, VLAN 30: Guest
+Whole entry is marked Private — it will not appear in homelab-public.md or homelab.html exports
+at all. Useful for boxes you don't want to advertise externally.
 
 ---
-*Created: 2026-03-16T19:42:26.663Z | Updated: 2026-03-16T19:42:26.663Z | ID: tplnk00001*
+*Created: 2026-05-21T10:30:00.000Z | Updated: 2026-05-21T10:30:00.000Z | ID: vault00001 | ParentID: swcore0001*
 
-# unifi-ap
+# ups-rack
 
-- **Type:** network
-- **Status:** online
-- **IP Address:** 10.0.1.3
-- **System:** Ubiquiti UniFi U6-Pro
-- **OS:** —
-- **CPU:** —
-- **RAM:** —
-- **Location:** Living Room - Ceiling Mount
-
-## Notes
-
-Broadcasts 3 SSIDs: Home, IoT, Guest
-Powered via PoE from core switch
-
----
-*Created: 2026-03-16T19:42:26.663Z | Updated: 2026-03-16T19:42:26.663Z | ID: ubiqap0001*
-
-# ups-01
-
-- **Type:** other
+- **Type:** ups
 - **Status:** online
 - **IP Address:** —
 - **System:** APC Back-UPS Pro 1500VA (BR1500MS2)
-- **OS:** —
+- **OS / Firmware:** —
 - **CPU:** —
 - **RAM:** —
-- **Location:** Network Closet - Floor
+- **GPU:** —
+- **Private:** false
+- **Notes Private:** false
+- **Location:** Network Closet — Floor
+
+## Powered devices
+
+- **core-switch** (network)
+- **edge-router** (network)
+- **iot-switch** (network)
+- **proxmox-01** (server)
+- **truenas-01** (storage)
 
 ## Notes
 
-1500VA / 900W Pure Sine Wave
-Connected via USB to NAS for graceful shutdown
-Powers: Proxmox, NAS, pfSense, Switch
-Runtime at load: ~18 minutes
+1500 VA / 900 W pure sine. Connected to truenas-01 via USB for graceful shutdown.
+Runtime at observed load ~22 minutes.
+In the Power topology view this UPS is a root; every device above shows up as a direct child,
+and the VMs and containers running on proxmox-01 are inherited under it automatically because
+they don't have a power source of their own.
 
 ---
-*Created: 2026-03-16T19:42:26.663Z | Updated: 2026-03-16T19:42:26.663Z | ID: cybrups001*
+*Created: 2026-05-21T10:30:00.000Z | Updated: 2026-05-21T10:30:00.000Z | ID: upsrack0001*
 
-# rpi-node-01
+# ups-workstation
 
-- **Type:** server
+- **Type:** ups
 - **Status:** online
-- **IP Address:** 10.0.1.101
-- **System:** Raspberry Pi 4 Model B 4GB
-- **OS:** Raspberry Pi OS Lite (64-bit)
-- **CPU:** Broadcom BCM2711 / 4 cores
-- **RAM:** 4GB LPDDR4
-- **Location:** Desk - Pi Cluster Stack
+- **IP Address:** —
+- **System:** CyberPower CP1500PFCLCD
+- **OS / Firmware:** —
+- **CPU:** —
+- **RAM:** —
+- **GPU:** —
+- **Private:** false
+- **Notes Private:** false
+- **Location:** Office — Under Desk
 
-## Storage
+## Powered devices
 
-| Type / Device | Size | Notes |
-|---------------|------|-------|
-| Samsung EVO Plus microSD | 64GB | Boot drive |
-
-## Services
-
-| Service | Port | Notes | URL |
-|---------|------|-------|-----|
-| K3s | 6443 | Kubernetes control plane | https://k3s.io/ |
-| Node Exporter | 9100 | Prometheus metrics | https://github.com/prometheus/node_exporter |
+- **workstation-01** (server)
 
 ## Notes
 
-K3s control plane node. Runs cluster services.
-PoE powered via PoE+ HAT.
+Office UPS, isolated from the rack so a tripped breaker upstairs doesn't take down the homelab.
 
 ---
-*Created: 2026-03-16T19:42:26.663Z | Updated: 2026-03-16T19:42:26.663Z | ID: rpi4node01*
-
-# rpi-node-02
-
-- **Type:** server
-- **Status:** online
-- **IP Address:** 10.0.1.102
-- **System:** Raspberry Pi 4 Model B 4GB
-- **OS:** Raspberry Pi OS Lite (64-bit)
-- **CPU:** Broadcom BCM2711 / 4 cores
-- **RAM:** 4GB LPDDR4
-- **Location:** Desk - Pi Cluster Stack
-
-## Storage
-
-| Type / Device | Size | Notes |
-|---------------|------|-------|
-| Samsung EVO Plus microSD | 64GB | Boot drive |
-
-## Services
-
-| Service | Port | Notes | URL |
-|---------|------|-------|-----|
-| K3s | 6443 | Kubernetes worker node | https://k3s.io/ |
-| Node Exporter | 9100 | Prometheus metrics | https://github.com/prometheus/node_exporter |
-
-## Notes
-
-K3s worker node. Handles workload scheduling.
-PoE powered via PoE+ HAT.
-
----
-*Created: 2026-03-16T19:42:26.663Z | Updated: 2026-03-16T19:42:26.663Z | ID: rpi4node02*
-
-# rpi-node-03
-
-- **Type:** server
-- **Status:** offline
-- **IP Address:** 10.0.1.103
-- **System:** Raspberry Pi 4 Model B 4GB
-- **OS:** Raspberry Pi OS Lite (64-bit)
-- **CPU:** Broadcom BCM2711 / 4 cores
-- **RAM:** 4GB LPDDR4
-- **Location:** Desk - Pi Cluster Stack
-
-## Storage
-
-| Type / Device | Size | Notes |
-|---------------|------|-------|
-| Samsung EVO Plus microSD | 64GB | Boot drive |
-
-## Services
-
-| Service | Port | Notes | URL |
-|---------|------|-------|-----|
-| K3s | 6443 | Kubernetes worker node | https://k3s.io/ |
-| Node Exporter | 9100 | Prometheus metrics | https://github.com/prometheus/node_exporter |
-
-## Notes
-
-K3s worker node. Currently offline for maintenance.
-Replacing microSD with USB SSD boot.
-
----
-*Created: 2026-03-16T19:42:26.663Z | Updated: 2026-03-16T19:42:26.663Z | ID: rpi4node03*
-
+*Created: 2026-05-21T10:30:00.000Z | Updated: 2026-05-21T10:30:00.000Z | ID: upswrkst001*
