@@ -830,7 +830,7 @@
             </ul>
             <input type="hidden" id="fParent" value="">
           </div>
-          <span class="form-hint">e.g. the Proxmox host this VM runs on</span>
+          <span class="form-hint" id="fParentHint">e.g. the Proxmox host this VM runs on</span>
         </div>
       </div>
 
@@ -997,15 +997,16 @@ const STORAGE_KEY = 'homelab_devices';
 function loadDevices() {
   try {
     const devices = JSON.parse(localStorage.getItem(STORAGE_KEY)) || [];
-    // UPS devices are root-level infrastructure and aren't hosting targets
-    // for anything else. Strip any legacy parentId on UPS, and clear any
-    // pointer that named a UPS as a host, so every render path treats them
-    // as standalone without per-site checks.
-    const upsIds = new Set(devices.filter(d => d && d.type === 'ups').map(d => d.id));
+    // Normalize parent relationships defensively so every render path can
+    // trust the data. UPS is always standalone; anything else is cleared
+    // if it points at a parent whose type isn't an allowed host for it.
+    const byId = new Map(devices.filter(d => d && d.id).map(d => [d.id, d]));
     devices.forEach(d => {
       if (!d) return;
-      if (d.type === 'ups') d.parentId = null;
-      else if (d.parentId && upsIds.has(d.parentId)) d.parentId = null;
+      if (d.type === 'ups') { d.parentId = null; return; }
+      if (!d.parentId) return;
+      const parent = byId.get(d.parentId);
+      if (!parent || !isAllowedParent(d.type, parent.type)) d.parentId = null;
     });
     return devices;
   }
@@ -1527,13 +1528,39 @@ function removeStorageRow(i) {
   renderStorageRows();
 }
 
+// Allowed parent types per child type. `null` means "any non-UPS"; an empty
+// array means "no parent allowed". Kept narrow on purpose — see the rationale
+// in the corresponding form hint.
+const ALLOWED_PARENT_TYPES = {
+  server: ['network'],
+  vm: ['server'],
+  container: ['server', 'vm'],
+  network: ['network'],
+  storage: ['server', 'vm', 'container'],
+  ups: [],
+  other: null,
+};
+
+function allowedParentTypesFor(type) {
+  return Object.prototype.hasOwnProperty.call(ALLOWED_PARENT_TYPES, type)
+    ? ALLOWED_PARENT_TYPES[type]
+    : null;
+}
+
+function isAllowedParent(childType, parentType) {
+  const allowed = allowedParentTypesFor(childType);
+  if (allowed === null) return parentType !== 'ups';
+  return allowed.includes(parentType);
+}
+
 function populateParentDropdown(excludeId = null) {
   const menu = document.getElementById('fParentMenu');
   const devices = loadDevices();
   const current = document.getElementById('fParent').value || '';
+  const childType = document.getElementById('fType').value;
   const opts = [{ value: '', label: '— None (standalone) —' }];
   devices
-    .filter(d => d.id !== excludeId && d.type !== 'ups')
+    .filter(d => d.id !== excludeId && isAllowedParent(childType, d.type))
     .sort((a, b) => (a.name || '').localeCompare(b.name || '', undefined, { sensitivity: 'base' }))
     .forEach(d => {
       opts.push({ value: d.id, label: `${d.name} (${d.type})` });
@@ -1541,7 +1568,10 @@ function populateParentDropdown(excludeId = null) {
   menu.innerHTML = opts.map(o =>
     `<li class="form-select-option" role="option" aria-selected="false" data-value="${esc(o.value)}" onclick="selectFormSelect('fParent', this)">${esc(o.label)}</li>`
   ).join('');
-  setFormSelectValue('fParent', current);
+  // Drop the current selection if it no longer fits the type's allowed set,
+  // so changing type can't silently keep an invalid parent.
+  const stillValid = current && opts.some(o => o.value === current);
+  setFormSelectValue('fParent', stillValid ? current : '');
 }
 
 function populatePowerDropdown(excludeId = null) {
@@ -1588,7 +1618,10 @@ function selectFormSelect(id, optionEl) {
   const value = optionEl.getAttribute('data-value') || '';
   setFormSelectValue(id, value);
   closeAllFormSelects();
-  if (id === 'fType') syncPowerFieldVisibility();
+  if (id === 'fType') {
+    syncPowerFieldVisibility();
+    populateParentDropdown(document.getElementById('editId').value || null);
+  }
   const toggle = document.getElementById(id + 'Toggle');
   if (toggle) toggle.focus();
 }
