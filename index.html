@@ -258,15 +258,6 @@
   .form-select-option:hover { background: var(--bg-tertiary); color: var(--text-primary); }
   .form-select-option.active { background: var(--accent-glow); color: var(--accent); }
 
-  .stats-bar {
-    display: flex; gap: 24px; margin-bottom: 24px;
-    padding: 14px 20px; background: var(--bg-secondary);
-    border: 1px solid var(--border); border-radius: var(--radius); flex-wrap: wrap;
-  }
-  .stat { display: flex; align-items: baseline; gap: 6px; }
-  .stat-value { font-family: 'JetBrains Mono', monospace; font-size: 24px; font-weight: 700; color: var(--accent); }
-  .stat-label { font-size: 14px; color: var(--text-secondary); text-transform: uppercase; letter-spacing: 0.5px; }
-
   .device-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(360px, 1fr)); gap: 14px; }
 
   .device-card {
@@ -276,7 +267,6 @@
   }
   .device-card:hover, .device-card:focus-visible { border-color: var(--border-active); box-shadow: var(--shadow); }
   .device-card:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
-  .device-card.has-children { border-left: 3px solid var(--accent); }
 
   .device-card-header { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 10px; }
 
@@ -321,7 +311,7 @@
     margin-top: 8px; display: inline-block;
   }
 
-  .device-status { width: 8px; height: 8px; border-radius: 50%; display: inline-block; margin-right: 4px; }
+  .device-status { width: 8px; height: 8px; border-radius: 50%; display: inline-block; margin-right: 8px; }
   .status-online { background: var(--success); box-shadow: 0 0 6px rgba(75, 199, 122, 0.4); }
   .status-offline { background: var(--danger); }
   .status-unknown { background: var(--text-muted); }
@@ -378,6 +368,13 @@
   .form-select option { background: var(--bg-primary); }
   .form-textarea { resize: vertical; min-height: 80px; font-family: 'JetBrains Mono', monospace; }
   .form-hint { font-size: 13px; color: var(--text-muted); }
+  .export-warning {
+    font-size: 14px; line-height: 1.5; color: var(--text-secondary);
+    padding: 12px 14px; margin-bottom: 16px;
+    background: var(--danger-dim); border: 1px solid var(--danger);
+    border-radius: var(--radius);
+  }
+  .export-warning strong { color: var(--text-primary); }
 
   .services-editor { margin-top: 4px; }
 
@@ -658,7 +655,6 @@
     .toolbar { flex-direction: column; align-items: stretch; }
     .search-wrap { display: block; }
     .search-box { width: 100%; }
-    .stats-bar { flex-wrap: wrap; gap: 16px; }
     .detail-grid { grid-template-columns: 1fr; }
     .view-toggle { display: flex; }
     .view-toggle .view-btn { flex: 1; text-align: center; justify-content: center; }
@@ -740,7 +736,7 @@
         <button onclick="exportAll(); closeExportMenu()">homelab.md Full</button>
         <button onclick="exportCsv(); closeExportMenu()">homelab.csv Full</button>
         <hr>
-        <button onclick="exportPublic(); closeExportMenu()">homelab.md Public</button>
+        <button onclick="confirmExportPublicMd(); closeExportMenu()">homelab.md Public</button>
         <button onclick="openHtmlExportModal(); closeExportMenu()">homelab.html Public</button>
       </div>
     </div>
@@ -749,7 +745,6 @@
 </header>
 
 <div class="main">
-  <div class="stats-bar" id="statsBar"></div>
   <div class="toolbar">
     <div class="search-wrap">
       <input type="text" class="search-box" id="searchBox" placeholder="Search..." oninput="onSearchInput()">
@@ -781,7 +776,7 @@
 <div class="modal-overlay" id="formModal" role="dialog" aria-modal="true" aria-labelledby="formTitle">
   <div class="modal">
     <div class="modal-header">
-      <div class="modal-title" id="formTitle">Add Device</div>
+      <div class="modal-title" id="formTitle">Add Entry</div>
       <button class="btn btn-ghost btn-sm" onclick="closeModal()" aria-label="Close">✕</button>
     </div>
     <div class="modal-body">
@@ -818,8 +813,8 @@
           <label class="form-label">IP Address</label>
           <input type="text" class="form-input" id="fIp" placeholder="e.g. 192.168.1.100">
         </div>
-        <div class="form-group">
-          <label class="form-label">Host / Parent Device</label>
+        <div class="form-group" id="fParentGroup">
+          <label class="form-label">Host / Parent</label>
           <div class="form-select-wrap" id="fParentWrap">
             <button type="button" class="form-select-toggle" id="fParentToggle" aria-haspopup="listbox" aria-expanded="false" onclick="toggleFormSelect('fParent', event)">
               <span class="form-select-value" id="fParentLabel">— None (standalone) —</span>
@@ -830,7 +825,7 @@
             </ul>
             <input type="hidden" id="fParent" value="">
           </div>
-          <span class="form-hint">e.g. the Proxmox host this VM runs on</span>
+          <span class="form-hint" id="fParentHint">e.g. the Proxmox host this VM runs on</span>
         </div>
       </div>
 
@@ -847,7 +842,7 @@
             </ul>
             <input type="hidden" id="fPower" value="">
           </div>
-          <span class="form-hint">e.g. the UPS this device is plugged into</span>
+          <span class="form-hint">e.g. the UPS this entry is plugged into</span>
         </div>
       </div>
 
@@ -895,6 +890,13 @@
         </div>
       </div>
 
+      <div class="form-row full" id="fGpuRow">
+        <div class="form-group">
+          <label class="form-label">GPU</label>
+          <input type="text" class="form-input" id="fGpu" placeholder="e.g. NVIDIA RTX 4090, Intel Arc A770">
+        </div>
+      </div>
+
       <div class="form-row full" id="fStorageRow">
         <div class="form-group">
           <label class="form-label">Storage</label>
@@ -937,7 +939,7 @@
     </div>
     <div class="modal-footer">
       <button class="btn" onclick="closeModal()">Cancel</button>
-      <button class="btn btn-primary" onclick="saveDevice()">Save Device</button>
+      <button class="btn btn-primary" onclick="saveDevice()">Save Entry</button>
     </div>
   </div>
 </div>
@@ -946,7 +948,7 @@
   <a href="https://github.com/jeremehancock/homelab.md" target="_blank" class="footer-link">homelab.md</a>
 </footer>
 
-<div class="detail-overlay" id="detailOverlay" role="dialog" aria-modal="true" aria-label="Device details">
+<div class="detail-overlay" id="detailOverlay" role="dialog" aria-modal="true" aria-label="Entry details">
   <div class="detail-panel" id="detailPanel"></div>
 </div>
 
@@ -957,11 +959,14 @@
       <button class="btn btn-ghost btn-sm" onclick="closeHtmlExportModal()" aria-label="Close">✕</button>
     </div>
     <div class="modal-body">
+      <div class="export-warning">
+        <strong>Review before sharing.</strong> homelab.md attempts to sanitize sensitive data (URLs, IPs, and credential-like patterns), but the output isn't guaranteed to be safe. Open the exported file and check it closely — especially the <strong>Notes</strong> fields, which are free-form and can carry through unsanitized content.
+      </div>
       <div class="form-row full">
         <div class="form-group">
           <label class="form-label">Site Name</label>
           <input type="text" class="form-input" id="htmlSiteName" placeholder="e.g. My Homelab" onkeydown="if(event.key==='Enter'){event.preventDefault();confirmExportHtml();}">
-          <span class="form-hint">Replaces "homelab.md" in the top-left of the exported page. Same sanitization as the public Markdown export.</span>
+          <span class="form-hint">Replaces "homelab.md" in the top-left of the exported page.</span>
         </div>
       </div>
     </div>
@@ -979,7 +984,7 @@
       <button class="btn btn-ghost btn-sm" onclick="closeConfirm()" aria-label="Close">✕</button>
     </div>
     <div class="modal-body">
-      <p id="confirmMessage" style="font-size:15px;color:var(--text-secondary);line-height:1.5;"></p>
+      <div id="confirmMessage" style="font-size:15px;color:var(--text-secondary);line-height:1.5;"></div>
     </div>
     <div class="modal-footer">
       <button class="btn" onclick="closeConfirm()">Cancel</button>
@@ -995,7 +1000,21 @@
 const STORAGE_KEY = 'homelab_devices';
 
 function loadDevices() {
-  try { return JSON.parse(localStorage.getItem(STORAGE_KEY)) || []; }
+  try {
+    const devices = JSON.parse(localStorage.getItem(STORAGE_KEY)) || [];
+    // Normalize parent relationships defensively so every render path can
+    // trust the data. UPS is always standalone; anything else is cleared
+    // if it points at a parent whose type isn't an allowed host for it.
+    const byId = new Map(devices.filter(d => d && d.id).map(d => [d.id, d]));
+    devices.forEach(d => {
+      if (!d) return;
+      if (d.type === 'ups') { d.parentId = null; return; }
+      if (!d.parentId) return;
+      const parent = byId.get(d.parentId);
+      if (!parent || !isAllowedParent(d.type, parent.type)) d.parentId = null;
+    });
+    return devices;
+  }
   catch { return []; }
 }
 function saveDevices(devices) { localStorage.setItem(STORAGE_KEY, JSON.stringify(devices)); }
@@ -1057,22 +1076,6 @@ function getTopoTypeIcon(type, x, y, size) {
 function typeBadge(type, extraStyle) {
   const t = type || 'other';
   return `<span class="device-type-badge ${getTypeClass(t)}"${extraStyle ? ` style="${extraStyle}"` : ''}>${getTypeIcon(t)}<span>${esc(t)}</span></span>`;
-}
-
-function renderStats() {
-  const devices = loadDevices();
-  const online = devices.filter(d => d.status === 'online').length;
-  const hosts = devices.filter(d => !d.parentId).length;
-  const vmsAndContainers = devices.filter(d => d.type === 'vm' || d.type === 'container').length;
-  const totalServices = devices.reduce((sum, d) => sum + (d.services ? d.services.length : 0), 0);
-
-  document.getElementById('statsBar').innerHTML = `
-    <div class="stat"><span class="stat-value">${devices.length}</span><span class="stat-label">Devices</span></div>
-    <div class="stat"><span class="stat-value">${online}</span><span class="stat-label">Online</span></div>
-    <div class="stat"><span class="stat-value">${hosts}</span><span class="stat-label">Hosts</span></div>
-    <div class="stat"><span class="stat-value">${vmsAndContainers}</span><span class="stat-label">VMs/Containers</span></div>
-    <div class="stat"><span class="stat-value">${totalServices}</span><span class="stat-label">Services</span></div>
-  `;
 }
 
 function renderFilters() {
@@ -1142,7 +1145,7 @@ function getFilteredDevices() {
     if (query) {
       const svcText = (d.services || []).map(s => typeof s === 'string' ? s : `${s.name} ${s.port} ${s.notes} ${s.url}`).join(' ');
       const storageText = Array.isArray(d.storage) ? d.storage.map(s => `${s.type} ${s.size} ${s.notes}`).join(' ') : (d.storage || '');
-      const searchable = [d.name, d.ip, d.os, d.system, d.type, d.location, d.notes, svcText, storageText].join(' ').toLowerCase();
+      const searchable = [d.name, d.ip, d.os, d.system, d.type, d.cpu, d.ram, d.gpu, d.location, d.notes, svcText, storageText].join(' ').toLowerCase();
       if (!searchable.includes(query)) return false;
     }
     return true;
@@ -1161,9 +1164,9 @@ function renderDevices() {
     grid.innerHTML = `
       <div class="empty-state" style="grid-column:1/-1;">
         <div class="empty-icon">⬡</div>
-        <div class="empty-title">${devices.length === 0 ? 'No devices yet' : 'No matches'}</div>
-        <div class="empty-text">${devices.length === 0 ? 'Add your first homelab device to get started.' : 'Try adjusting your search or filter.'}</div>
-        ${devices.length === 0 ? '<button class="btn btn-primary" onclick="openAddModal()">+ Add Device</button>' : ''}
+        <div class="empty-title">${devices.length === 0 ? 'No entries yet' : 'No matches'}</div>
+        <div class="empty-text">${devices.length === 0 ? 'Add your first homelab entry to get started.' : 'Try adjusting your search or filter.'}</div>
+        ${devices.length === 0 ? '<button class="btn btn-primary" onclick="openAddModal()">+ Add Entry</button>' : ''}
       </div>`;
     return;
   }
@@ -1176,7 +1179,7 @@ function renderDevices() {
     const storage = sortedStorage(d.storage);
 
     return `
-    <div class="device-card ${children.length ? 'has-children' : ''}" tabindex="0" role="button" onclick="showDetail('${d.id}')" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();showDetail('${d.id}');}">
+    <div class="device-card" tabindex="0" role="button" onclick="showDetail('${d.id}')" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();showDetail('${d.id}');}">
       <div class="device-card-header">
         <div>
           <div class="device-name">
@@ -1193,14 +1196,14 @@ function renderDevices() {
         ${d.os ? `<span class="meta-item"><strong>OS / Firmware:</strong> ${esc(d.os)}</span>` : ''}
         ${d.cpu ? `<span class="meta-item"><strong>CPU:</strong> ${esc(d.cpu)}</span>` : ''}
         ${d.ram ? `<span class="meta-item"><strong>RAM:</strong> ${esc(d.ram)}</span>` : ''}
+        ${d.gpu ? `<span class="meta-item"><strong>GPU:</strong> ${esc(d.gpu)}</span>` : ''}
         ${storage && (Array.isArray(storage) ? storage.length : storage) ? `<span class="meta-item"><strong>Storage:</strong> ${Array.isArray(storage) ? (storage.length > 2 ? esc(storage[0].size ? storage[0].type + ' ' + storage[0].size : storage[0].type) + ', +' + (storage.length - 1) + ' more' : storage.map(s => esc(s.size ? s.type + ' ' + s.size : s.type)).join(', ')) : esc(storage)}</span>` : ''}
       </div>
       ${svcCount ? `
         <div class="device-services">
           ${svcs.slice(0, 2).map(s => {
             const name = typeof s === 'string' ? s : s.name;
-            const port = typeof s === 'string' ? '' : s.port;
-            return `<span class="service-tag">${esc(name)}${port ? ':' + esc(port) : ''}</span>`;
+            return `<span class="service-tag">${esc(name)}</span>`;
           }).join('')}
           ${svcCount > 2 ? `<span class="service-tag">+${svcCount - 2} more</span>` : ''}
         </div>
@@ -1287,7 +1290,10 @@ function topoBoxSvg(d, x, y, w, h, isParent, opts) {
   const iconY = typeY - 11;
   const typeTextX = textX + iconSize + 4;
   const t = d.type || 'other';
-  const nameMax = isParent ? 24 : 22;
+  // Derive the name char limit from the actual box width so deeply-nested
+  // children don't overflow. JetBrains Mono at 14px is ~8.4px per char.
+  const textAvail = Math.max(40, w - (textX - x) - 12);
+  const nameMax = Math.max(6, Math.floor(textAvail / 8.4));
   const clipId = 'topo-clip-' + esc(d.id);
   return `<g class="topo-node" data-id="${esc(d.id)}">
     <defs><clipPath id="${clipId}"><rect x="${x}" y="${y}" width="${w}" height="${h}" rx="6"/></clipPath></defs>
@@ -1367,7 +1373,7 @@ function renderTopology() {
   const container = document.getElementById('topologyView');
 
   if (filtered.length === 0) {
-    container.innerHTML = `<div class="topology-empty">${allDevices.length === 0 ? 'No devices yet.' : 'No matches for the current search/filter.'}</div>`;
+    container.innerHTML = `<div class="topology-empty">${allDevices.length === 0 ? 'No entries yet.' : 'No matches for the current search/filter.'}</div>`;
     return;
   }
 
@@ -1398,9 +1404,9 @@ function renderTopology() {
     return { device, children: kids.map(k => buildPowerTree(k, seen)) };
   }
 
-  // UPS devices without a network parent live in the Power view, not the
-  // Network view. A UPS with a parentId set (e.g. its management card on a
-  // switch) still appears as a child of that parent in the network tree.
+  // UPS devices are root-level infrastructure and live in the Power view,
+  // not the Network view. loadDevices strips any legacy parentId on UPS so
+  // this filter is enough to keep them out of the network tree entirely.
   const networkRoots = filtered.filter(d => !d.parentId && d.type !== 'ups');
   const networkOrphans = filtered.filter(d => d.parentId && !filteredIds.has(d.parentId));
   const networkTrees = networkRoots.concat(networkOrphans)
@@ -1436,7 +1442,7 @@ function renderTopology() {
     if (topoMode === 'power' && (currentFilter === 'vm' || currentFilter === 'container')) {
       msg = `${currentFilter === 'vm' ? 'VMs' : 'Containers'} inherit power from their host, so they don’t appear here on their own.`;
     } else if (topoMode === 'power') {
-      msg = 'No power relationships yet. Set a Power Source on any device.';
+      msg = 'No power relationships yet. Set a Power Source on any entry.';
     } else if (currentFilter === 'ups') {
       msg = 'UPS devices are shown in the Power view — switch the topology mode above.';
     } else {
@@ -1514,13 +1520,39 @@ function removeStorageRow(i) {
   renderStorageRows();
 }
 
+// Allowed parent types per child type. `null` means "any non-UPS"; an empty
+// array means "no parent allowed". Kept narrow on purpose — see the rationale
+// in the corresponding form hint.
+const ALLOWED_PARENT_TYPES = {
+  server: ['network'],
+  vm: ['server'],
+  container: ['server', 'vm'],
+  network: ['network'],
+  storage: ['server', 'vm', 'container'],
+  ups: [],
+  other: null,
+};
+
+function allowedParentTypesFor(type) {
+  return Object.prototype.hasOwnProperty.call(ALLOWED_PARENT_TYPES, type)
+    ? ALLOWED_PARENT_TYPES[type]
+    : null;
+}
+
+function isAllowedParent(childType, parentType) {
+  const allowed = allowedParentTypesFor(childType);
+  if (allowed === null) return parentType !== 'ups';
+  return allowed.includes(parentType);
+}
+
 function populateParentDropdown(excludeId = null) {
   const menu = document.getElementById('fParentMenu');
   const devices = loadDevices();
   const current = document.getElementById('fParent').value || '';
+  const childType = document.getElementById('fType').value;
   const opts = [{ value: '', label: '— None (standalone) —' }];
   devices
-    .filter(d => d.id !== excludeId)
+    .filter(d => d.id !== excludeId && isAllowedParent(childType, d.type))
     .sort((a, b) => (a.name || '').localeCompare(b.name || '', undefined, { sensitivity: 'base' }))
     .forEach(d => {
       opts.push({ value: d.id, label: `${d.name} (${d.type})` });
@@ -1528,7 +1560,10 @@ function populateParentDropdown(excludeId = null) {
   menu.innerHTML = opts.map(o =>
     `<li class="form-select-option" role="option" aria-selected="false" data-value="${esc(o.value)}" onclick="selectFormSelect('fParent', this)">${esc(o.label)}</li>`
   ).join('');
-  setFormSelectValue('fParent', current);
+  // Drop the current selection if it no longer fits the type's allowed set,
+  // so changing type can't silently keep an invalid parent.
+  const stillValid = current && opts.some(o => o.value === current);
+  setFormSelectValue('fParent', stillValid ? current : '');
 }
 
 function populatePowerDropdown(excludeId = null) {
@@ -1575,7 +1610,10 @@ function selectFormSelect(id, optionEl) {
   const value = optionEl.getAttribute('data-value') || '';
   setFormSelectValue(id, value);
   closeAllFormSelects();
-  if (id === 'fType') syncPowerFieldVisibility();
+  if (id === 'fType') {
+    syncPowerFieldVisibility();
+    populateParentDropdown(document.getElementById('editId').value || null);
+  }
   const toggle = document.getElementById(id + 'Toggle');
   if (toggle) toggle.focus();
 }
@@ -1599,6 +1637,11 @@ function syncPowerFieldVisibility() {
   const servicesRow = document.getElementById('fServicesRow');
   const cpuRamRow = document.getElementById('fCpuRamRow');
   const osGroup = document.getElementById('fOsGroup');
+  const parentGroup = document.getElementById('fParentGroup');
+  if (parentGroup) {
+    parentGroup.hidden = isUps;
+    if (isUps) setFormSelectValue('fParent', '');
+  }
   if (storageRow) {
     storageRow.hidden = hideStorage;
     if (hideStorage) { storageRowData = []; renderStorageRows(); }
@@ -1614,6 +1657,12 @@ function syncPowerFieldVisibility() {
       document.getElementById('fCpu').value = '';
       document.getElementById('fRam').value = '';
     }
+  }
+  const hideGpu = isUps || type === 'network' || type === 'storage';
+  const gpuRow = document.getElementById('fGpuRow');
+  if (gpuRow) {
+    gpuRow.hidden = hideGpu;
+    if (hideGpu) document.getElementById('fGpu').value = '';
   }
   if (osGroup) {
     osGroup.hidden = isUps;
@@ -1655,7 +1704,7 @@ document.addEventListener('click', (e) => {
 });
 
 function openAddModal() {
-  document.getElementById('formTitle').textContent = 'Add Device';
+  document.getElementById('formTitle').textContent = 'Add Entry';
   document.getElementById('editId').value = '';
   clearForm();
   populateParentDropdown();
@@ -1669,7 +1718,7 @@ function openEditModal(id) {
   const d = devices.find(x => x.id === id);
   if (!d) return;
 
-  document.getElementById('formTitle').textContent = 'Edit Device';
+  document.getElementById('formTitle').textContent = 'Edit Entry';
   document.getElementById('editId').value = id;
   document.getElementById('fName').value = d.name || '';
   setFormSelectValue('fType', d.type || 'server');
@@ -1679,6 +1728,7 @@ function openEditModal(id) {
   setFormSelectValue('fStatus', d.status || 'unknown');
   document.getElementById('fCpu').value = d.cpu || '';
   document.getElementById('fRam').value = d.ram || '';
+  document.getElementById('fGpu').value = d.gpu || '';
   document.getElementById('fLocation').value = d.location || '';
   document.getElementById('fNotes').value = d.notes || '';
 
@@ -1710,7 +1760,7 @@ function openEditModal(id) {
 function closeModal() { closeModalEl(document.getElementById('formModal')); }
 
 function clearForm() {
-  ['fName','fIp','fSystem','fOs','fCpu','fRam','fLocation','fNotes'].forEach(id => {
+  ['fName','fIp','fSystem','fOs','fCpu','fRam','fGpu','fLocation','fNotes'].forEach(id => {
     document.getElementById(id).value = '';
   });
   setFormSelectValue('fType', 'server');
@@ -1742,13 +1792,14 @@ function saveDevice() {
     name,
     type,
     ip: document.getElementById('fIp').value.trim(),
-    parentId: document.getElementById('fParent').value || null,
+    parentId: isUps ? null : (document.getElementById('fParent').value || null),
     poweredById: noPowerSource ? null : (document.getElementById('fPower').value || null),
     system: document.getElementById('fSystem').value.trim(),
     os: isUps ? '' : document.getElementById('fOs').value.trim(),
     status: document.getElementById('fStatus').value,
     cpu: (isUps || type === 'network') ? '' : document.getElementById('fCpu').value.trim(),
     ram: (isUps || type === 'network') ? '' : document.getElementById('fRam').value.trim(),
+    gpu: (isUps || type === 'network' || type === 'storage') ? '' : document.getElementById('fGpu').value.trim(),
     storage,
     location: document.getElementById('fLocation').value.trim(),
     services,
@@ -1811,11 +1862,12 @@ function showDetail(id) {
           field('IP Address', d.ip),
           field('System', d.system),
           field('OS / Firmware', d.os),
-          field('Status', d.status),
+          field('Status', d.status ? d.status.charAt(0).toUpperCase() + d.status.slice(1) : ''),
         ].filter(Boolean).join('');
         const hardware = [
           field('CPU', d.cpu),
           field('RAM', d.ram),
+          field('GPU', d.gpu),
           field('Location', d.location),
         ].filter(Boolean).join('');
         return `
@@ -1870,16 +1922,10 @@ function showDetail(id) {
       `; })() : ''}
       ${children.length ? `
         <div class="detail-section">
-          <div class="detail-section-title">Running on this host (${children.length})</div>
+          <div class="detail-section-title">Running on this Host / Parent (${children.length})</div>
           ${children.map(c => `
             <div class="child-device" onclick="event.stopPropagation(); showDetail('${c.id}')">
-              <div>
-                <div class="child-device-name">
-                  <span class="device-status status-${c.status || 'unknown'}"></span>
-                  ${esc(c.name)}
-                </div>
-                <div class="child-device-info">${esc(c.type)}${c.ip ? ' · ' + esc(c.ip) : ''}${c.services && c.services.length ? ' · ' + c.services.length + ' services' : ''}</div>
-              </div>
+              <div class="child-device-name"><span class="device-status status-${c.status || 'unknown'}"></span>${esc(c.name)}</div>
               ${typeBadge(c.type)}
             </div>
           `).join('')}
@@ -1887,15 +1933,9 @@ function showDetail(id) {
       ` : ''}
       ${parent ? `
         <div class="detail-section">
-          <div class="detail-section-title">Host</div>
+          <div class="detail-section-title">Host / Parent</div>
           <div class="child-device" onclick="event.stopPropagation(); showDetail('${parent.id}')">
-            <div>
-              <div class="child-device-name">
-                <span class="device-status status-${parent.status || 'unknown'}"></span>
-                ${esc(parent.name)}
-              </div>
-              <div class="child-device-info">${esc(parent.type)}${parent.ip ? ' · ' + esc(parent.ip) : ''}</div>
-            </div>
+            <div class="child-device-name"><span class="device-status status-${parent.status || 'unknown'}"></span>${esc(parent.name)}</div>
             ${typeBadge(parent.type)}
           </div>
         </div>
@@ -1904,13 +1944,7 @@ function showDetail(id) {
         <div class="detail-section">
           <div class="detail-section-title">Power Source</div>
           <div class="child-device" onclick="event.stopPropagation(); showDetail('${powerSource.id}')">
-            <div>
-              <div class="child-device-name">
-                <span class="device-status status-${powerSource.status || 'unknown'}"></span>
-                ${esc(powerSource.name)}
-              </div>
-              <div class="child-device-info">${esc(powerSource.type)}${powerSource.ip ? ' · ' + esc(powerSource.ip) : ''}</div>
-            </div>
+            <div class="child-device-name"><span class="device-status status-${powerSource.status || 'unknown'}"></span>${esc(powerSource.name)}</div>
             ${typeBadge(powerSource.type)}
           </div>
         </div>
@@ -1920,13 +1954,7 @@ function showDetail(id) {
           <div class="detail-section-title">Powered devices (${poweredDevices.length})</div>
           ${poweredDevices.map(c => `
             <div class="child-device" onclick="event.stopPropagation(); showDetail('${c.id}')">
-              <div>
-                <div class="child-device-name">
-                  <span class="device-status status-${c.status || 'unknown'}"></span>
-                  ${esc(c.name)}
-                </div>
-                <div class="child-device-info">${esc(c.type)}${c.ip ? ' · ' + esc(c.ip) : ''}</div>
-              </div>
+              <div class="child-device-name"><span class="device-status status-${c.status || 'unknown'}"></span>${esc(c.name)}</div>
               ${typeBadge(c.type)}
             </div>
           `).join('')}
@@ -1947,7 +1975,7 @@ function showDetail(id) {
       <button class="btn btn-danger" onclick="confirmDelete('${d.id}')">Delete</button>
       <div style="flex:1;"></div>
       <button class="btn" onclick="closeDetail()">Cancel</button>
-      <button class="btn btn-primary" onclick="closeDetail(); openEditModal('${d.id}')">Edit Device</button>
+      <button class="btn btn-primary" onclick="closeDetail(); openEditModal('${d.id}')">Edit Entry</button>
     </div>
   `;
   openModalEl(document.getElementById('detailOverlay'));
@@ -1973,7 +2001,7 @@ function confirmDelete(id) {
     </div>
     <div class="modal-body">
       <div class="confirm-dialog">
-        <p>Delete <strong>${esc(d.name)}</strong>?${children.length ? ` This will unlink ${children.length} child device${children.length > 1 ? 's' : ''}.` : ''}</p>
+        <p>Delete <strong>${esc(d.name)}</strong>?${children.length ? ` This will unlink ${children.length} child ${children.length === 1 ? 'entry' : 'entries'}.` : ''}</p>
         <div class="btn-group">
           <button class="btn" onclick="closeDetail()">Cancel</button>
           <button class="btn btn-danger" onclick="deleteDevice('${id}')">Delete</button>
@@ -2028,6 +2056,7 @@ function deviceToMarkdown(d, allDevices) {
   md += `- **OS / Firmware:** ${d.os || '—'}\n`;
   md += `- **CPU:** ${d.cpu || '—'}\n`;
   md += `- **RAM:** ${d.ram || '—'}\n`;
+  md += `- **GPU:** ${d.gpu || '—'}\n`;
   if (Array.isArray(d.storage) && d.storage.length) {
     md += `\n## Storage\n\n`;
     md += `| Type / Device | Size | Notes |\n`;
@@ -2055,7 +2084,7 @@ function deviceToMarkdown(d, allDevices) {
 
   const children = allDevices.filter(c => c.parentId === d.id).sort((a, b) => (a.name || '').localeCompare(b.name || '', undefined, { sensitivity: 'base' }));
   if (children.length) {
-    md += `\n## Running on this host\n\n`;
+    md += `\n## Running on this Host / Parent\n\n`;
     children.forEach(c => { md += `- **${c.name}** (${c.type})${c.ip ? ' — ' + c.ip : ''}\n`; });
   }
 
@@ -2084,7 +2113,7 @@ function markdownToDevice(md) {
 
   const fieldMap = {
     'Type': 'type', 'Status': 'status', 'IP Address': 'ip', 'System': 'system',
-    'OS / Firmware': 'os', 'OS': 'os', 'CPU': 'cpu', 'RAM': 'ram', 'Location': 'location',
+    'OS / Firmware': 'os', 'OS': 'os', 'CPU': 'cpu', 'RAM': 'ram', 'GPU': 'gpu', 'Location': 'location',
     'Host': '_parentName', 'Power Source': '_powerName'
   };
 
@@ -2224,7 +2253,7 @@ function deviceToPublicSection(d, allDevices) {
 
   const specs = [
     ['System', d.system], ['OS / Firmware', d.os], ['CPU', d.cpu],
-    ['RAM', d.ram],
+    ['RAM', d.ram], ['GPU', d.gpu],
   ].map(([k, v]) => [k, sanitizePublic(v || '')]).filter(([, v]) => v);
 
   if (specs.length) {
@@ -2258,7 +2287,7 @@ function deviceToPublicSection(d, allDevices) {
   }
 
   if (children.length) {
-    md += `**Running on this device**\n\n`;
+    md += `**Running on this Host / Parent**\n\n`;
     children.forEach(c => {
       const cName = sanitizePublic(c.name || '');
       if (!cName) return;
@@ -2282,9 +2311,20 @@ function deviceToPublicSection(d, allDevices) {
   return md;
 }
 
+function confirmExportPublicMd() {
+  const devices = loadDevices();
+  if (!devices.length) { toast('No entries to export', 'error'); return; }
+  confirmAction({
+    title: 'Export public Markdown?',
+    messageHtml: '<div class="export-warning"><strong>Review before sharing.</strong> homelab.md attempts to sanitize sensitive data (URLs, IPs, and credential-like patterns), but the output isn\'t guaranteed to be safe. Open the exported file and check it closely — especially the <strong>Notes</strong> fields, which are free-form and can carry through unsanitized content.</div>',
+    confirmLabel: 'Export',
+    onConfirm: exportPublic,
+  });
+}
+
 function exportPublic() {
   const devices = loadDevices();
-  if (!devices.length) { toast('No devices to export', 'error'); return; }
+  if (!devices.length) { toast('No entries to export', 'error'); return; }
 
   const typeOrder = ['server', 'network', 'storage', 'ups', 'vm', 'container', 'other'];
   const typeLabels = {
@@ -2326,7 +2366,7 @@ function exportPublic() {
 
 function openHtmlExportModal() {
   const devices = loadDevices();
-  if (!devices.length) { toast('No devices to export', 'error'); return; }
+  if (!devices.length) { toast('No entries to export', 'error'); return; }
   document.getElementById('htmlSiteName').value = '';
   openModalEl(document.getElementById('htmlExportModal'), document.getElementById('htmlSiteName'));
 }
@@ -2352,6 +2392,7 @@ function sanitizeDeviceForPublic(d) {
     os: sanitizePublic(d.os || ''),
     cpu: sanitizePublic(d.cpu || ''),
     ram: sanitizePublic(d.ram || ''),
+    gpu: sanitizePublic(d.gpu || ''),
     storage: Array.isArray(d.storage) ? sortedStorage(d.storage)
       .filter(s => s && s.type)
       .map(s => ({
@@ -2369,7 +2410,7 @@ function sanitizeDeviceForPublic(d) {
 
 function exportHtml(siteName) {
   const devices = loadDevices();
-  if (!devices.length) { toast('No devices to export', 'error'); return; }
+  if (!devices.length) { toast('No entries to export', 'error'); return; }
 
   const sanitized = devices.map(sanitizeDeviceForPublic);
   const html = buildPublicHtml(siteName, sanitized);
@@ -2431,11 +2472,9 @@ const PUBLIC_HTML_TEMPLATE = '<!DOCTYPE html>\n'
 + '.filter-select-option{font-family:\'JetBrains Mono\',monospace;font-size:14px;padding:8px 12px;border-radius:4px;color:var(--text-secondary);cursor:pointer;text-transform:uppercase;letter-spacing:0.5px;transition:background 0.1s,color 0.1s;}\n'
 + '.filter-select-option:hover{background:var(--bg-tertiary);color:var(--text-primary);}\n'
 + '.filter-select-option.active{background:var(--accent-glow);color:var(--accent);}\n'
-+ '.stats-bar{display:flex;gap:24px;margin-bottom:24px;padding:14px 20px;background:var(--bg-secondary);border:1px solid var(--border);border-radius:var(--radius);flex-wrap:wrap;}\n'
-+ '.stat{display:flex;align-items:baseline;gap:6px;}.stat-value{font-family:\'JetBrains Mono\',monospace;font-size:24px;font-weight:700;color:var(--accent);}.stat-label{font-size:14px;color:var(--text-secondary);text-transform:uppercase;letter-spacing:0.5px;}\n'
 + '.device-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(360px,1fr));gap:14px;}\n'
 + '.device-card{background:var(--bg-card);border:1px solid var(--border);border-radius:var(--radius);padding:18px;transition:all 0.15s ease;cursor:pointer;position:relative;}\n'
-+ '.device-card:hover,.device-card:focus-visible{border-color:var(--border-active);box-shadow:var(--shadow);}.device-card:focus-visible{outline:2px solid var(--accent);outline-offset:2px;}.device-card.has-children{border-left:3px solid var(--accent);}\n'
++ '.device-card:hover,.device-card:focus-visible{border-color:var(--border-active);box-shadow:var(--shadow);}.device-card:focus-visible{outline:2px solid var(--accent);outline-offset:2px;}\n'
 + '.device-card-header{display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:10px;}\n'
 + '.device-name{font-family:\'JetBrains Mono\',monospace;font-size:17px;font-weight:600;color:var(--text-primary);}\n'
 + '.device-type-badge{font-family:\'JetBrains Mono\',monospace;font-size:12px;text-transform:uppercase;letter-spacing:0.8px;padding:3px 8px;border-radius:3px;font-weight:600;white-space:nowrap;display:inline-flex;align-items:center;gap:5px;}\n'
@@ -2481,13 +2520,12 @@ const PUBLIC_HTML_TEMPLATE = '<!DOCTYPE html>\n'
 + '.toolbar-secondary{display:flex;justify-content:flex-end;margin:-8px 0 20px;}\n'
 + '.toolbar-secondary[hidden]{display:none;}\n'
 + '.toolbar-secondary .topo-mode-toggle .view-btn{flex:1;text-align:center;justify-content:center;}\n'
-+ '@media (max-width:640px){.header{padding:12px 16px;}.main{padding:16px;}.device-grid{grid-template-columns:1fr;}.detail-grid{grid-template-columns:1fr;}.toolbar{flex-direction:column;align-items:stretch;}.search-wrap{display:block;}.search-box{width:100%;}.stats-bar{flex-wrap:wrap;gap:16px;}.view-toggle{display:flex;}.view-toggle .view-btn{flex:1;text-align:center;justify-content:center;}.toolbar-secondary{margin:0 0 16px;}.toolbar-secondary .topo-mode-toggle{flex:1;}.topology-clusters{grid-template-columns:1fr;max-width:320px;margin:0 auto;justify-content:center;}.topo-cluster{width:100%;height:auto;}.filter-group{display:none;}.filter-select{display:block;}}\n'
++ '@media (max-width:640px){.header{padding:12px 16px;}.main{padding:16px;}.device-grid{grid-template-columns:1fr;}.detail-grid{grid-template-columns:1fr;}.toolbar{flex-direction:column;align-items:stretch;}.search-wrap{display:block;}.search-box{width:100%;}.view-toggle{display:flex;}.view-toggle .view-btn{flex:1;text-align:center;justify-content:center;}.toolbar-secondary{margin:0 0 16px;}.toolbar-secondary .topo-mode-toggle{flex:1;}.topology-clusters{grid-template-columns:1fr;max-width:320px;margin:0 auto;justify-content:center;}.topo-cluster{width:100%;height:auto;}.filter-group{display:none;}.filter-select{display:block;}}\n'
 + '</style>\n'
 + '</head>\n'
 + '<body>\n'
 + '<header class="header"><div class="logo">__SITE_NAME__</div></header>\n'
 + '<div class="main">\n'
-+ '  <div class="stats-bar" id="statsBar"></div>\n'
 + '  <div class="toolbar">\n'
 + '    <div class="search-wrap" id="searchWrap">\n'
 + '      <input type="text" class="search-box" id="searchBox" placeholder="Search...">\n'
@@ -2537,16 +2575,6 @@ const PUBLIC_HTML_TEMPLATE = '<!DOCTYPE html>\n'
 + 'function getChildren(parentId){return DEVICES.filter(function(d){return d.parentId===parentId;}).sort(function(a,b){return (a.name||"").localeCompare(b.name||"",undefined,{sensitivity:"base"});});}\n'
 + 'function sortedStorage(storage){return Array.isArray(storage)?storage.slice().sort(function(a,b){return (a.type||"").localeCompare(b.type||"",undefined,{sensitivity:"base"});}):storage;}\n'
 + 'function sortedServices(services){return (services||[]).slice().sort(function(a,b){var an=typeof a==="string"?a:(a.name||"");var bn=typeof b==="string"?b:(b.name||"");return an.localeCompare(bn,undefined,{sensitivity:"base"});});}\n'
-+ 'function renderStats(){\n'
-+ '  var hosts=DEVICES.filter(function(d){return !d.parentId;}).length;\n'
-+ '  var vmsAndContainers=DEVICES.filter(function(d){return d.type==="vm"||d.type==="container";}).length;\n'
-+ '  var totalServices=DEVICES.reduce(function(sum,d){return sum+(d.services?d.services.length:0);},0);\n'
-+ '  document.getElementById("statsBar").innerHTML=\n'
-+ '    \'<div class="stat"><span class="stat-value">\'+DEVICES.length+\'</span><span class="stat-label">Devices</span></div>\'+\n'
-+ '    \'<div class="stat"><span class="stat-value">\'+hosts+\'</span><span class="stat-label">Hosts</span></div>\'+\n'
-+ '    \'<div class="stat"><span class="stat-value">\'+vmsAndContainers+\'</span><span class="stat-label">VMs/Containers</span></div>\'+\n'
-+ '    \'<div class="stat"><span class="stat-value">\'+totalServices+\'</span><span class="stat-label">Services</span></div>\';\n'
-+ '}\n'
 + 'function renderFilters(){\n'
 + '  var seen={},types=["all"];\n'
 + '  DEVICES.forEach(function(d){if(!seen[d.type]){seen[d.type]=1;types.push(d.type);}});\n'
@@ -2568,7 +2596,7 @@ const PUBLIC_HTML_TEMPLATE = '<!DOCTYPE html>\n'
 + '    if(query){\n'
 + '      var svcText=(d.services||[]).map(function(s){return s.name+" "+s.notes;}).join(" ");\n'
 + '      var storageText=(d.storage||[]).map(function(s){return s.type+" "+s.size+" "+s.notes;}).join(" ");\n'
-+ '      var hay=[d.name,d.os,d.system,d.type,d.cpu,d.ram,d.notes,svcText,storageText].join(" ").toLowerCase();\n'
++ '      var hay=[d.name,d.os,d.system,d.type,d.cpu,d.ram,d.gpu,d.notes,svcText,storageText].join(" ").toLowerCase();\n'
 + '      return hay.indexOf(query)!==-1;\n'
 + '    }\n'
 + '    return true;\n'
@@ -2580,7 +2608,7 @@ const PUBLIC_HTML_TEMPLATE = '<!DOCTYPE html>\n'
 + '  var filtered=getFilteredDevices();\n'
 + '  var grid=document.getElementById("deviceGrid");\n'
 + '  if(!filtered.length){\n'
-+ '    grid.innerHTML=\'<div class="empty-state" style="grid-column:1/-1;"><div class="empty-icon">\\u29E1</div><div class="empty-title">\'+(DEVICES.length===0?"No devices":"No matches")+\'</div><div class="empty-text">\'+(DEVICES.length===0?"":"Try adjusting your search or filter.")+\'</div></div>\';\n'
++ '    grid.innerHTML=\'<div class="empty-state" style="grid-column:1/-1;"><div class="empty-icon">\\u29E1</div><div class="empty-title">\'+(DEVICES.length===0?"No entries":"No matches")+\'</div><div class="empty-text">\'+(DEVICES.length===0?"":"Try adjusting your search or filter.")+\'</div></div>\';\n'
 + '    return;\n'
 + '  }\n'
 + '  grid.innerHTML=filtered.map(function(d){\n'
@@ -2595,7 +2623,7 @@ const PUBLIC_HTML_TEMPLATE = '<!DOCTYPE html>\n'
 + '      if(storage.length>2){storageHtml=firstLabel+", +"+(storage.length-1)+" more";}\n'
 + '      else{storageHtml=storage.map(function(s){return esc(s.size?s.type+" "+s.size:s.type);}).join(", ");}\n'
 + '    }\n'
-+ '    return \'<div class="device-card \'+(children.length?"has-children":"")+\'" tabindex="0" role="button" data-id="\'+esc(d.id)+\'">\'+\n'
++ '    return \'<div class="device-card" tabindex="0" role="button" data-id="\'+esc(d.id)+\'">\'+\n'
 + '      \'<div class="device-card-header"><div><div class="device-name">\'+esc(d.name)+\'</div></div>\'+\n'
 + '      typeBadge(d.type)+\'</div>\'+\n'
 + '      (parent?\'<div class="device-parent-link">on <strong>\'+esc(parent.name)+\'</strong></div>\':"")+\n'
@@ -2604,6 +2632,7 @@ const PUBLIC_HTML_TEMPLATE = '<!DOCTYPE html>\n'
 + '        (d.os?\'<span class="meta-item"><strong>OS / Firmware:</strong> \'+esc(d.os)+\'</span>\':"")+\n'
 + '        (d.cpu?\'<span class="meta-item"><strong>CPU:</strong> \'+esc(d.cpu)+\'</span>\':"")+\n'
 + '        (d.ram?\'<span class="meta-item"><strong>RAM:</strong> \'+esc(d.ram)+\'</span>\':"")+\n'
++ '        (d.gpu?\'<span class="meta-item"><strong>GPU:</strong> \'+esc(d.gpu)+\'</span>\':"")+\n'
 + '        (storageHtml?\'<span class="meta-item"><strong>Storage:</strong> \'+storageHtml+\'</span>\':"")+\n'
 + '      \'</div>\'+\n'
 + '      (svcs.length?\'<div class="device-services">\'+\n'
@@ -2621,7 +2650,8 @@ const PUBLIC_HTML_TEMPLATE = '<!DOCTYPE html>\n'
 + '  var typeY=y+h/2+13;\n'
 + '  var iconSize=12,iconX=textX,iconY=typeY-11,typeTextX=textX+iconSize+4;\n'
 + '  var t=d.type||"other";\n'
-+ '  var nameMax=isParent?24:22;\n'
++ '  var textAvail=Math.max(40,w-(textX-x)-12);\n'
++ '  var nameMax=Math.max(6,Math.floor(textAvail/8.4));\n'
 + '  var clipId="topo-clip-"+esc(d.id);\n'
 + '  return \'<g class="topo-node" data-id="\'+esc(d.id)+\'">\'+\n'
 + '    \'<defs><clipPath id="\'+clipId+\'"><rect x="\'+x+\'" y="\'+y+\'" width="\'+w+\'" height="\'+h+\'" rx="6"/></clipPath></defs>\'+\n'
@@ -2675,7 +2705,7 @@ const PUBLIC_HTML_TEMPLATE = '<!DOCTYPE html>\n'
 + 'function renderTopology(){\n'
 + '  var filtered=getFilteredDevices();\n'
 + '  var container=document.getElementById("topologyView");\n'
-+ '  if(!filtered.length){container.innerHTML=\'<div class="topology-empty">\'+(DEVICES.length===0?"No devices yet.":"No matches for the current search/filter.")+\'</div>\';return;}\n'
++ '  if(!filtered.length){container.innerHTML=\'<div class="topology-empty">\'+(DEVICES.length===0?"No entries yet.":"No matches for the current search/filter.")+\'</div>\';return;}\n'
 + '  var filteredIds={};filtered.forEach(function(d){filteredIds[d.id]=1;});\n'
 + '  function buildNetworkTree(device){\n'
 + '    var kids=filtered.filter(function(c){return c.parentId===device.id;})\n'
@@ -2762,7 +2792,7 @@ const PUBLIC_HTML_TEMPLATE = '<!DOCTYPE html>\n'
 + '  \'</div><button class="btn btn-ghost btn-sm" data-action="close-detail">\\u2715</button></div>\';\n'
 + '  var field=function(label,val){return val?\'<div><div class="detail-field-label">\'+label+\'</div><div class="detail-field-value">\'+esc(val)+\'</div></div>\':"";};\n'
 + '  var overview=field("System",d.system)+field("OS / Firmware",d.os);\n'
-+ '  var hardware=field("CPU",d.cpu)+field("RAM",d.ram);\n'
++ '  var hardware=field("CPU",d.cpu)+field("RAM",d.ram)+field("GPU",d.gpu);\n'
 + '  html+=\'<div class="detail-body">\';\n'
 + '  if(overview){\n'
 + '    html+=\'<div class="detail-section"><div class="detail-section-title">Overview</div><div class="detail-grid">\'+overview+\'</div></div>\';\n'
@@ -2785,23 +2815,23 @@ const PUBLIC_HTML_TEMPLATE = '<!DOCTYPE html>\n'
 + '      \'</tbody></table></div>\';\n'
 + '  }\n'
 + '  if(children.length){\n'
-+ '    html+=\'<div class="detail-section"><div class="detail-section-title">Running on this host (\'+children.length+\')</div>\'+\n'
-+ '      children.map(function(c){return \'<div class="child-device" data-detail-id="\'+esc(c.id)+\'"><div><div class="child-device-name">\'+esc(c.name)+\'</div><div class="child-device-info">\'+esc(c.type)+(c.services&&c.services.length?" \\u00B7 "+c.services.length+" services":"")+\'</div></div>\'+typeBadge(c.type)+\'</div>\';}).join("")+\n'
++ '    html+=\'<div class="detail-section"><div class="detail-section-title">Running on this Host / Parent (\'+children.length+\')</div>\'+\n'
++ '      children.map(function(c){return \'<div class="child-device" data-detail-id="\'+esc(c.id)+\'"><div class="child-device-name">\'+esc(c.name)+\'</div>\'+typeBadge(c.type)+\'</div>\';}).join("")+\n'
 + '    \'</div>\';\n'
 + '  }\n'
 + '  if(parent){\n'
-+ '    html+=\'<div class="detail-section"><div class="detail-section-title">Host</div>\'+\n'
-+ '      \'<div class="child-device" data-detail-id="\'+esc(parent.id)+\'"><div><div class="child-device-name">\'+esc(parent.name)+\'</div><div class="child-device-info">\'+esc(parent.type)+\'</div></div>\'+typeBadge(parent.type)+\'</div>\'+\n'
++ '    html+=\'<div class="detail-section"><div class="detail-section-title">Host / Parent</div>\'+\n'
++ '      \'<div class="child-device" data-detail-id="\'+esc(parent.id)+\'"><div class="child-device-name">\'+esc(parent.name)+\'</div>\'+typeBadge(parent.type)+\'</div>\'+\n'
 + '    \'</div>\';\n'
 + '  }\n'
 + '  if(powerSource){\n'
 + '    html+=\'<div class="detail-section"><div class="detail-section-title">Power Source</div>\'+\n'
-+ '      \'<div class="child-device" data-detail-id="\'+esc(powerSource.id)+\'"><div><div class="child-device-name">\'+esc(powerSource.name)+\'</div><div class="child-device-info">\'+esc(powerSource.type)+\'</div></div>\'+typeBadge(powerSource.type)+\'</div>\'+\n'
++ '      \'<div class="child-device" data-detail-id="\'+esc(powerSource.id)+\'"><div class="child-device-name">\'+esc(powerSource.name)+\'</div>\'+typeBadge(powerSource.type)+\'</div>\'+\n'
 + '    \'</div>\';\n'
 + '  }\n'
 + '  if(poweredDevices.length){\n'
 + '    html+=\'<div class="detail-section"><div class="detail-section-title">Powered devices (\'+poweredDevices.length+\')</div>\'+\n'
-+ '      poweredDevices.map(function(c){return \'<div class="child-device" data-detail-id="\'+esc(c.id)+\'"><div><div class="child-device-name">\'+esc(c.name)+\'</div><div class="child-device-info">\'+esc(c.type)+\'</div></div>\'+typeBadge(c.type)+\'</div>\';}).join("")+\n'
++ '      poweredDevices.map(function(c){return \'<div class="child-device" data-detail-id="\'+esc(c.id)+\'"><div class="child-device-name">\'+esc(c.name)+\'</div>\'+typeBadge(c.type)+\'</div>\';}).join("")+\n'
 + '    \'</div>\';\n'
 + '  }\n'
 + '  if(d.notes){\n'
@@ -2827,22 +2857,22 @@ const PUBLIC_HTML_TEMPLATE = '<!DOCTYPE html>\n'
 + 'document.getElementById("detailPanel").addEventListener("click",function(e){var n=e.target.closest("[data-detail-id]");if(n){showDetail(n.getAttribute("data-detail-id"));return;}if(e.target.closest("[data-action=close-detail]"))closeDetail();});\n'
 + 'document.getElementById("detailOverlay").addEventListener("click",function(e){if(e.target.id==="detailOverlay")closeDetail();});\n'
 + 'document.addEventListener("keydown",function(e){if(e.key==="Escape")closeDetail();});\n'
-+ 'applyViewUI();renderStats();renderFilters();renderDevices();if(currentView==="topology")renderTopology();\n'
++ 'applyViewUI();renderFilters();renderDevices();if(currentView==="topology")renderTopology();\n'
 + '<\/script>\n'
 + '</body>\n'
 + '</html>\n';
 
 function exportAll() {
   const devices = loadDevices();
-  if (!devices.length) { toast('No devices to export', 'error'); return; }
+  if (!devices.length) { toast('No entries to export', 'error'); return; }
 
   let combined = `# Homelab Inventory\n\n`;
-  combined += `> Exported ${new Date().toLocaleString()} — ${devices.length} devices\n\n---\n\n`;
+  combined += `> Exported ${new Date().toLocaleString()} — ${devices.length} ${devices.length === 1 ? 'entry' : 'entries'}\n\n---\n\n`;
   devices.forEach(d => { combined += deviceToMarkdown(d, devices) + '\n'; });
 
   downloadFile('homelab.md', combined, () => {
     markExported();
-    toast(`Exported ${devices.length} devices`);
+    toast(`Exported ${devices.length} ${devices.length === 1 ? 'entry' : 'entries'}`);
   });
 }
 
@@ -2872,7 +2902,7 @@ function handleImport(event) {
     });
 
     if (!devices.length) {
-      toast('No devices found in file — nothing imported', 'error');
+      toast('No entries found in file — nothing imported', 'error');
       return;
     }
 
@@ -2892,14 +2922,14 @@ function handleImport(event) {
       saveDevices(devices);
       markExported();
       refresh();
-      toast(`Imported ${devices.length} device${devices.length !== 1 ? 's' : ''}`);
+      toast(`Imported ${devices.length} ${devices.length === 1 ? 'entry' : 'entries'}`);
     };
 
     const existing = loadDevices();
     if (existing.length) {
       confirmAction({
         title: 'Replace existing data?',
-        message: `Importing will replace your current ${existing.length} device${existing.length !== 1 ? 's' : ''} with ${devices.length} from the file. This cannot be undone.`,
+        message: `Importing will replace your current ${existing.length} ${existing.length === 1 ? 'entry' : 'entries'} with ${devices.length} from the file. This cannot be undone.`,
         confirmLabel: 'Replace',
         danger: true,
         onConfirm: commit,
@@ -2912,7 +2942,6 @@ function handleImport(event) {
 }
 
 function refresh() {
-  renderStats();
   renderFilters();
   renderDevices();
   if (currentView === 'topology') renderTopology();
@@ -2954,9 +2983,9 @@ function updateExportIndicator() {
 // --- CSV export ---
 function exportCsv() {
   const devices = loadDevices();
-  if (!devices.length) { toast('No devices to export', 'error'); return; }
+  if (!devices.length) { toast('No entries to export', 'error'); return; }
 
-  const headers = ['Name', 'Type', 'Status', 'IP', 'System', 'OS', 'CPU', 'RAM', 'Storage', 'Location', 'Services', 'Notes', 'Parent', 'PowerSource', 'ID'];
+  const headers = ['Name', 'Type', 'Status', 'IP', 'System', 'OS', 'CPU', 'RAM', 'GPU', 'Storage', 'Location', 'Services', 'Notes', 'Parent', 'PowerSource', 'ID'];
   const csvEscape = v => {
     if (v === undefined || v === null) return '';
     const s = String(v);
@@ -2974,7 +3003,7 @@ function exportCsv() {
       return s.name + (s.port ? ':' + s.port : '');
     }).join('; ');
     return [
-      d.name, d.type, d.status, d.ip, d.system, d.os, d.cpu, d.ram,
+      d.name, d.type, d.status, d.ip, d.system, d.os, d.cpu, d.ram, d.gpu,
       storage, d.location, services, d.notes, parent ? parent.name : '', powerSource ? powerSource.name : '', d.id,
     ].map(csvEscape).join(',');
   });
@@ -2991,9 +3020,11 @@ function exportCsv() {
 let _confirmHandler = null;
 let _lastFocused = null;
 
-function confirmAction({ title, message, confirmLabel = 'Confirm', danger = false, onConfirm }) {
+function confirmAction({ title, message, messageHtml, confirmLabel = 'Confirm', danger = false, onConfirm }) {
   document.getElementById('confirmTitle').textContent = title;
-  document.getElementById('confirmMessage').textContent = message;
+  const msgEl = document.getElementById('confirmMessage');
+  if (messageHtml) msgEl.innerHTML = messageHtml;
+  else msgEl.textContent = message;
   const ok = document.getElementById('confirmOkBtn');
   ok.textContent = confirmLabel;
   ok.className = 'btn ' + (danger ? 'btn-danger' : 'btn-primary');
