@@ -1900,7 +1900,7 @@ function showDetail(id) {
           <div class="detail-section-title">Running on this host (${children.length})</div>
           ${children.map(c => `
             <div class="child-device" onclick="event.stopPropagation(); showDetail('${c.id}')">
-              <div class="child-device-name">${esc(c.name)}</div>
+              <div class="child-device-name"><span class="device-status status-${c.status || 'unknown'}"></span>${esc(c.name)}</div>
               ${typeBadge(c.type)}
             </div>
           `).join('')}
@@ -1910,7 +1910,7 @@ function showDetail(id) {
         <div class="detail-section">
           <div class="detail-section-title">Host / Parent Device</div>
           <div class="child-device" onclick="event.stopPropagation(); showDetail('${parent.id}')">
-            <div class="child-device-name">${esc(parent.name)}</div>
+            <div class="child-device-name"><span class="device-status status-${parent.status || 'unknown'}"></span>${esc(parent.name)}</div>
             ${typeBadge(parent.type)}
           </div>
         </div>
@@ -1919,7 +1919,7 @@ function showDetail(id) {
         <div class="detail-section">
           <div class="detail-section-title">Power Source</div>
           <div class="child-device" onclick="event.stopPropagation(); showDetail('${powerSource.id}')">
-            <div class="child-device-name">${esc(powerSource.name)}</div>
+            <div class="child-device-name"><span class="device-status status-${powerSource.status || 'unknown'}"></span>${esc(powerSource.name)}</div>
             ${typeBadge(powerSource.type)}
           </div>
         </div>
@@ -1929,7 +1929,7 @@ function showDetail(id) {
           <div class="detail-section-title">Powered devices (${poweredDevices.length})</div>
           ${poweredDevices.map(c => `
             <div class="child-device" onclick="event.stopPropagation(); showDetail('${c.id}')">
-              <div class="child-device-name">${esc(c.name)}</div>
+              <div class="child-device-name"><span class="device-status status-${c.status || 'unknown'}"></span>${esc(c.name)}</div>
               ${typeBadge(c.type)}
             </div>
           `).join('')}
