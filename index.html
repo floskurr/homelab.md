@@ -741,12 +741,13 @@
     <div class="export-wrap">
       <button class="btn btn-sm" id="exportBtn" onclick="toggleExportMenu(event)" title="Export options">↓ Export ▾</button>
       <div class="export-menu" id="exportMenu">
-        <div class="export-menu-label">Format</div>
-        <button onclick="exportAll(); closeExportMenu()">homelab.md Full</button>
-        <button onclick="exportCsv(); closeExportMenu()">homelab.csv Full</button>
+        <div class="export-menu-label" title="Includes every entry, including ones marked Private">Full export</div>
+        <button onclick="exportAll(); closeExportMenu()">homelab.md</button>
+        <button onclick="exportCsv(); closeExportMenu()">homelab.csv</button>
         <hr>
-        <button onclick="confirmExportPublicMd(); closeExportMenu()">homelab.md Public</button>
-        <button onclick="openHtmlExportModal(); closeExportMenu()">homelab.html Public</button>
+        <div class="export-menu-label" title="Excludes entries and fields marked Private">Public export</div>
+        <button onclick="confirmExportPublicMd(); closeExportMenu()">homelab.md</button>
+        <button onclick="openHtmlExportModal(); closeExportMenu()">homelab.html</button>
       </div>
     </div>
     <button class="btn btn-primary btn-sm" onclick="openAddModal()">+</button>
@@ -1031,7 +1032,9 @@ const isNetworkType = type => type === 'network';
 const isVirtualType = type => type === 'vm' || type === 'container';
 const isStorageType = type => type === 'storage';
 
+let _devicesCache = null;
 function loadDevices() {
+  if (_devicesCache) return _devicesCache;
   try {
     const devices = JSON.parse(localStorage.getItem(STORAGE_KEY)) || [];
     const byId = new Map(devices.filter(d => d && d.id).map(d => [d.id, d]));
@@ -1060,11 +1063,15 @@ function loadDevices() {
         cur = cur.parentId ? byId.get(cur.parentId) : null;
       }
     });
+    _devicesCache = devices;
     return devices;
   }
   catch { return []; }
 }
-function saveDevices(devices) { localStorage.setItem(STORAGE_KEY, JSON.stringify(devices)); }
+function saveDevices(devices) {
+  localStorage.setItem(STORAGE_KEY, JSON.stringify(devices));
+  _devicesCache = devices;
+}
 function generateId() { return Date.now().toString(36) + Math.random().toString(36).slice(2, 8); }
 function getDevice(id, devices) { return (devices || loadDevices()).find(d => d.id === id); }
 function getChildren(parentId, devices) { return (devices || loadDevices()).filter(d => d.parentId === parentId).sort(sortByName); }
@@ -1168,11 +1175,16 @@ function setFilter(f) {
   if (currentView === 'topology') renderTopology();
 }
 
+let _searchTimer = null;
 function onSearchInput() {
   const box = document.getElementById('searchBox');
   document.querySelector('.search-wrap').classList.toggle('has-value', !!box.value);
-  renderDevices();
-  if (currentView === 'topology') renderTopology();
+  if (_searchTimer) clearTimeout(_searchTimer);
+  _searchTimer = setTimeout(() => {
+    _searchTimer = null;
+    renderDevices();
+    if (currentView === 'topology') renderTopology();
+  }, 120);
 }
 
 function clearSearch() {
@@ -1180,6 +1192,7 @@ function clearSearch() {
   box.value = '';
   document.querySelector('.search-wrap').classList.remove('has-value');
   box.focus();
+  if (_searchTimer) { clearTimeout(_searchTimer); _searchTimer = null; }
   renderDevices();
   if (currentView === 'topology') renderTopology();
 }
@@ -2478,6 +2491,34 @@ function exportHtml(siteName) {
   setTimeout(() => { URL.revokeObjectURL(url); toast('Exported homelab.html'); }, 500);
 }
 
+// Rendering primitives shared between the live app and the exported HTML.
+// We stringify the actual functions at export time so any change to icons,
+// type predicates, sort helpers, or topology SVG layout flows to both.
+function buildSharedRenderSource() {
+  const fnSrc = (name, fn) => {
+    const src = fn.toString();
+    return /^function\b/.test(src) ? src : `const ${name} = ${src};`;
+  };
+  return [
+    `const TYPE_ICON_PATHS = ${JSON.stringify(TYPE_ICON_PATHS)};`,
+    fnSrc('sortByName', sortByName),
+    fnSrc('isUps', isUps),
+    fnSrc('isNetworkType', isNetworkType),
+    fnSrc('isVirtualType', isVirtualType),
+    fnSrc('isStorageType', isStorageType),
+    fnSrc('esc', esc),
+    fnSrc('truncateLabel', truncateLabel),
+    fnSrc('getTypeClass', getTypeClass),
+    fnSrc('getTypeIcon', getTypeIcon),
+    fnSrc('getTopoTypeIcon', getTopoTypeIcon),
+    fnSrc('typeBadge', typeBadge),
+    fnSrc('sortedStorage', sortedStorage),
+    fnSrc('sortedServices', sortedServices),
+    fnSrc('topoBoxSvg', topoBoxSvg),
+    fnSrc('topologyClusterSvg', topologyClusterSvg),
+  ].join('\n');
+}
+
 function buildPublicHtml(siteName, devices) {
   const safeName = (siteName || 'My Homelab').replace(/[<>&"']/g, c => ({ '<':'&lt;', '>':'&gt;', '&':'&amp;', '"':'&quot;', "'":'&#39;' }[c]));
   const dataJson = JSON.stringify(devices)
@@ -2488,7 +2529,8 @@ function buildPublicHtml(siteName, devices) {
     .replace(/\u2029/g, '\\u2029');
   return PUBLIC_HTML_TEMPLATE
     .replace(/__SITE_NAME__/g, safeName)
-    .replace('__DEVICE_DATA__', dataJson);
+    .replace('__SHARED_RENDER__', () => buildSharedRenderSource())
+    .replace('__DEVICE_DATA__', () => dataJson);
 }
 
 const PUBLIC_HTML_TEMPLATE = '<!DOCTYPE html>\n'
@@ -2613,24 +2655,9 @@ const PUBLIC_HTML_TEMPLATE = '<!DOCTYPE html>\n'
 + 'var DEVICES = __DEVICE_DATA__;\n'
 + 'var currentFilter = "all";\n'
 + 'var currentView = "grid";\n'
-+ 'function esc(str){if(!str&&str!==0)return "";var d=document.createElement("div");d.textContent=String(str);return d.innerHTML;}\n'
-+ 'function getTypeClass(type){var map={server:"badge-server",vm:"badge-vm",container:"badge-container",network:"badge-network",storage:"badge-storage",ups:"badge-ups"};return map[type]||"badge-other";}\n'
-+ 'var TYPE_ICON_PATHS={'
-+ 'server:\'<rect x="2" y="2.5" width="12" height="4.5" rx="1"/><rect x="2" y="9" width="12" height="4.5" rx="1"/><circle cx="4.5" cy="4.75" r="0.6" fill="currentColor" stroke="none"/><circle cx="4.5" cy="11.25" r="0.6" fill="currentColor" stroke="none"/><line x1="7" y1="4.75" x2="12" y2="4.75"/><line x1="7" y1="11.25" x2="12" y2="11.25"/>\','
-+ 'vm:\'<rect x="1.75" y="2.75" width="12.5" height="8.5" rx="1"/><line x1="5.5" y1="14" x2="10.5" y2="14"/><line x1="8" y1="11.25" x2="8" y2="14"/><circle cx="8" cy="7" r="2" fill="currentColor" stroke="none"/>\','
-+ 'container:\'<path d="M8 1.75l5.75 2.75v7L8 14.25 2.25 11.5v-7z"/><path d="M2.25 4.5L8 7.25l5.75-2.75"/><line x1="8" y1="7.25" x2="8" y2="14.25"/>\','
-+ 'network:\'<circle cx="8" cy="3" r="1.6"/><circle cx="3" cy="13" r="1.6"/><circle cx="13" cy="13" r="1.6"/><line x1="8" y1="4.6" x2="8" y2="7.5"/><line x1="8" y1="7.5" x2="3.8" y2="11.6"/><line x1="8" y1="7.5" x2="12.2" y2="11.6"/>\','
-+ 'storage:\'<ellipse cx="8" cy="3.5" rx="5.25" ry="1.75"/><path d="M2.75 3.5v9c0 .97 2.35 1.75 5.25 1.75s5.25-.78 5.25-1.75v-9"/><path d="M2.75 8c0 .97 2.35 1.75 5.25 1.75s5.25-.78 5.25-1.75"/>\','
-+ 'ups:\'<rect x="2.5" y="3" width="11" height="10" rx="1"/><rect x="6" y="1.75" width="4" height="1.5" rx="0.4" fill="currentColor" stroke="none"/><path d="M8.5 5.5l-2.25 3.5h1.75l-0.5 2.5 2.25-3.5h-1.75z" fill="currentColor" stroke="none"/>\','
-+ 'other:\'<circle cx="8" cy="8" r="6"/><circle cx="8" cy="8" r="1.4" fill="currentColor" stroke="none"/>\''
-+ '};\n'
-+ 'function getTypeIcon(type){var t=TYPE_ICON_PATHS[type]?type:"other";return \'<svg width="12" height="12" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round" aria-hidden="true">\'+TYPE_ICON_PATHS[t]+\'</svg>\';}\n'
-+ 'function getTopoTypeIcon(type,x,y,size){var t=TYPE_ICON_PATHS[type]?type:"other";return \'<svg x="\'+x+\'" y="\'+y+\'" width="\'+size+\'" height="\'+size+\'" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round" class="topo-type-icon topo-type-icon-\'+t+\'" aria-hidden="true">\'+TYPE_ICON_PATHS[t]+\'</svg>\';}\n'
-+ 'function typeBadge(type){var t=type||"other";return \'<span class="device-type-badge \'+getTypeClass(t)+\'">\'+getTypeIcon(t)+\'<span>\'+esc(t)+\'</span></span>\';}\n'
-+ 'function getDevice(id){for(var i=0;i<DEVICES.length;i++)if(DEVICES[i].id===id)return DEVICES[i];return null;}\n'
-+ 'function getChildren(parentId){return DEVICES.filter(function(d){return d.parentId===parentId;}).sort(function(a,b){return (a.name||"").localeCompare(b.name||"",undefined,{sensitivity:"base"});});}\n'
-+ 'function sortedStorage(storage){return Array.isArray(storage)?storage.slice().sort(function(a,b){return (a.type||"").localeCompare(b.type||"",undefined,{sensitivity:"base"});}):storage;}\n'
-+ 'function sortedServices(services){return (services||[]).slice().sort(function(a,b){var an=typeof a==="string"?a:(a.name||"");var bn=typeof b==="string"?b:(b.name||"");return an.localeCompare(bn,undefined,{sensitivity:"base"});});}\n'
++ '__SHARED_RENDER__\n'
++ 'function getDevice(id){return DEVICES.find(function(d){return d.id===id;})||null;}\n'
++ 'function getChildren(parentId){return DEVICES.filter(function(d){return d.parentId===parentId;}).sort(sortByName);}\n'
 + 'function renderFilters(){\n'
 + '  var seen={},types=["all"];\n'
 + '  DEVICES.forEach(function(d){if(!seen[d.type]){seen[d.type]=1;types.push(d.type);}});\n'
@@ -2657,7 +2684,7 @@ const PUBLIC_HTML_TEMPLATE = '<!DOCTYPE html>\n'
 + '    }\n'
 + '    return true;\n'
 + '  });\n'
-+ '  filtered.sort(function(a,b){return (a.name||"").localeCompare(b.name||"",undefined,{sensitivity:"base"});});\n'
++ '  filtered.sort(sortByName);\n'
 + '  return filtered;\n'
 + '}\n'
 + 'function renderDevices(){\n'
@@ -2699,101 +2726,41 @@ const PUBLIC_HTML_TEMPLATE = '<!DOCTYPE html>\n'
 + '    \'</div>\';\n'
 + '  }).join("");\n'
 + '}\n'
-+ 'function truncateLabel(s,n){s=String(s||"");return s.length>n?s.slice(0,n-1)+"\\u2026":s;}\n'
-+ 'function topoBoxSvg(d,x,y,w,h,isParent){\n'
-+ '  var textX=x+14;\n'
-+ '  var nameY=y+h/2-3;\n'
-+ '  var typeY=y+h/2+13;\n'
-+ '  var iconSize=12,iconX=textX,iconY=typeY-11,typeTextX=textX+iconSize+4;\n'
-+ '  var t=d.type||"other";\n'
-+ '  var textAvail=Math.max(40,w-(textX-x)-12);\n'
-+ '  var nameMax=Math.max(6,Math.floor(textAvail/8.4));\n'
-+ '  var clipId="topo-clip-"+esc(d.id);\n'
-+ '  return \'<g class="topo-node" data-id="\'+esc(d.id)+\'">\'+\n'
-+ '    \'<defs><clipPath id="\'+clipId+\'"><rect x="\'+x+\'" y="\'+y+\'" width="\'+w+\'" height="\'+h+\'" rx="6"/></clipPath></defs>\'+\n'
-+ '    \'<rect x="\'+x+\'" y="\'+y+\'" width="\'+w+\'" height="\'+h+\'" rx="6" class="topo-box"/>\'+\n'
-+ '    \'<rect x="\'+x+\'" y="\'+y+\'" width="3" height="\'+h+\'" class="topo-accent topo-accent-\'+t+\'" clip-path="url(#\'+clipId+\')"/>\'+\n'
-+ '    \'<text x="\'+textX+\'" y="\'+nameY+\'" class="topo-text-name">\'+esc(truncateLabel(d.name,nameMax))+\'</text>\'+\n'
-+ '    getTopoTypeIcon(t,iconX,iconY,iconSize)+\n'
-+ '    \'<text x="\'+typeTextX+\'" y="\'+typeY+\'" class="topo-text-type">\'+esc(t.toUpperCase())+\'</text>\'+\n'
-+ '    \'<title>\'+esc(d.name)+(d.type?" (\'+esc(d.type)+\')":"")+\'</title>\'+\n'
-+ '  \'</g>\';\n'
-+ '}\n'
-+ 'function topologyClusterSvg(rootNode,opts){\n'
-+ '  var w=280,parentH=60,childH=50,childIndent=26,childGap=10,childTopGap=20,pad=6;\n'
-+ '  var edgeClass=(opts&&opts.edgeType==="power")?"topo-edge-power":"topo-edge";\n'
-+ '  var descendantCount=0;\n'
-+ '  function countDescendants(n){if(!n.children)return;descendantCount+=n.children.length;n.children.forEach(countDescendants);}\n'
-+ '  countDescendants(rootNode);\n'
-+ '  function layout(node,startY,depth){\n'
-+ '    var nodeH=depth===0?parentH:childH;\n'
-+ '    var x=depth*childIndent;\n'
-+ '    var boxW=Math.max(120,w-x);\n'
-+ '    var svg=topoBoxSvg(node.device,x,startY,boxW,nodeH,depth===0);\n'
-+ '    var y=startY+nodeH;\n'
-+ '    var kids=node.children||[];\n'
-+ '    if(kids.length){\n'
-+ '      var trunkX=x+11,trunkTop=startY+nodeH,childX=(depth+1)*childIndent;\n'
-+ '      var childCenters=[],childSvg="";\n'
-+ '      y+=childTopGap;\n'
-+ '      kids.forEach(function(c,i){\n'
-+ '        if(i>0)y+=childGap;\n'
-+ '        var cy=y+childH/2;\n'
-+ '        childCenters.push(cy);\n'
-+ '        childSvg+=\'<line x1="\'+trunkX+\'" y1="\'+cy+\'" x2="\'+childX+\'" y2="\'+cy+\'" class="\'+edgeClass+\'"/>\';\n'
-+ '        var sub=layout(c,y,depth+1);\n'
-+ '        childSvg+=sub.svg;\n'
-+ '        y=sub.endY;\n'
-+ '      });\n'
-+ '      var trunkBottom=childCenters[childCenters.length-1];\n'
-+ '      svg+=\'<line x1="\'+trunkX+\'" y1="\'+trunkTop+\'" x2="\'+trunkX+\'" y2="\'+trunkBottom+\'" class="\'+edgeClass+\'"/>\';\n'
-+ '      svg+=childSvg;\n'
-+ '    }\n'
-+ '    return {svg:svg,endY:y};\n'
-+ '  }\n'
-+ '  var result=layout(rootNode,0,0);\n'
-+ '  var contentH=result.endY,svgW=w+pad*2,svgH=contentH+pad*2;\n'
-+ '  var parent=rootNode.device;\n'
-+ '  var linkWord=(opts&&opts.edgeType==="power")?"powered device":"descendant device";\n'
-+ '  var ariaLabel=esc(parent.name)+(descendantCount?" with "+descendantCount+" "+linkWord+(descendantCount===1?"":"s"):"");\n'
-+ '  return \'<svg class="topo-cluster" viewBox="\'+(-pad)+\' \'+(-pad)+\' \'+svgW+\' \'+svgH+\'" width="\'+svgW+\'" height="\'+svgH+\'" xmlns="http://www.w3.org/2000/svg" role="group" aria-label="\'+ariaLabel+\'">\'+result.svg+\'</svg>\';\n'
-+ '}\n'
 + 'function renderTopology(){\n'
 + '  var filtered=getFilteredDevices();\n'
 + '  var container=document.getElementById("topologyView");\n'
 + '  if(!filtered.length){container.innerHTML=\'<div class="topology-empty">\'+(DEVICES.length===0?"No entries yet.":"No matches for the current search/filter.")+\'</div>\';return;}\n'
 + '  var filteredIds={};filtered.forEach(function(d){filteredIds[d.id]=1;});\n'
-+ '  function buildNetworkTree(device){\n'
-+ '    var kids=filtered.filter(function(c){return c.parentId===device.id;})\n'
-+ '      .sort(function(a,b){return (a.name||"").localeCompare(b.name||"",undefined,{sensitivity:"base"});});\n'
-+ '    return {device:device,children:kids.map(buildNetworkTree)};\n'
++ '  function buildNetworkTree(device,seen){\n'
++ '    if(seen&&seen[device.id])return {device:device,children:[]};\n'
++ '    var next={};for(var k in seen)next[k]=seen[k];next[device.id]=1;\n'
++ '    var kids=filtered.filter(function(c){return c.parentId===device.id;}).sort(sortByName);\n'
++ '    return {device:device,children:kids.map(function(k){return buildNetworkTree(k,next);})};\n'
 + '  }\n'
 + '  function buildPowerTree(device,seen){\n'
-+ '    seen=seen||{};\n'
-+ '    if(seen[device.id])return {device:device,children:[]};\n'
-+ '    seen[device.id]=1;\n'
++ '    if(seen&&seen[device.id])return {device:device,children:[]};\n'
++ '    var next={};for(var k in seen)next[k]=seen[k];next[device.id]=1;\n'
 + '    var powerKids=filtered.filter(function(c){return c.poweredById===device.id;});\n'
-+ '    var virtualKids=filtered.filter(function(c){return c.parentId===device.id&&(c.type==="vm"||c.type==="container")&&!c.poweredById;});\n'
-+ '    var kids=powerKids.concat(virtualKids)\n'
-+ '      .sort(function(a,b){return (a.name||"").localeCompare(b.name||"",undefined,{sensitivity:"base"});});\n'
-+ '    return {device:device,children:kids.map(function(k){return buildPowerTree(k,seen);})};\n'
++ '    var virtualKids=filtered.filter(function(c){return c.parentId===device.id&&isVirtualType(c.type)&&!c.poweredById;});\n'
++ '    var kids=powerKids.concat(virtualKids).sort(sortByName);\n'
++ '    return {device:device,children:kids.map(function(k){return buildPowerTree(k,next);})};\n'
 + '  }\n'
-+ '  var networkRoots=filtered.filter(function(d){return !d.parentId&&d.type!=="ups";});\n'
++ '  var networkRoots=filtered.filter(function(d){return !d.parentId&&!isUps(d.type);});\n'
 + '  var networkOrphans=filtered.filter(function(d){return d.parentId&&!filteredIds[d.parentId];});\n'
-+ '  var networkTrees=networkRoots.concat(networkOrphans).map(buildNetworkTree)\n'
-+ '    .sort(function(a,b){return (a.device.name||"").localeCompare(b.device.name||"",undefined,{sensitivity:"base"});});\n'
++ '  var networkTrees=networkRoots.concat(networkOrphans).map(function(d){return buildNetworkTree(d);})\n'
++ '    .sort(function(a,b){return sortByName(a.device,b.device);});\n'
 + '  var poweringIds={};filtered.forEach(function(d){if(d.poweredById&&filteredIds[d.poweredById])poweringIds[d.poweredById]=1;});\n'
-+ '  var powerRoots=filtered.filter(function(d){return (poweringIds[d.id]||d.type==="ups")&&(!d.poweredById||!filteredIds[d.poweredById]);});\n'
++ '  var powerRoots=filtered.filter(function(d){return (poweringIds[d.id]||isUps(d.type))&&(!d.poweredById||!filteredIds[d.poweredById]);});\n'
 + '  var powerOrphans=filtered.filter(function(d){return d.poweredById&&!filteredIds[d.poweredById];});\n'
 + '  var powerTrees=powerRoots.concat(powerOrphans).map(function(d){return buildPowerTree(d);})\n'
-+ '    .sort(function(a,b){return (a.device.name||"").localeCompare(b.device.name||"",undefined,{sensitivity:"base"});});\n'
++ '    .sort(function(a,b){return sortByName(a.device,b.device);});\n'
 + '  var trees=topoMode==="power"?powerTrees:networkTrees;\n'
-+ '  var opts=topoMode==="power"?{edgeType:"power"}:{};\n'
++ '  var opts=topoMode==="power"?{edgeType:"power",showStatus:false}:{showStatus:false};\n'
 + '  if(!trees.length){\n'
 + '    var msg;\n'
-+ '    if(topoMode==="power"&&(currentFilter==="vm"||currentFilter==="container"))msg=(currentFilter==="vm"?"VMs":"Containers")+" inherit power from their host, so they don\\u2019t appear here on their own.";\n'
++ '    if(topoMode==="power"&&isVirtualType(currentFilter))msg=(currentFilter==="vm"?"VMs":"Containers")+" inherit power from their host, so they don\\u2019t appear here on their own.";\n'
 + '    else if(topoMode==="power")msg="No power relationships in this set.";\n'
-+ '    else if(currentFilter==="ups")msg="UPS devices are shown in the Power view — switch the topology mode above.";\n'
++ '    else if(isUps(currentFilter))msg="UPS devices are shown in the Power view — switch the topology mode above.";\n'
 + '    else msg="No matches for the current search/filter.";\n'
 + '    container.innerHTML=\'<div class="topology-empty">\'+msg+\'</div>\';return;\n'
 + '  }\n'
@@ -2840,7 +2807,7 @@ const PUBLIC_HTML_TEMPLATE = '<!DOCTYPE html>\n'
 + '  var children=getChildren(d.id);\n'
 + '  var parent=d.parentId?getDevice(d.parentId):null;\n'
 + '  var powerSource=d.poweredById?getDevice(d.poweredById):null;\n'
-+ '  var poweredDevices=DEVICES.filter(function(x){return x.poweredById===d.id;}).sort(function(a,b){return (a.name||"").localeCompare(b.name||"",undefined,{sensitivity:"base"});});\n'
++ '  var poweredDevices=DEVICES.filter(function(x){return x.poweredById===d.id;}).sort(sortByName);\n'
 + '  var html=\'<div class="detail-header"><div>\'+\n'
 + '    \'<div style="font-family:\\\'JetBrains Mono\\\',monospace;font-size:22px;font-weight:700;margin-bottom:4px;">\'+esc(d.name)+\'</div>\'+\n'
 + '    typeBadge(d.type)+\n'
