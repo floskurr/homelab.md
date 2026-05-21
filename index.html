@@ -809,7 +809,7 @@
               <li class="form-select-option" role="option" aria-selected="false" data-value="vm" onclick="selectFormSelect('fType', this)">Virtual Machine</li>
               <li class="form-select-option" role="option" aria-selected="false" data-value="container" onclick="selectFormSelect('fType', this)">Container / LXC</li>
               <li class="form-select-option" role="option" aria-selected="false" data-value="network" onclick="selectFormSelect('fType', this)">Network Device</li>
-              <li class="form-select-option" role="option" aria-selected="false" data-value="storage" onclick="selectFormSelect('fType', this)">Storage</li>
+              <li class="form-select-option" role="option" aria-selected="false" data-value="storage" onclick="selectFormSelect('fType', this)">Storage / NAS</li>
               <li class="form-select-option" role="option" aria-selected="false" data-value="ups" onclick="selectFormSelect('fType', this)">UPS / Power</li>
               <li class="form-select-option" role="option" aria-selected="false" data-value="other" onclick="selectFormSelect('fType', this)">Other</li>
             </ul>
@@ -2398,7 +2398,7 @@ function exportPublic() {
   const typeOrder = ['server', 'network', 'storage', 'ups', 'vm', 'container', 'other'];
   const typeLabels = {
     server: 'Servers', vm: 'Virtual Machines', container: 'Containers / LXC',
-    network: 'Network Devices', storage: 'Storage', ups: 'UPS / Power', other: 'Other',
+    network: 'Network Devices', storage: 'Storage / NAS', ups: 'UPS / Power', other: 'Other',
   };
 
   const date = new Date().toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' });
