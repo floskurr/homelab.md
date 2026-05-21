@@ -35,7 +35,7 @@ homelab.md gives you a clean interface to catalog every device in your homelab: 
 2. Open `index.html` in your browser
 3. Click **+** to add your first device
 4. Fill in the details — hostname, type, IP, system, OS, CPU, RAM, storage, services, notes
-5. For VMs and containers, use the **Host / Parent Device** dropdown to link them to their host
+5. For VMs and containers, use the **Host / Parent** dropdown to link them to their host
 6. For devices plugged into a UPS or other power source, use the **Power Source** dropdown — this is independent of the network parent so a single device can have both (e.g. a Server hosted on a Switch, powered by a UPS)
 7. Click **↓ Export** and choose **homelab.md Full** to save your data as `homelab.md`
 
