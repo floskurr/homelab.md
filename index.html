@@ -818,7 +818,7 @@
           <label class="form-label">IP Address</label>
           <input type="text" class="form-input" id="fIp" placeholder="e.g. 192.168.1.100">
         </div>
-        <div class="form-group">
+        <div class="form-group" id="fParentGroup">
           <label class="form-label">Host / Parent Device</label>
           <div class="form-select-wrap" id="fParentWrap">
             <button type="button" class="form-select-toggle" id="fParentToggle" aria-haspopup="listbox" aria-expanded="false" onclick="toggleFormSelect('fParent', event)">
@@ -995,7 +995,20 @@
 const STORAGE_KEY = 'homelab_devices';
 
 function loadDevices() {
-  try { return JSON.parse(localStorage.getItem(STORAGE_KEY)) || []; }
+  try {
+    const devices = JSON.parse(localStorage.getItem(STORAGE_KEY)) || [];
+    // UPS devices are root-level infrastructure and aren't hosting targets
+    // for anything else. Strip any legacy parentId on UPS, and clear any
+    // pointer that named a UPS as a host, so every render path treats them
+    // as standalone without per-site checks.
+    const upsIds = new Set(devices.filter(d => d && d.type === 'ups').map(d => d.id));
+    devices.forEach(d => {
+      if (!d) return;
+      if (d.type === 'ups') d.parentId = null;
+      else if (d.parentId && upsIds.has(d.parentId)) d.parentId = null;
+    });
+    return devices;
+  }
   catch { return []; }
 }
 function saveDevices(devices) { localStorage.setItem(STORAGE_KEY, JSON.stringify(devices)); }
@@ -1398,9 +1411,9 @@ function renderTopology() {
     return { device, children: kids.map(k => buildPowerTree(k, seen)) };
   }
 
-  // UPS devices without a network parent live in the Power view, not the
-  // Network view. A UPS with a parentId set (e.g. its management card on a
-  // switch) still appears as a child of that parent in the network tree.
+  // UPS devices are root-level infrastructure and live in the Power view,
+  // not the Network view. loadDevices strips any legacy parentId on UPS so
+  // this filter is enough to keep them out of the network tree entirely.
   const networkRoots = filtered.filter(d => !d.parentId && d.type !== 'ups');
   const networkOrphans = filtered.filter(d => d.parentId && !filteredIds.has(d.parentId));
   const networkTrees = networkRoots.concat(networkOrphans)
@@ -1520,7 +1533,7 @@ function populateParentDropdown(excludeId = null) {
   const current = document.getElementById('fParent').value || '';
   const opts = [{ value: '', label: '— None (standalone) —' }];
   devices
-    .filter(d => d.id !== excludeId)
+    .filter(d => d.id !== excludeId && d.type !== 'ups')
     .sort((a, b) => (a.name || '').localeCompare(b.name || '', undefined, { sensitivity: 'base' }))
     .forEach(d => {
       opts.push({ value: d.id, label: `${d.name} (${d.type})` });
@@ -1599,6 +1612,11 @@ function syncPowerFieldVisibility() {
   const servicesRow = document.getElementById('fServicesRow');
   const cpuRamRow = document.getElementById('fCpuRamRow');
   const osGroup = document.getElementById('fOsGroup');
+  const parentGroup = document.getElementById('fParentGroup');
+  if (parentGroup) {
+    parentGroup.hidden = isUps;
+    if (isUps) setFormSelectValue('fParent', '');
+  }
   if (storageRow) {
     storageRow.hidden = hideStorage;
     if (hideStorage) { storageRowData = []; renderStorageRows(); }
@@ -1742,7 +1760,7 @@ function saveDevice() {
     name,
     type,
     ip: document.getElementById('fIp').value.trim(),
-    parentId: document.getElementById('fParent').value || null,
+    parentId: isUps ? null : (document.getElementById('fParent').value || null),
     poweredById: noPowerSource ? null : (document.getElementById('fPower').value || null),
     system: document.getElementById('fSystem').value.trim(),
     os: isUps ? '' : document.getElementById('fOs').value.trim(),
