@@ -1186,8 +1186,7 @@ function renderDevices() {
         <div class="device-services">
           ${svcs.slice(0, 2).map(s => {
             const name = typeof s === 'string' ? s : s.name;
-            const port = typeof s === 'string' ? '' : s.port;
-            return `<span class="service-tag">${esc(name)}${port ? ':' + esc(port) : ''}</span>`;
+            return `<span class="service-tag">${esc(name)}</span>`;
           }).join('')}
           ${svcCount > 2 ? `<span class="service-tag">+${svcCount - 2} more</span>` : ''}
         </div>
