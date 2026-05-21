@@ -1778,7 +1778,7 @@ function openEditModal(id) {
 
   // Load storage
   if (Array.isArray(d.storage)) {
-    storageRowData = d.storage.map(s => ({ ...s }));
+    storageRowData = sortedStorage(d.storage).map(s => ({ ...s }));
   } else if (d.storage) {
     storageRowData = [{ type: d.storage, size: '', notes: '' }];
   } else {
@@ -1786,7 +1786,7 @@ function openEditModal(id) {
   }
   renderStorageRows();
 
-  serviceRowData = (d.services || []).map(s =>
+  serviceRowData = sortedServices(d.services).map(s =>
     typeof s === 'string'
       ? { name: s, port: '', notes: '', url: '', private: false }
       : { name: s.name || '', port: s.port || '', notes: s.notes || '', url: s.url || '', private: !!s.private }
