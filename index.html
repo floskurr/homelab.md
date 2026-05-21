@@ -368,6 +368,13 @@
   .form-select option { background: var(--bg-primary); }
   .form-textarea { resize: vertical; min-height: 80px; font-family: 'JetBrains Mono', monospace; }
   .form-hint { font-size: 13px; color: var(--text-muted); }
+  .export-warning {
+    font-size: 14px; line-height: 1.5; color: var(--text-secondary);
+    padding: 12px 14px; margin-bottom: 16px;
+    background: var(--danger-dim); border: 1px solid var(--danger);
+    border-radius: var(--radius);
+  }
+  .export-warning strong { color: var(--text-primary); }
 
   .services-editor { margin-top: 4px; }
 
@@ -729,7 +736,7 @@
         <button onclick="exportAll(); closeExportMenu()">homelab.md Full</button>
         <button onclick="exportCsv(); closeExportMenu()">homelab.csv Full</button>
         <hr>
-        <button onclick="exportPublic(); closeExportMenu()">homelab.md Public</button>
+        <button onclick="confirmExportPublicMd(); closeExportMenu()">homelab.md Public</button>
         <button onclick="openHtmlExportModal(); closeExportMenu()">homelab.html Public</button>
       </div>
     </div>
@@ -945,11 +952,14 @@
       <button class="btn btn-ghost btn-sm" onclick="closeHtmlExportModal()" aria-label="Close">✕</button>
     </div>
     <div class="modal-body">
+      <div class="export-warning">
+        <strong>Review before sharing.</strong> homelab.md attempts to sanitize sensitive data (URLs, IPs, and credential-like patterns), but the output isn't guaranteed to be safe. Open the exported file and check it closely — especially the <strong>Notes</strong> fields, which are free-form and can carry through unsanitized content.
+      </div>
       <div class="form-row full">
         <div class="form-group">
           <label class="form-label">Site Name</label>
           <input type="text" class="form-input" id="htmlSiteName" placeholder="e.g. My Homelab" onkeydown="if(event.key==='Enter'){event.preventDefault();confirmExportHtml();}">
-          <span class="form-hint">Replaces "homelab.md" in the top-left of the exported page. Same sanitization as the public Markdown export.</span>
+          <span class="form-hint">Replaces "homelab.md" in the top-left of the exported page.</span>
         </div>
       </div>
     </div>
@@ -967,7 +977,7 @@
       <button class="btn btn-ghost btn-sm" onclick="closeConfirm()" aria-label="Close">✕</button>
     </div>
     <div class="modal-body">
-      <p id="confirmMessage" style="font-size:15px;color:var(--text-secondary);line-height:1.5;"></p>
+      <div id="confirmMessage" style="font-size:15px;color:var(--text-secondary);line-height:1.5;"></div>
     </div>
     <div class="modal-footer">
       <button class="btn" onclick="closeConfirm()">Cancel</button>
@@ -2283,6 +2293,17 @@ function deviceToPublicSection(d, allDevices) {
   return md;
 }
 
+function confirmExportPublicMd() {
+  const devices = loadDevices();
+  if (!devices.length) { toast('No entries to export', 'error'); return; }
+  confirmAction({
+    title: 'Export public Markdown?',
+    messageHtml: '<div class="export-warning"><strong>Review before sharing.</strong> homelab.md attempts to sanitize sensitive data (URLs, IPs, and credential-like patterns), but the output isn\'t guaranteed to be safe. Open the exported file and check it closely — especially the <strong>Notes</strong> fields, which are free-form and can carry through unsanitized content.</div>',
+    confirmLabel: 'Export',
+    onConfirm: exportPublic,
+  });
+}
+
 function exportPublic() {
   const devices = loadDevices();
   if (!devices.length) { toast('No entries to export', 'error'); return; }
@@ -2979,9 +3000,11 @@ function exportCsv() {
 let _confirmHandler = null;
 let _lastFocused = null;
 
-function confirmAction({ title, message, confirmLabel = 'Confirm', danger = false, onConfirm }) {
+function confirmAction({ title, message, messageHtml, confirmLabel = 'Confirm', danger = false, onConfirm }) {
   document.getElementById('confirmTitle').textContent = title;
-  document.getElementById('confirmMessage').textContent = message;
+  const msgEl = document.getElementById('confirmMessage');
+  if (messageHtml) msgEl.innerHTML = messageHtml;
+  else msgEl.textContent = message;
   const ok = document.getElementById('confirmOkBtn');
   ok.textContent = confirmLabel;
   ok.className = 'btn ' + (danger ? 'btn-danger' : 'btn-primary');
