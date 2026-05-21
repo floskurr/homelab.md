@@ -12,63 +12,68 @@ homelab.md gives you a clean interface to catalog every device in your homelab: 
 
 ## Features
 
-- **Full CRUD** — Add, edit, view, and delete devices from the browser UI
-- **Parent-child relationships** — Link VMs and containers to their host servers (e.g. LXCs on Proxmox, VMs on TrueNAS)
-- **Power-source relationships** — Independently track which UPS (or other power source) each device is plugged into, so you can see your power dependencies separately from the network tree
-- **Structured services** — Each device can have multiple services with name, port, notes, and a clickable URL
-- **Structured storage** — Track multiple drives per device with type, size, and notes
+- **Full CRUD** — Add, edit, view, and delete entries from the browser UI
+- **Parent-child relationships** — Link VMs, containers, and other entries to their host (e.g. LXCs on Proxmox, VMs on TrueNAS). The Host / Parent dropdown is constrained to types that actually make sense (a VM can only sit under a Server, a container under a Server or VM, and so on)
+- **Power-source relationships** — Independently track which UPS each entry is plugged into, so you can see your power dependencies separately from the network tree. VMs and containers automatically inherit power from their host in the Power view
+- **Structured services** — Each entry can have multiple services with name, port, notes, a clickable URL, and an optional per-row Private flag
+- **Structured storage** — Track multiple drives per entry with type, size, notes, and an optional per-row Private flag
+- **Per-type field visibility** — The edit form hides fields that don't apply to the selected type, so a UPS doesn't ask for an OS, a network switch doesn't ask for storage drives, and so on
+- **Private flag** — Mark a whole entry, just its Notes block, or individual service/storage rows as Private to keep them out of the public exports
 - **Markdown import/export** — The `homelab.md` file is the source of truth. Import to load, export to save
-- **CSV export** — Export your inventory as `homelab.csv` for spreadsheet use, audits, or one-off scripts
-- **Public export** — Export a sanitized `homelab-public.md` suitable for sharing publicly, such as on a public-facing website
+- **CSV export** — Export your full inventory as `homelab.csv` for spreadsheet use, audits, or one-off scripts (includes every entry, Private flag included)
+- **Public Markdown export** — Export a sanitized `homelab-public.md` suitable for sharing publicly, such as on a public-facing website
 - **Public HTML export** — Export a sanitized, self-contained `homelab.html` that renders an interactive read-only version of the dashboard, ideal for hosting publicly
 - **Unsaved-changes indicator** — A small dot appears on the **↓ Export** button whenever the in-browser data is newer than your last full export, so you don't forget to save changes back to the file
-- **Undo on delete** — Deleting a device shows a toast with an **Undo** button (~6 seconds) that fully restores the device and any parent links
-- **Safe import** — Importing prompts before replacing existing data and refuses to import a file with no parseable devices, so you can't accidentally wipe your inventory
-- **Topology view** — Toggle between Cards and Topology to see a tree-style SVG graph of your homelab. The Topology view has its own **Network / Power** mode switch: Network shows parent → child relationships (solid lines), Power shows UPS → powered-devices relationships (dashed lines, with VMs and containers inherited from their host's power source). Multi-level chains (e.g. Modem → Router → Switch 1 → Switch 2 → Server) render fully. Type filter and search apply to both modes. Available in the main app and the public HTML export.
-- **Search and filter** — Filter by device type or search across hostnames, IPs, services, and notes
-- **Stats overview** — At-a-glance counts for devices, online status, hosts, VMs/LXCs, and total services
+- **Undo on delete** — Deleting an entry shows a toast with an **Undo** button (~6 seconds) that fully restores the entry and any parent / power-source links
+- **Safe import** — Importing prompts before replacing existing data and refuses to import a file with no parseable entries, so you can't accidentally wipe your inventory
+- **Topology view** — Toggle between Cards and Topology to see a tree-style SVG graph of your homelab. The Topology view has its own **Network / Power** mode switch: Network shows parent → child relationships (solid lines), Power shows UPS → powered-devices relationships (dashed lines, with VMs and containers inherited from their host's power source). Multi-level chains (e.g. Modem → Router → Switch 1 → Switch 2 → Server) render fully. Type filter and search apply to both modes. Available in the main app and the public HTML export
+- **Search and filter** — Filter by entry type or search across names, IPs, OS / firmware, system, CPU / RAM / GPU, location, services, storage, and notes
 - **Completely offline** — No server, no API calls, no CDN. Just one HTML file
 
 ## How To Use
 
 1. Download `index.html` and put it in a folder on your machine
 2. Open `index.html` in your browser
-3. Click **+** to add your first device
-4. Fill in the details — hostname, type, IP, system, OS, CPU, RAM, storage, services, notes
-5. For VMs and containers, use the **Host / Parent** dropdown to link them to their host
-6. For devices plugged into a UPS or other power source, use the **Power Source** dropdown — this is independent of the network parent so a single device can have both (e.g. a Server hosted on a Switch, powered by a UPS)
-7. Click **↓ Export** and choose **homelab.md Full** to save your data as `homelab.md`
+3. Click **+** to add your first entry
+4. Pick a type — the form will hide fields that don't apply (a UPS won't ask for an OS or CPU, a network switch won't ask for storage, etc.)
+5. Fill in the details — name, IP, system, OS / firmware, CPU, RAM, GPU, storage, location, services, status, and notes
+6. For VMs, containers, or anything that runs on top of another entry, use the **Host / Parent** dropdown to link it to its host. The dropdown only offers types that make sense for the child type you picked
+7. For entries plugged into a UPS, use the **Power Source** dropdown — only UPS entries are eligible. This is independent of the network parent so a single entry can have both (e.g. a Server hosted on a Switch, powered by a UPS). VMs and containers don't get a Power Source of their own — they inherit it from their host
+8. Tick **Private** on an entry, row, or the Notes block to keep it out of the public exports
+9. Click **↓ Export** and choose **homelab.md** under **Full export** to save your data as `homelab.md`
 
 ### How Data Is Stored
 
 While you're working, your data lives in the browser's `localStorage`. This means your changes persist between page refreshes and browser restarts without needing to do anything. However, `localStorage` is tied to your browser and can be cleared at any time, so it should not be treated as permanent storage.
 
-The `homelab.md` file is the source of truth. Anytime you make changes through the UI, you should export to save those changes back to the file. A small orange dot appears on the **↓ Export** button whenever the data in your browser is newer than your last full export — a visual nudge so you don't forget. If you ever need to ensure your current session matches the file (for example, after editing the `.md` file directly in a text editor, or opening the app in a different browser), click **↑ Import** and select your `homelab.md` file. Importing fully replaces whatever is in `localStorage` with the contents of the file — when existing data is present, you'll be asked to confirm before it's overwritten, and a file with no parseable devices is rejected so a wrong selection can't wipe your inventory.
+The `homelab.md` file is the source of truth. Anytime you make changes through the UI, you should export to save those changes back to the file. A small orange dot appears on the **↓ Export** button whenever the data in your browser is newer than your last full export — a visual nudge so you don't forget. If you ever need to ensure your current session matches the file (for example, after editing the `.md` file directly in a text editor, or opening the app in a different browser), click **↑ Import** and select your `homelab.md` file. Importing fully replaces whatever is in `localStorage` with the contents of the file — when existing data is present, you'll be asked to confirm before it's overwritten, and a file with no parseable entries is rejected so a wrong selection can't wipe your inventory.
 
 ### Workflow
 
 The intended workflow is:
 
 1. **Import** your `homelab.md` if you need to sync the UI with the file
-2. **Make changes** — add devices, update services, etc.
+2. **Make changes** — add entries, update services, etc.
 3. **Export** to save everything back to `homelab.md`
 4. **Commit** the file to Git if you want version history
 
 ### The Markdown File
 
-The exported `homelab.md` is human-readable Markdown. Each device is an `h1` section with metadata as a bullet list, and services/storage as Markdown tables. You can read it, edit it in any text editor, or render it on GitHub. Parent-child and power-source relationships are preserved via IDs in the footer of each device section (`ParentID` and `PowerID`).
+The exported `homelab.md` is human-readable Markdown. Each entry is an `h1` section with metadata as a bullet list, and services/storage as Markdown tables. The Private and Notes-Private flags are serialized as bullet fields so they round-trip cleanly. You can read it, edit it in any text editor, or render it on GitHub. Parent-child and power-source relationships are preserved via IDs in the footer of each section (`ParentID` and `PowerID`).
 
 Pipe characters (`|`) and newlines inside service or storage notes are escaped on export (`\|`) and unescaped on import, so a note containing `|` won't break the table or get truncated on re-import.
 
 ### CSV Export
 
-The **↓ Export → homelab.csv** option produces a flat `homelab.csv` with one row per device. Multi-value fields (services, storage) are joined with `;` inside a cell. This is intended for spreadsheets, ad-hoc reporting, or feeding the inventory into other tools — it is **not** round-trippable; the `homelab.md` Full export remains the canonical save format.
+The **↓ Export → homelab.csv** option (under **Full export**) produces a flat `homelab.csv` with one row per entry. Multi-value fields (services, storage) are joined with `;` inside a cell, and the `Private` / `NotesPrivate` flags are included as columns. This is a full export, so Private entries and rows are **not** filtered out — it's intended for spreadsheets, ad-hoc reporting, or feeding the inventory into other tools. It is **not** round-trippable; the `homelab.md` Full export remains the canonical save format.
 
 ### Public Export
 
-The **↓ Export → homelab.md Public** option generates a `homelab-public.md` file intended for public use cases such as displaying your homelab on a public-facing website that supports Markdown. It produces a clean, readable summary of your homelab grouped by device type.
+The **↓ Export → homelab.md** option (under **Public export**) generates a `homelab-public.md` file intended for public use cases such as displaying your homelab on a public-facing website that supports Markdown. It produces a clean, readable summary of your homelab grouped by entry type.
 
-Before writing the file, the export automatically removes anything you wouldn't want to share publicly. Removed values are scrubbed (left blank) rather than substituted with a placeholder, and surrounding whitespace and dangling separators are tidied so the output stays readable:
+Anything you marked **Private** is dropped first: a Private entry disappears entirely; Private service or storage rows are removed from their tables; a Private-marked Notes block is omitted while the rest of the entry stays.
+
+Before writing the file, the export then automatically scrubs anything else you wouldn't want to share publicly. Removed values are blanked rather than substituted with a placeholder, and surrounding whitespace and dangling separators are tidied so the output stays readable:
 
 - **IPv4 and IPv6 addresses** — removed (full and compressed IPv6 forms like `2001:db8::1` and `::1` are matched)
 - **MAC addresses** — removed
@@ -77,27 +82,27 @@ Before writing the file, the export automatically removes anything you wouldn't 
 - **Port numbers** — omitted entirely from the services list; mentions like `port 8080` in free-text notes are removed, as are stray `:8080`-style ports left after an IP/URL has been scrubbed
 - **Internal metadata** — device IDs, parent IDs, and timestamps are not included
 
-What remains is the hardware and software story of your homelab: device names, types, specs, storage, service names, and any notes you've written — all stripped of anything that could expose your internal network.
+What remains is the hardware and software story of your homelab: entry names, types, specs, storage, service names, and any non-Private notes you've written — all stripped of anything that could expose your internal network. Sanitization isn't a guarantee — before you actually share the file, a confirmation dialog reminds you to open the exported file and skim it (especially the free-form Notes fields, which can carry through anything you typed there).
 
 ### Public HTML Export
 
-The **↓ Export → homelab.html Public** option generates a `homelab.html` file: a single, self-contained HTML page that mirrors the look and interactivity of the homelab.md UI but in a read-only form. Drop it on any static host and you get a live, searchable, filterable dashboard of your homelab.
+The **↓ Export → homelab.html** option (under **Public export**) generates a `homelab.html` file: a single, self-contained HTML page that mirrors the look and interactivity of the homelab.md UI but in a read-only form. Drop it on any static host and you get a live, searchable, filterable dashboard of your homelab.
 
 When you choose this export, you'll be prompted for a **Site Name** that replaces "homelab.md" in the top-left of the exported page (e.g. "My Homelab"). The exported file:
 
 - Uses the same theme and layout as the main app
-- Supports search, type filters, the Cards / Topology view toggle, and the device detail modal
+- Supports search, type filters, the Cards / Topology view toggle (Network and Power modes), and the entry detail modal
 - Has no add/edit/delete/import/export controls — it's strictly read-only
-- Applies the **same sanitization** as the public Markdown export (IPs, MAC addresses, URLs, ports, IDs, and timestamps are removed)
+- Applies the **same Private filtering and sanitization** as the public Markdown export (Private entries/rows are omitted; IPs, MAC addresses, URLs, ports, IDs, and timestamps are removed)
 - Is fully offline — no server, no API calls, just one HTML file
 
-## Device Types
+## Entry Types
 
-- **Server** — Physical machines (Proxmox hosts, NAS boxes, Raspberry Pis, etc.)
+- **Server** — Physical machines (Proxmox hosts, Raspberry Pis, mini-PCs, etc.)
 - **Virtual Machine** — VMs running on a host
-- **Container / LXC** — Containers running on a host
+- **Container / LXC** — Containers running on a host or a VM
 - **Network Device** — Switches, routers, gateways, access points
-- **Storage** — Dedicated NAS or storage appliances
+- **Storage / NAS** — NAS boxes and dedicated storage appliances
 - **UPS / Power** — Battery backups and other power sources; appears in the Power topology view as the root of whatever it powers
 - **Other** — KVMs, sensors, or anything that doesn't fit the categories above
 
