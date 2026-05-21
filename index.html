@@ -304,6 +304,24 @@
     background: var(--tag-bg); border: 1px solid var(--tag-border); color: var(--accent);
   }
 
+  .device-tags { display: flex; flex-wrap: wrap; gap: 4px; margin-top: 8px; }
+  .user-tag {
+    font-family: 'JetBrains Mono', monospace; font-size: 12px;
+    padding: 2px 8px; border-radius: 3px;
+    background: var(--purple-bg); border: 1px solid rgba(180, 120, 230, 0.25); color: var(--purple);
+  }
+  .tag-filter-row {
+    display: flex; align-items: center; gap: 8px; flex-wrap: wrap;
+    margin: -8px 0 20px;
+  }
+  .tag-filter-row[hidden] { display: none; }
+  .tag-filter-label {
+    font-family: 'JetBrains Mono', monospace; font-size: 12px;
+    text-transform: uppercase; letter-spacing: 0.8px; color: var(--text-muted);
+  }
+  .filter-btn-tag { text-transform: none; letter-spacing: 0; }
+  .filter-btn-tag.active { border-color: var(--purple); color: var(--purple); background: var(--purple-bg); }
+
   .child-count-badge {
     font-family: 'JetBrains Mono', monospace; font-size: 12px;
     padding: 2px 8px; border-radius: 3px;
@@ -779,6 +797,10 @@
       <button type="button" class="view-btn" data-topo-mode="power" onclick="setTopoMode('power')" role="tab" aria-selected="false" title="Show UPS → powered devices">Power</button>
     </div>
   </div>
+  <div class="tag-filter-row" id="tagFilterRow" hidden aria-label="Filter by tag">
+    <span class="tag-filter-label">Tags</span>
+    <div class="filter-group" id="tagFilterGroup"></div>
+  </div>
   <div class="device-grid" id="deviceGrid"></div>
   <div class="topology-view" id="topologyView" aria-live="polite"></div>
 </div>
@@ -886,6 +908,14 @@
         <div class="form-group">
           <label class="form-label">Location</label>
           <input type="text" class="form-input" id="fLocation" placeholder="e.g. Rack 1, Shelf 2">
+        </div>
+      </div>
+
+      <div class="form-row full">
+        <div class="form-group">
+          <label class="form-label">Tags</label>
+          <input type="text" class="form-input" id="fTags" placeholder="e.g. media, prod, experimental">
+          <span class="form-hint">Comma-separated. Lowercased and de-duplicated on save.</span>
         </div>
       </div>
 
@@ -1040,6 +1070,7 @@ function loadDevices() {
     const byId = new Map(devices.filter(d => d && d.id).map(d => [d.id, d]));
     devices.forEach(d => {
       if (!d) return;
+      d.tags = normalizeTags(d.tags);
       if (isUps(d.type)) d.parentId = null;
       else if (d.parentId) {
         const parent = byId.get(d.parentId);
@@ -1073,6 +1104,27 @@ function saveDevices(devices) {
   _devicesCache = devices;
 }
 function generateId() { return Date.now().toString(36) + Math.random().toString(36).slice(2, 8); }
+function normalizeTags(input) {
+  let arr;
+  if (Array.isArray(input)) arr = input;
+  else if (typeof input === 'string') arr = input.split(',');
+  else return [];
+  const out = [];
+  const seen = new Set();
+  arr.forEach(t => {
+    if (typeof t !== 'string') return;
+    const cleaned = t
+      .toLowerCase()
+      .replace(/[<>"'`|\\]/g, '')
+      .replace(/\s+/g, ' ')
+      .trim()
+      .slice(0, 32);
+    if (!cleaned || seen.has(cleaned)) return;
+    seen.add(cleaned);
+    out.push(cleaned);
+  });
+  return out;
+}
 function getDevice(id, devices) { return (devices || loadDevices()).find(d => d.id === id); }
 function getChildren(parentId, devices) { return (devices || loadDevices()).filter(d => d.parentId === parentId).sort(sortByName); }
 function sortedStorage(storage) { return Array.isArray(storage) ? storage.slice().sort((a, b) => (a.type || '').localeCompare(b.type || '', undefined, { sensitivity: 'base' })) : storage; }
@@ -1143,6 +1195,27 @@ function renderFilters() {
   document.getElementById('filterMenu').innerHTML = types.map(t =>
     `<li class="filter-select-option ${t === active ? 'active' : ''}" role="option" aria-selected="${t === active}" onclick="selectFilter('${t}')">${t}</li>`
   ).join('');
+  renderTagFilters(devices);
+}
+
+function renderTagFilters(devices) {
+  const allTags = new Set();
+  (devices || loadDevices()).forEach(d => (d.tags || []).forEach(t => allTags.add(t)));
+  const tags = Array.from(allTags).sort();
+  const row = document.getElementById('tagFilterRow');
+  const group = document.getElementById('tagFilterGroup');
+  if (!row || !group) return;
+  if (!tags.length) {
+    row.hidden = true;
+    group.innerHTML = '';
+    currentTagFilter = null;
+    return;
+  }
+  if (currentTagFilter && !allTags.has(currentTagFilter)) currentTagFilter = null;
+  row.hidden = false;
+  group.innerHTML = tags.map(t =>
+    `<button class="filter-btn filter-btn-tag ${t === currentTagFilter ? 'active' : ''}" data-tag="${esc(t)}">#${esc(t)}</button>`
+  ).join('');
 }
 
 function toggleFilterMenu(e) {
@@ -1175,6 +1248,18 @@ function setFilter(f) {
   if (currentView === 'topology') renderTopology();
 }
 
+let currentTagFilter = null;
+function setTagFilter(t) {
+  currentTagFilter = currentTagFilter === t ? null : t;
+  renderTagFilters();
+  renderDevices();
+  if (currentView === 'topology') renderTopology();
+}
+document.addEventListener('click', (e) => {
+  const btn = e.target.closest && e.target.closest('#tagFilterGroup [data-tag]');
+  if (btn) setTagFilter(btn.getAttribute('data-tag'));
+});
+
 let _searchTimer = null;
 function onSearchInput() {
   const box = document.getElementById('searchBox');
@@ -1202,10 +1287,12 @@ function getFilteredDevices() {
   const query = document.getElementById('searchBox').value.toLowerCase();
   const filtered = devices.filter(d => {
     if (currentFilter !== 'all' && d.type !== currentFilter) return false;
+    if (currentTagFilter && !(d.tags || []).includes(currentTagFilter)) return false;
     if (query) {
       const svcText = (d.services || []).map(s => typeof s === 'string' ? s : `${s.name} ${s.port} ${s.notes} ${s.url}`).join(' ');
       const storageText = Array.isArray(d.storage) ? d.storage.map(s => `${s.type} ${s.size} ${s.notes}`).join(' ') : (d.storage || '');
-      const searchable = [d.name, d.ip, d.os, d.system, d.type, d.cpu, d.ram, d.gpu, d.location, d.notes, svcText, storageText].join(' ').toLowerCase();
+      const tagsText = (d.tags || []).join(' ');
+      const searchable = [d.name, d.ip, d.os, d.system, d.type, d.cpu, d.ram, d.gpu, d.location, d.notes, svcText, storageText, tagsText].join(' ').toLowerCase();
       if (!searchable.includes(query)) return false;
     }
     return true;
@@ -1260,6 +1347,11 @@ function renderDevices() {
         ${d.gpu ? `<span class="meta-item"><strong>GPU:</strong> ${esc(d.gpu)}</span>` : ''}
         ${storage && (Array.isArray(storage) ? storage.length : storage) ? `<span class="meta-item"><strong>Storage:</strong> ${Array.isArray(storage) ? (storage.length > 2 ? esc(storage[0].size ? storage[0].type + ' ' + storage[0].size : storage[0].type) + ', +' + (storage.length - 1) + ' more' : storage.map(s => esc(s.size ? s.type + ' ' + s.size : s.type)).join(', ')) : esc(storage)}</span>` : ''}
       </div>
+      ${(d.tags || []).length ? `
+        <div class="device-tags">
+          ${(d.tags || []).map(t => `<span class="user-tag">#${esc(t)}</span>`).join('')}
+        </div>
+      ` : ''}
       ${svcCount ? `
         <div class="device-services">
           ${svcs.slice(0, 2).map(s => {
@@ -1774,6 +1866,7 @@ function openEditModal(id) {
   document.getElementById('fRam').value = d.ram || '';
   document.getElementById('fGpu').value = d.gpu || '';
   document.getElementById('fLocation').value = d.location || '';
+  document.getElementById('fTags').value = (d.tags || []).join(', ');
   document.getElementById('fNotes').value = d.notes || '';
   document.getElementById('fNotesPrivate').checked = !!d.notesPrivate;
   document.getElementById('fPrivate').checked = !!d.private;
@@ -1808,7 +1901,7 @@ function openEditModal(id) {
 function closeModal() { closeModalEl(document.getElementById('formModal')); }
 
 function clearForm() {
-  ['fName','fIp','fSystem','fOs','fCpu','fRam','fGpu','fLocation','fNotes'].forEach(id => {
+  ['fName','fIp','fSystem','fOs','fCpu','fRam','fGpu','fLocation','fNotes','fTags'].forEach(id => {
     document.getElementById(id).value = '';
   });
   setFormSelectValue('fType', 'server');
@@ -1851,6 +1944,7 @@ function saveDevice() {
     gpu: hidden('fGpuRow') ? '' : document.getElementById('fGpu').value.trim(),
     storage,
     location: document.getElementById('fLocation').value.trim(),
+    tags: normalizeTags(document.getElementById('fTags').value),
     services,
     notes: document.getElementById('fNotes').value.trim(),
     private: document.getElementById('fPrivate').checked,
@@ -1906,6 +2000,14 @@ function showDetail(id) {
       <button class="btn btn-ghost btn-sm" onclick="closeDetail()">✕</button>
     </div>
     <div class="detail-body">
+      ${(d.tags || []).length ? `
+        <div class="detail-section">
+          <div class="detail-section-title">Tags</div>
+          <div class="device-tags" style="margin-top:0;">
+            ${(d.tags || []).map(t => `<span class="user-tag">#${esc(t)}</span>`).join('')}
+          </div>
+        </div>
+      ` : ''}
       ${(() => {
         const field = (label, val) => val ? `<div><div class="detail-field-label">${label}</div><div class="detail-field-value">${esc(val)}</div></div>` : '';
         const overview = [
@@ -2102,6 +2204,7 @@ function deviceToMarkdown(d, allDevices) {
 
   md += `- **Type:** ${d.type || '—'}\n`;
   md += `- **Status:** ${d.status || '—'}\n`;
+  md += `- **Tags:** ${(d.tags || []).length ? d.tags.join(', ') : '—'}\n`;
   md += `- **IP Address:** ${d.ip || '—'}\n`;
   md += `- **System:** ${d.system || '—'}\n`;
   md += `- **OS / Firmware:** ${d.os || '—'}\n`;
@@ -2175,6 +2278,9 @@ function markdownToDevice(md) {
     const match = md.match(regex);
     if (match && match[1].trim() !== '—') device[key] = match[1].trim();
   }
+
+  const tagsMatch = md.match(/-\s+\*\*Tags:\*\*\s*(.+)/i);
+  device.tags = (tagsMatch && tagsMatch[1].trim() !== '—') ? normalizeTags(tagsMatch[1]) : [];
 
   const privateMatch = md.match(/-\s+\*\*Private:\*\*\s*(true|false)/i);
   device.private = !!(privateMatch && /true/i.test(privateMatch[1]));
@@ -2311,6 +2417,10 @@ function deviceToPublicSection(d, allDevices) {
   if (parent) meta += ` · Hosted on ${sanitizePublic(parent.name)}`;
   if (powerSource) meta += ` · Powered by ${sanitizePublic(powerSource.name)}`;
   md += meta + '\n\n';
+
+  if ((d.tags || []).length) {
+    md += d.tags.map(t => `\`#${t}\``).join(' ') + '\n\n';
+  }
 
   const specs = [
     ['System', d.system], ['OS / Firmware', d.os], ['CPU', d.cpu],
@@ -2456,6 +2566,7 @@ function sanitizeDeviceForPublic(d) {
     poweredById: d.poweredById || null,
     name: sanitizePublic(d.name || ''),
     type: d.type || 'other',
+    tags: Array.isArray(d.tags) ? d.tags.slice() : [],
     system: sanitizePublic(d.system || ''),
     os: sanitizePublic(d.os || ''),
     cpu: sanitizePublic(d.cpu || ''),
@@ -2583,6 +2694,13 @@ const PUBLIC_HTML_TEMPLATE = '<!DOCTYPE html>\n'
 + '.device-meta{display:flex;flex-wrap:wrap;gap:12px;margin-bottom:8px;}.meta-item{font-size:14px;color:var(--text-secondary);}.meta-item strong{color:var(--text-primary);font-weight:500;}\n'
 + '.device-services{display:flex;flex-wrap:wrap;gap:4px;margin-top:8px;}\n'
 + '.service-tag{font-family:\'JetBrains Mono\',monospace;font-size:12px;padding:2px 8px;border-radius:3px;background:var(--tag-bg);border:1px solid var(--tag-border);color:var(--accent);}\n'
++ '.device-tags{display:flex;flex-wrap:wrap;gap:4px;margin-top:8px;}\n'
++ '.user-tag{font-family:\'JetBrains Mono\',monospace;font-size:12px;padding:2px 8px;border-radius:3px;background:var(--purple-bg);border:1px solid rgba(180,120,230,0.25);color:var(--purple);}\n'
++ '.tag-filter-row{display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin:-8px 0 20px;}\n'
++ '.tag-filter-row[hidden]{display:none;}\n'
++ '.tag-filter-label{font-family:\'JetBrains Mono\',monospace;font-size:12px;text-transform:uppercase;letter-spacing:0.8px;color:var(--text-muted);}\n'
++ '.filter-btn-tag{text-transform:none;letter-spacing:0;}\n'
++ '.filter-btn-tag.active{border-color:var(--purple);color:var(--purple);background:var(--purple-bg);}\n'
 + '.child-count-badge{font-family:\'JetBrains Mono\',monospace;font-size:12px;padding:2px 8px;border-radius:3px;background:var(--blue-bg);color:var(--blue);margin-top:8px;display:inline-block;}\n'
 + '.detail-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,0.7);z-index:200;align-items:center;justify-content:center;backdrop-filter:blur(4px);}.detail-overlay.open{display:flex;}\n'
 + '.detail-panel{background:var(--bg-secondary);border:1px solid var(--border);border-radius:8px;width:85%;max-width:1000px;max-height:90vh;overflow:hidden;display:flex;flex-direction:column;box-shadow:0 20px 60px rgba(0,0,0,0.5);}\n'
@@ -2646,6 +2764,10 @@ const PUBLIC_HTML_TEMPLATE = '<!DOCTYPE html>\n'
 + '      <button type="button" class="view-btn" data-topo-mode="power" role="tab" aria-selected="false" title="UPS &rarr; powered devices">Power</button>\n'
 + '    </div>\n'
 + '  </div>\n'
++ '  <div class="tag-filter-row" id="tagFilterRow" hidden aria-label="Filter by tag">\n'
++ '    <span class="tag-filter-label">Tags</span>\n'
++ '    <div class="filter-group" id="tagFilterGroup"></div>\n'
++ '  </div>\n'
 + '  <div class="device-grid" id="deviceGrid"></div>\n'
 + '  <div class="topology-view" id="topologyView" aria-live="polite"></div>\n'
 + '</div>\n'
@@ -2655,6 +2777,7 @@ const PUBLIC_HTML_TEMPLATE = '<!DOCTYPE html>\n'
 + '"use strict";\n'
 + 'var DEVICES = __DEVICE_DATA__;\n'
 + 'var currentFilter = "all";\n'
++ 'var currentTagFilter = null;\n'
 + 'var currentView = "grid";\n'
 + '__SHARED_RENDER__\n'
 + 'function getDevice(id){return DEVICES.find(function(d){return d.id===id;})||null;}\n'
@@ -2669,18 +2792,34 @@ const PUBLIC_HTML_TEMPLATE = '<!DOCTYPE html>\n'
 + '  document.getElementById("filterMenu").innerHTML=types.map(function(t){\n'
 + '    return \'<li class="filter-select-option \'+(t===currentFilter?"active":"")+\'" role="option" aria-selected="\'+(t===currentFilter)+\'" data-filter="\'+esc(t)+\'">\'+esc(t)+\'</li>\';\n'
 + '  }).join("");\n'
++ '  renderTagFilters();\n'
++ '}\n'
++ 'function renderTagFilters(){\n'
++ '  var set={};DEVICES.forEach(function(d){(d.tags||[]).forEach(function(t){set[t]=1;});});\n'
++ '  var tags=Object.keys(set).sort();\n'
++ '  var row=document.getElementById("tagFilterRow"),group=document.getElementById("tagFilterGroup");\n'
++ '  if(!row||!group)return;\n'
++ '  if(!tags.length){row.hidden=true;group.innerHTML="";currentTagFilter=null;return;}\n'
++ '  if(currentTagFilter&&!set[currentTagFilter])currentTagFilter=null;\n'
++ '  row.hidden=false;\n'
++ '  group.innerHTML=tags.map(function(t){\n'
++ '    return \'<button class="filter-btn filter-btn-tag \'+(t===currentTagFilter?"active":"")+\'" data-tag="\'+esc(t)+\'">#\'+esc(t)+\'</button>\';\n'
++ '  }).join("");\n'
 + '}\n'
 + 'function toggleFilterMenu(){var b=document.getElementById("filterToggle"),m=document.getElementById("filterMenu");var open=b.getAttribute("aria-expanded")==="true";b.setAttribute("aria-expanded",open?"false":"true");m.hidden=open;}\n'
 + 'function closeFilterMenu(){var b=document.getElementById("filterToggle"),m=document.getElementById("filterMenu");if(!b||!m)return;b.setAttribute("aria-expanded","false");m.hidden=true;}\n'
 + 'function setFilter(f){currentFilter=f;renderFilters();renderDevices();if(currentView==="topology")renderTopology();}\n'
++ 'function setTagFilter(t){currentTagFilter=currentTagFilter===t?null:t;renderTagFilters();renderDevices();if(currentView==="topology")renderTopology();}\n'
 + 'function getFilteredDevices(){\n'
 + '  var query=document.getElementById("searchBox").value.toLowerCase();\n'
 + '  var filtered=DEVICES.filter(function(d){\n'
 + '    if(currentFilter!=="all"&&d.type!==currentFilter)return false;\n'
++ '    if(currentTagFilter&&(d.tags||[]).indexOf(currentTagFilter)===-1)return false;\n'
 + '    if(query){\n'
 + '      var svcText=(d.services||[]).map(function(s){return s.name+" "+s.notes;}).join(" ");\n'
 + '      var storageText=(d.storage||[]).map(function(s){return s.type+" "+s.size+" "+s.notes;}).join(" ");\n'
-+ '      var hay=[d.name,d.os,d.system,d.type,d.cpu,d.ram,d.gpu,d.notes,svcText,storageText].join(" ").toLowerCase();\n'
++ '      var tagsText=(d.tags||[]).join(" ");\n'
++ '      var hay=[d.name,d.os,d.system,d.type,d.cpu,d.ram,d.gpu,d.notes,svcText,storageText,tagsText].join(" ").toLowerCase();\n'
 + '      return hay.indexOf(query)!==-1;\n'
 + '    }\n'
 + '    return true;\n'
@@ -2719,6 +2858,9 @@ const PUBLIC_HTML_TEMPLATE = '<!DOCTYPE html>\n'
 + '        (d.gpu?\'<span class="meta-item"><strong>GPU:</strong> \'+esc(d.gpu)+\'</span>\':"")+\n'
 + '        (storageHtml?\'<span class="meta-item"><strong>Storage:</strong> \'+storageHtml+\'</span>\':"")+\n'
 + '      \'</div>\'+\n'
++ '      ((d.tags||[]).length?\'<div class="device-tags">\'+\n'
++ '        (d.tags||[]).map(function(t){return \'<span class="user-tag">#\'+esc(t)+\'</span>\';}).join("")+\n'
++ '      \'</div>\':"")+\n'
 + '      (svcs.length?\'<div class="device-services">\'+\n'
 + '        svcs.slice(0,3).map(function(s){return \'<span class="service-tag">\'+esc(s.name)+\'</span>\';}).join("")+\n'
 + '        (svcs.length>3?\'<span class="service-tag">+\'+(svcs.length-3)+\' more</span>\':"")+\n'
@@ -2818,6 +2960,11 @@ const PUBLIC_HTML_TEMPLATE = '<!DOCTYPE html>\n'
 + '  var overview=field("System",d.system)+field("OS / Firmware",d.os);\n'
 + '  var hardware=field("CPU",d.cpu)+field("RAM",d.ram)+field("GPU",d.gpu);\n'
 + '  html+=\'<div class="detail-body">\';\n'
++ '  if((d.tags||[]).length){\n'
++ '    html+=\'<div class="detail-section"><div class="detail-section-title">Tags</div><div class="device-tags" style="margin-top:0;">\'+\n'
++ '      (d.tags||[]).map(function(t){return \'<span class="user-tag">#\'+esc(t)+\'</span>\';}).join("")+\n'
++ '    \'</div></div>\';\n'
++ '  }\n'
 + '  if(overview){\n'
 + '    html+=\'<div class="detail-section"><div class="detail-section-title">Overview</div><div class="detail-grid">\'+overview+\'</div></div>\';\n'
 + '  }\n'
@@ -2869,6 +3016,7 @@ const PUBLIC_HTML_TEMPLATE = '<!DOCTYPE html>\n'
 + 'document.getElementById("searchBox").addEventListener("input",function(){document.getElementById("searchWrap").classList.toggle("has-value",!!this.value);renderDevices();if(currentView==="topology")renderTopology();});\n'
 + 'document.getElementById("searchClear").addEventListener("click",function(){var b=document.getElementById("searchBox");b.value="";document.getElementById("searchWrap").classList.remove("has-value");b.focus();renderDevices();if(currentView==="topology")renderTopology();});\n'
 + 'document.getElementById("filterGroup").addEventListener("click",function(e){var b=e.target.closest("[data-filter]");if(b)setFilter(b.getAttribute("data-filter"));});\n'
++ 'document.getElementById("tagFilterGroup").addEventListener("click",function(e){var b=e.target.closest("[data-tag]");if(b)setTagFilter(b.getAttribute("data-tag"));});\n'
 + 'document.getElementById("filterToggle").addEventListener("click",function(e){e.stopPropagation();toggleFilterMenu();});\n'
 + 'document.getElementById("filterMenu").addEventListener("click",function(e){var o=e.target.closest("[data-filter]");if(o){closeFilterMenu();setFilter(o.getAttribute("data-filter"));}});\n'
 + 'document.addEventListener("click",function(e){var w=document.getElementById("filterSelectWrap");if(w&&!w.contains(e.target))closeFilterMenu();});\n'
@@ -3009,7 +3157,7 @@ function exportCsv() {
   const devices = loadDevices();
   if (!devices.length) { toast('No entries to export', 'error'); return; }
 
-  const headers = ['Name', 'Type', 'Status', 'IP', 'System', 'OS', 'CPU', 'RAM', 'GPU', 'Storage', 'Location', 'Services', 'Notes', 'Parent', 'PowerSource', 'Private', 'NotesPrivate', 'ID'];
+  const headers = ['Name', 'Type', 'Status', 'IP', 'System', 'OS', 'CPU', 'RAM', 'GPU', 'Storage', 'Location', 'Tags', 'Services', 'Notes', 'Parent', 'PowerSource', 'Private', 'NotesPrivate', 'ID'];
   const csvEscape = v => {
     if (v === undefined || v === null) return '';
     const s = String(v);
@@ -3028,7 +3176,7 @@ function exportCsv() {
     }).join('; ');
     return [
       d.name, d.type, d.status, d.ip, d.system, d.os, d.cpu, d.ram, d.gpu,
-      storage, d.location, services, d.notes, parent ? parent.name : '', powerSource ? powerSource.name : '', d.private ? 'true' : 'false', d.notesPrivate ? 'true' : 'false', d.id,
+      storage, d.location, (d.tags || []).join('; '), services, d.notes, parent ? parent.name : '', powerSource ? powerSource.name : '', d.private ? 'true' : 'false', d.notesPrivate ? 'true' : 'false', d.id,
     ].map(csvEscape).join(',');
   });
 
