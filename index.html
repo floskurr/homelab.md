@@ -807,7 +807,7 @@
           <input type="text" class="form-input" id="fIp" placeholder="e.g. 192.168.1.100">
         </div>
         <div class="form-group" id="fParentGroup">
-          <label class="form-label">Host / Parent Device</label>
+          <label class="form-label">Host / Parent</label>
           <div class="form-select-wrap" id="fParentWrap">
             <button type="button" class="form-select-toggle" id="fParentToggle" aria-haspopup="listbox" aria-expanded="false" onclick="toggleFormSelect('fParent', event)">
               <span class="form-select-value" id="fParentLabel">— None (standalone) —</span>
@@ -1906,7 +1906,7 @@ function showDetail(id) {
       ` : ''}
       ${parent ? `
         <div class="detail-section">
-          <div class="detail-section-title">Host / Parent Device</div>
+          <div class="detail-section-title">Host / Parent</div>
           <div class="child-device" onclick="event.stopPropagation(); showDetail('${parent.id}')">
             <div class="child-device-name"><span class="device-status status-${parent.status || 'unknown'}"></span>${esc(parent.name)}</div>
             ${typeBadge(parent.type)}
@@ -2779,7 +2779,7 @@ const PUBLIC_HTML_TEMPLATE = '<!DOCTYPE html>\n'
 + '    \'</div>\';\n'
 + '  }\n'
 + '  if(parent){\n'
-+ '    html+=\'<div class="detail-section"><div class="detail-section-title">Host / Parent Device</div>\'+\n'
++ '    html+=\'<div class="detail-section"><div class="detail-section-title">Host / Parent</div>\'+\n'
 + '      \'<div class="child-device" data-detail-id="\'+esc(parent.id)+\'"><div class="child-device-name">\'+esc(parent.name)+\'</div>\'+typeBadge(parent.type)+\'</div>\'+\n'
 + '    \'</div>\';\n'
 + '  }\n'
