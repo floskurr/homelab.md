@@ -15,6 +15,7 @@ homelab.md gives you a clean interface to catalog every device in your homelab: 
 - **Full CRUD** — Add, edit, view, and delete entries from the browser UI
 - **Parent-child relationships** — Link VMs, containers, and other entries to their host (e.g. LXCs on Proxmox, VMs on TrueNAS). The Host / Parent dropdown is constrained to types that actually make sense (a VM can only sit under a Server, a container under a Server or VM, and so on)
 - **Power-source relationships** — Independently track which UPS each entry is plugged into, so you can see your power dependencies separately from the network tree. VMs and containers automatically inherit power from their host in the Power view
+- **Free-form tags** — Tag entries with anything that's useful to you (`media`, `prod`, `experimental`, etc.). Tags are lowercased and de-duplicated on save, render as chips on each card, and a chip row appears alongside the type filter so you can click to narrow the view. Tags round-trip through every export format and feed into search
 - **Structured services** — Each entry can have multiple services with name, port, notes, a clickable URL, and an optional per-row Private flag
 - **Structured storage** — Track multiple drives per entry with type, size, notes, and an optional per-row Private flag
 - **Per-type field visibility** — The edit form hides fields that don't apply to the selected type, so a UPS doesn't ask for an OS, a network switch doesn't ask for storage drives, and so on
