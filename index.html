@@ -170,6 +170,8 @@
   }
   .filter-select-toggle:hover { border-color: var(--border-active); }
   .filter-select-toggle[aria-expanded="true"] { border-color: var(--accent); }
+  .filter-select-text { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .filter-select-prefix { color: var(--text-muted); }
   .filter-select-chevron { color: var(--text-muted); flex-shrink: 0; transition: transform 0.15s; }
   .filter-select-toggle[aria-expanded="true"] .filter-select-chevron { transform: rotate(180deg); }
   .filter-select-menu {
@@ -698,6 +700,10 @@
     .topo-cluster { width: 100%; height: auto; }
     .filter-group { display: none; }
     .filter-select { display: block; }
+    .secondary-row { flex-direction: column; align-items: stretch; }
+    .secondary-row > .toolbar-secondary { margin-left: 0; }
+    .tag-filter-row { display: block; }
+    .tag-filter-label { display: none; }
   }
 
   .footer {
@@ -788,7 +794,7 @@
     <div class="filter-group" id="filterGroup"></div>
     <div class="filter-select" id="filterSelectWrap">
       <button type="button" class="filter-select-toggle" id="filterToggle" aria-haspopup="listbox" aria-expanded="false" aria-label="Filter by type" onclick="toggleFilterMenu(event)">
-        <span id="filterValue">all</span>
+        <span class="filter-select-text"><span class="filter-select-prefix">Type:</span> <span id="filterValue">all</span></span>
         <svg class="filter-select-chevron" width="12" height="12" viewBox="0 0 12 12" aria-hidden="true"><path fill="none" stroke="currentColor" stroke-width="1.5" d="M2 4l4 4 4-4"/></svg>
       </button>
       <ul class="filter-select-menu" id="filterMenu" role="listbox" hidden></ul>
@@ -802,6 +808,13 @@
     <div class="tag-filter-row" id="tagFilterRow" hidden aria-label="Filter by tag">
       <span class="tag-filter-label">Tags</span>
       <div class="filter-group" id="tagFilterGroup"></div>
+      <div class="filter-select" id="tagFilterSelectWrap">
+        <button type="button" class="filter-select-toggle" id="tagFilterToggle" aria-haspopup="listbox" aria-expanded="false" aria-label="Filter by tag" onclick="toggleTagFilterMenu(event)">
+          <span class="filter-select-text"><span class="filter-select-prefix">Tags:</span> <span id="tagFilterValue">all</span></span>
+          <svg class="filter-select-chevron" width="12" height="12" viewBox="0 0 12 12" aria-hidden="true"><path fill="none" stroke="currentColor" stroke-width="1.5" d="M2 4l4 4 4-4"/></svg>
+        </button>
+        <ul class="filter-select-menu" id="tagFilterMenu" role="listbox" hidden></ul>
+      </div>
     </div>
     <div class="toolbar-secondary" id="topoModeRow" hidden>
       <div class="view-toggle topo-mode-toggle" id="topoModeToggle" role="tablist" aria-label="Topology mode">
@@ -1226,6 +1239,15 @@ function renderTagFilters(devices) {
   group.innerHTML = tags.map(t =>
     `<button class="filter-btn filter-btn-tag ${t === currentTagFilter ? 'active' : ''}" data-tag="${esc(t)}">#${esc(t)}</button>`
   ).join('');
+  const tagVal = document.getElementById('tagFilterValue');
+  if (tagVal) tagVal.textContent = currentTagFilter ? '#' + currentTagFilter : 'all';
+  const tagMenu = document.getElementById('tagFilterMenu');
+  if (tagMenu) {
+    tagMenu.innerHTML = ['', ...tags].map(t => {
+      const sel = t ? t === currentTagFilter : !currentTagFilter;
+      return `<li class="filter-select-option ${sel ? 'active' : ''}" role="option" aria-selected="${sel}" data-tag-option="${esc(t)}">${t ? '#' + esc(t) : 'all'}</li>`;
+    }).join('');
+  }
   updateSecondaryRow();
 }
 
@@ -1274,10 +1296,38 @@ function setTagFilter(t) {
   renderDevices();
   if (currentView === 'topology') renderTopology();
 }
+function applyTagFilter(t) {
+  currentTagFilter = t || null;
+  renderTagFilters();
+  renderDevices();
+  if (currentView === 'topology') renderTopology();
+}
+function toggleTagFilterMenu(e) {
+  if (e) e.stopPropagation();
+  const btn = document.getElementById('tagFilterToggle');
+  const menu = document.getElementById('tagFilterMenu');
+  if (!btn || !menu) return;
+  const open = btn.getAttribute('aria-expanded') === 'true';
+  btn.setAttribute('aria-expanded', open ? 'false' : 'true');
+  menu.hidden = open;
+}
+function closeTagFilterMenu() {
+  const btn = document.getElementById('tagFilterToggle');
+  const menu = document.getElementById('tagFilterMenu');
+  if (!btn || !menu) return;
+  btn.setAttribute('aria-expanded', 'false');
+  menu.hidden = true;
+}
 document.addEventListener('click', (e) => {
-  const btn = e.target.closest && e.target.closest('#tagFilterGroup [data-tag]');
-  if (btn) setTagFilter(btn.getAttribute('data-tag'));
+  if (!e.target.closest) return;
+  const chip = e.target.closest('#tagFilterGroup [data-tag]');
+  if (chip) { setTagFilter(chip.getAttribute('data-tag')); return; }
+  const opt = e.target.closest('#tagFilterMenu [data-tag-option]');
+  if (opt) { closeTagFilterMenu(); applyTagFilter(opt.getAttribute('data-tag-option') || null); return; }
+  const wrap = document.getElementById('tagFilterSelectWrap');
+  if (wrap && !wrap.contains(e.target)) closeTagFilterMenu();
 });
+document.addEventListener('keydown', (e) => { if (e.key === 'Escape') closeTagFilterMenu(); });
 
 let _searchTimer = null;
 function onSearchInput() {
@@ -2695,6 +2745,8 @@ const PUBLIC_HTML_TEMPLATE = '<!DOCTYPE html>\n'
 + '.filter-select-toggle{width:100%;box-sizing:border-box;display:flex;align-items:center;justify-content:space-between;gap:8px;font-family:\'JetBrains Mono\',monospace;font-size:14px;padding:10px 14px;border-radius:var(--radius);border:1px solid var(--border);background:var(--bg-secondary);color:var(--text-primary);cursor:pointer;text-transform:uppercase;letter-spacing:0.5px;text-align:left;transition:border-color 0.15s;}\n'
 + '.filter-select-toggle:hover{border-color:var(--border-active);}\n'
 + '.filter-select-toggle[aria-expanded="true"]{border-color:var(--accent);}\n'
++ '.filter-select-text{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}\n'
++ '.filter-select-prefix{color:var(--text-muted);}\n'
 + '.filter-select-chevron{color:var(--text-muted);flex-shrink:0;transition:transform 0.15s;}\n'
 + '.filter-select-toggle[aria-expanded="true"] .filter-select-chevron{transform:rotate(180deg);}\n'
 + '.filter-select-menu{list-style:none;position:absolute;top:calc(100% + 4px);left:0;right:0;margin:0;padding:4px;background:var(--bg-secondary);border:1px solid var(--border);border-radius:var(--radius);z-index:50;max-height:240px;overflow-y:auto;box-shadow:0 8px 24px rgba(0,0,0,0.4);}\n'
@@ -2761,7 +2813,7 @@ const PUBLIC_HTML_TEMPLATE = '<!DOCTYPE html>\n'
 + '.toolbar-secondary{display:flex;justify-content:flex-end;margin:-8px 0 20px;}\n'
 + '.toolbar-secondary[hidden]{display:none;}\n'
 + '.toolbar-secondary .topo-mode-toggle .view-btn{flex:1;text-align:center;justify-content:center;}\n'
-+ '@media (max-width:640px){.header{padding:12px 16px;}.main{padding:16px;}.device-grid{grid-template-columns:1fr;}.detail-grid{grid-template-columns:1fr;}.toolbar{flex-direction:column;align-items:stretch;}.search-wrap{display:block;}.search-box{width:100%;}.view-toggle{display:flex;}.view-toggle .view-btn{flex:1;text-align:center;justify-content:center;}.toolbar-secondary{margin:0 0 16px;}.toolbar-secondary .topo-mode-toggle{flex:1;}.topology-clusters{grid-template-columns:1fr;max-width:320px;margin:0 auto;justify-content:center;}.topo-cluster{width:100%;height:auto;}.filter-group{display:none;}.filter-select{display:block;}}\n'
++ '@media (max-width:640px){.header{padding:12px 16px;}.main{padding:16px;}.device-grid{grid-template-columns:1fr;}.detail-grid{grid-template-columns:1fr;}.toolbar{flex-direction:column;align-items:stretch;}.search-wrap{display:block;}.search-box{width:100%;}.view-toggle{display:flex;}.view-toggle .view-btn{flex:1;text-align:center;justify-content:center;}.toolbar-secondary{margin:0 0 16px;}.toolbar-secondary .topo-mode-toggle{flex:1;}.topology-clusters{grid-template-columns:1fr;max-width:320px;margin:0 auto;justify-content:center;}.topo-cluster{width:100%;height:auto;}.filter-group{display:none;}.filter-select{display:block;}.secondary-row{flex-direction:column;align-items:stretch;}.secondary-row>.toolbar-secondary{margin-left:0;}.tag-filter-row{display:block;}.tag-filter-label{display:none;}}\n'
 + '</style>\n'
 + '</head>\n'
 + '<body>\n'
@@ -2774,7 +2826,7 @@ const PUBLIC_HTML_TEMPLATE = '<!DOCTYPE html>\n'
 + '    </div>\n'
 + '    <div class="filter-group" id="filterGroup"></div>\n'
 + '    <div class="filter-select" id="filterSelectWrap">\n'
-+ '      <button type="button" class="filter-select-toggle" id="filterToggle" aria-haspopup="listbox" aria-expanded="false" aria-label="Filter by type"><span id="filterValue">all</span><svg class="filter-select-chevron" width="12" height="12" viewBox="0 0 12 12" aria-hidden="true"><path fill="none" stroke="currentColor" stroke-width="1.5" d="M2 4l4 4 4-4"/></svg></button>\n'
++ '      <button type="button" class="filter-select-toggle" id="filterToggle" aria-haspopup="listbox" aria-expanded="false" aria-label="Filter by type"><span class="filter-select-text"><span class="filter-select-prefix">Type:</span> <span id="filterValue">all</span></span><svg class="filter-select-chevron" width="12" height="12" viewBox="0 0 12 12" aria-hidden="true"><path fill="none" stroke="currentColor" stroke-width="1.5" d="M2 4l4 4 4-4"/></svg></button>\n'
 + '      <ul class="filter-select-menu" id="filterMenu" role="listbox" hidden></ul>\n'
 + '    </div>\n'
 + '    <div class="view-toggle" role="tablist" aria-label="View mode">\n'
@@ -2786,6 +2838,10 @@ const PUBLIC_HTML_TEMPLATE = '<!DOCTYPE html>\n'
 + '    <div class="tag-filter-row" id="tagFilterRow" hidden aria-label="Filter by tag">\n'
 + '      <span class="tag-filter-label">Tags</span>\n'
 + '      <div class="filter-group" id="tagFilterGroup"></div>\n'
++ '      <div class="filter-select" id="tagFilterSelectWrap">\n'
++ '        <button type="button" class="filter-select-toggle" id="tagFilterToggle" aria-haspopup="listbox" aria-expanded="false" aria-label="Filter by tag"><span class="filter-select-text"><span class="filter-select-prefix">Tags:</span> <span id="tagFilterValue">all</span></span><svg class="filter-select-chevron" width="12" height="12" viewBox="0 0 12 12" aria-hidden="true"><path fill="none" stroke="currentColor" stroke-width="1.5" d="M2 4l4 4 4-4"/></svg></button>\n'
++ '        <ul class="filter-select-menu" id="tagFilterMenu" role="listbox" hidden></ul>\n'
++ '      </div>\n'
 + '    </div>\n'
 + '    <div class="toolbar-secondary" id="topoModeRow" hidden>\n'
 + '      <div class="view-toggle topo-mode-toggle" id="topoModeToggle" role="tablist" aria-label="Topology mode">\n'
@@ -2831,6 +2887,13 @@ const PUBLIC_HTML_TEMPLATE = '<!DOCTYPE html>\n'
 + '  group.innerHTML=tags.map(function(t){\n'
 + '    return \'<button class="filter-btn filter-btn-tag \'+(t===currentTagFilter?"active":"")+\'" data-tag="\'+esc(t)+\'">#\'+esc(t)+\'</button>\';\n'
 + '  }).join("");\n'
++ '  var tagVal=document.getElementById("tagFilterValue");\n'
++ '  if(tagVal)tagVal.textContent=currentTagFilter?"#"+currentTagFilter:"all";\n'
++ '  var tagMenu=document.getElementById("tagFilterMenu");\n'
++ '  if(tagMenu){tagMenu.innerHTML=[""].concat(tags).map(function(t){\n'
++ '    var sel=t?t===currentTagFilter:!currentTagFilter;\n'
++ '    return \'<li class="filter-select-option \'+(sel?"active":"")+\'" role="option" aria-selected="\'+sel+\'" data-tag-option="\'+esc(t)+\'">\'+(t?"#"+esc(t):"all")+\'</li>\';\n'
++ '  }).join("");}\n'
 + '  updateSecondaryRow();\n'
 + '}\n'
 + 'function updateSecondaryRow(){\n'
@@ -2844,6 +2907,9 @@ const PUBLIC_HTML_TEMPLATE = '<!DOCTYPE html>\n'
 + 'function closeFilterMenu(){var b=document.getElementById("filterToggle"),m=document.getElementById("filterMenu");if(!b||!m)return;b.setAttribute("aria-expanded","false");m.hidden=true;}\n'
 + 'function setFilter(f){currentFilter=f;renderFilters();renderDevices();if(currentView==="topology")renderTopology();}\n'
 + 'function setTagFilter(t){currentTagFilter=currentTagFilter===t?null:t;renderTagFilters();renderDevices();if(currentView==="topology")renderTopology();}\n'
++ 'function applyTagFilter(t){currentTagFilter=t||null;renderTagFilters();renderDevices();if(currentView==="topology")renderTopology();}\n'
++ 'function toggleTagFilterMenu(){var b=document.getElementById("tagFilterToggle"),m=document.getElementById("tagFilterMenu");if(!b||!m)return;var open=b.getAttribute("aria-expanded")==="true";b.setAttribute("aria-expanded",open?"false":"true");m.hidden=open;}\n'
++ 'function closeTagFilterMenu(){var b=document.getElementById("tagFilterToggle"),m=document.getElementById("tagFilterMenu");if(!b||!m)return;b.setAttribute("aria-expanded","false");m.hidden=true;}\n'
 + 'function getFilteredDevices(){\n'
 + '  var query=document.getElementById("searchBox").value.toLowerCase();\n'
 + '  var filtered=DEVICES.filter(function(d){\n'
@@ -3052,10 +3118,13 @@ const PUBLIC_HTML_TEMPLATE = '<!DOCTYPE html>\n'
 + 'document.getElementById("searchClear").addEventListener("click",function(){var b=document.getElementById("searchBox");b.value="";document.getElementById("searchWrap").classList.remove("has-value");b.focus();renderDevices();if(currentView==="topology")renderTopology();});\n'
 + 'document.getElementById("filterGroup").addEventListener("click",function(e){var b=e.target.closest("[data-filter]");if(b)setFilter(b.getAttribute("data-filter"));});\n'
 + 'document.getElementById("tagFilterGroup").addEventListener("click",function(e){var b=e.target.closest("[data-tag]");if(b)setTagFilter(b.getAttribute("data-tag"));});\n'
++ 'document.getElementById("tagFilterToggle").addEventListener("click",function(e){e.stopPropagation();toggleTagFilterMenu();});\n'
++ 'document.getElementById("tagFilterMenu").addEventListener("click",function(e){var o=e.target.closest("[data-tag-option]");if(o){closeTagFilterMenu();applyTagFilter(o.getAttribute("data-tag-option")||null);}});\n'
++ 'document.addEventListener("click",function(e){var w=document.getElementById("tagFilterSelectWrap");if(w&&!w.contains(e.target))closeTagFilterMenu();});\n'
 + 'document.getElementById("filterToggle").addEventListener("click",function(e){e.stopPropagation();toggleFilterMenu();});\n'
 + 'document.getElementById("filterMenu").addEventListener("click",function(e){var o=e.target.closest("[data-filter]");if(o){closeFilterMenu();setFilter(o.getAttribute("data-filter"));}});\n'
 + 'document.addEventListener("click",function(e){var w=document.getElementById("filterSelectWrap");if(w&&!w.contains(e.target))closeFilterMenu();});\n'
-+ 'document.addEventListener("keydown",function(e){if(e.key==="Escape")closeFilterMenu();});\n'
++ 'document.addEventListener("keydown",function(e){if(e.key==="Escape"){closeFilterMenu();closeTagFilterMenu();}});\n'
 + 'document.getElementById("deviceGrid").addEventListener("click",function(e){var c=e.target.closest("[data-id]");if(c)showDetail(c.getAttribute("data-id"));});\n'
 + 'document.getElementById("deviceGrid").addEventListener("keydown",function(e){if(e.key==="Enter"||e.key===" "){var c=e.target.closest("[data-id]");if(c){e.preventDefault();showDetail(c.getAttribute("data-id"));}}});\n'
 + 'document.getElementById("topologyView").addEventListener("click",function(e){var n=e.target.closest("[data-id]");if(n)showDetail(n.getAttribute("data-id"));});\n'
