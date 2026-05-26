@@ -37,7 +37,7 @@ homelab.md gives you a clean interface to catalog every device in your homelab: 
 2. Open `index.html` in your browser
 3. Click **+** to add your first entry
 4. Pick a type — the form will hide fields that don't apply (a UPS won't ask for an OS or CPU, a network switch won't ask for storage, etc.)
-5. Fill in the details — name, IP, system, OS / firmware, CPU, RAM, GPU, storage, location, services, status, and notes
+5. Fill in the details — name, IP, system, OS / firmware, CPU, RAM, GPU, storage, location, services, and notes
 6. For VMs, containers, or anything that runs on top of another entry, use the **Host / Parent** dropdown to link it to its host. The dropdown only offers types that make sense for the child type you picked
 7. For entries plugged into a UPS, use the **Power Source** dropdown — only UPS entries are eligible. This is independent of the network parent so a single entry can have both (e.g. a Server hosted on a Switch, powered by a UPS). VMs and containers don't get a Power Source of their own — they inherit it from their host
 8. Tick **Private** on an entry, row, or the Notes block to keep it out of the public exports
