@@ -200,18 +200,6 @@
     display: flex; flex-direction: column; gap: 1px;
   }
 
-  .side-actions { display: none; flex-direction: column; gap: 4px; }
-  .nav-actions { display: flex; flex-direction: column; gap: 4px; padding: 0 4px; }
-  .nav-actions .btn { justify-content: flex-start; }
-  .side-export {
-    display: block; width: 100%; text-align: left;
-    font-family: var(--font-mono); font-size: 13px;
-    padding: 8px 10px; background: var(--bg-input);
-    border: 1px solid var(--border); border-radius: var(--radius);
-    color: var(--text); cursor: pointer;
-  }
-  .side-export:hover { border-color: var(--border-active); color: var(--accent); }
-
   .sidebar-foot { margin-top: auto; padding: 8px; }
   .sidebar-foot a {
     font-size: 11.5px; color: var(--text-faint); text-decoration: none;
@@ -416,12 +404,6 @@
   .mbar-btn svg { display: block; }
   .mbar-btn.active { color: var(--accent); }
   .mbar-btn.primary { color: var(--accent); }
-  .mbar-btn .mdot {
-    position: absolute; top: 8px; right: 50%; margin-right: -18px;
-    width: 7px; height: 7px; border-radius: 50%; background: var(--amber);
-    box-shadow: 0 0 5px rgba(230, 176, 75, 0.7); display: none;
-  }
-  .mbar-btn .mdot.show { display: block; }
 
   /* ============================ MODALS ============================ */
   .modal-overlay, .detail-overlay {
@@ -708,7 +690,8 @@
     body { padding-bottom: 54px; background-size: 48px 48px; }
 
     .win-dots { display: none; }
-    .title-actions { display: none; }
+    /* Import/Export live in the header on mobile; Add stays in the bottom bar */
+    .title-actions .btn-primary { display: none; }
 
     .layout { grid-template-columns: 1fr; }
 
@@ -730,7 +713,6 @@
     .context-title .ctx-name { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
     .context-meta { display: none; }
     .topo-mode-toggle-wrap { flex-shrink: 0; }
-    .side-actions { display: flex; }
     .device-grid { grid-template-columns: 1fr; }
     .form-row { grid-template-columns: 1fr; }
     .service-entry { grid-template-columns: 1fr 60px auto; }
@@ -779,18 +761,6 @@
     <div class="side-section" id="tagFilterRow" hidden>
       <div class="side-head">Tags</div>
       <div class="nav" id="tagFilterGroup"></div>
-    </div>
-    <div class="side-section side-actions">
-      <div class="side-head">Actions</div>
-      <div class="nav-actions">
-        <button class="btn btn-sm" onclick="closeSidebar(); importMarkdown()">↑ Import .md</button>
-        <div class="export-menu-label">Full export</div>
-        <button class="side-export" onclick="closeSidebar(); exportAll()">homelab.md</button>
-        <button class="side-export" onclick="closeSidebar(); exportCsv()">homelab.csv</button>
-        <div class="export-menu-label">Public export</div>
-        <button class="side-export" onclick="closeSidebar(); confirmExportPublicMd()">homelab.md</button>
-        <button class="side-export" onclick="closeSidebar(); openHtmlExportModal()">homelab.html</button>
-      </div>
     </div>
     <div class="sidebar-foot">
       <a href="https://github.com/jeremehancock/homelab.md" target="_blank" rel="noopener">homelab.md</a>
@@ -847,7 +817,7 @@
   <div class="mrow">
     <button class="mbar-btn" id="mbMenu" onclick="toggleSidebar()" aria-label="Open menu" aria-expanded="false">
       <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><line x1="4" y1="7" x2="20" y2="7"/><line x1="4" y1="12" x2="20" y2="12"/><line x1="4" y1="17" x2="20" y2="17"/></svg>
-      <span>Menu</span><span class="mdot" id="mbUnsaved"></span>
+      <span>Menu</span>
     </button>
     <button class="mbar-btn active" id="mbCards" onclick="setView('grid')">
       <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></svg>
@@ -3125,8 +3095,6 @@ function updateExportIndicator() {
   }
   const sb = document.getElementById('sbUnsaved');
   if (sb) sb.classList.toggle('show', unsaved);
-  const mb = document.getElementById('mbUnsaved');
-  if (mb) mb.classList.toggle('show', unsaved);
 }
 
 // --- CSV export ---
