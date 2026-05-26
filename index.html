@@ -484,6 +484,47 @@
   .form-textarea { resize: vertical; min-height: 80px; font-family: var(--font-mono); }
   .form-hint { font-size: 12px; color: var(--text-faint); }
 
+  /* tag picker */
+  .tag-wrap { position: relative; }
+  .tag-field {
+    display: flex; flex-wrap: wrap; align-items: center; gap: 6px;
+    padding: 6px 8px; min-height: 40px;
+    border: 1px solid var(--border); border-radius: var(--radius);
+    background: var(--bg-input); cursor: text;
+    transition: border-color 0.12s;
+  }
+  .tag-field:focus-within { border-color: var(--accent); }
+  .tag-chips { display: contents; }
+  .tag-chip {
+    display: inline-flex; align-items: center; gap: 5px;
+    font-family: var(--font-mono); font-size: 12px;
+    padding: 3px 5px 3px 8px; border-radius: var(--radius);
+    background: var(--purple-bg); border: 1px solid rgba(189, 134, 237, 0.28); color: var(--purple);
+  }
+  .tag-chip button {
+    background: none; border: none; color: inherit; cursor: pointer;
+    font-size: 13px; line-height: 1; padding: 0 1px; opacity: 0.65;
+  }
+  .tag-chip button:hover { opacity: 1; }
+  .tag-entry {
+    flex: 1; min-width: 90px; border: none; outline: none; background: transparent;
+    color: var(--text); font-family: var(--font-mono); font-size: 13px; padding: 4px 2px;
+    text-transform: lowercase;
+  }
+  .tag-entry::placeholder { color: var(--text-faint); text-transform: none; }
+  .tag-suggest {
+    list-style: none; position: absolute; top: calc(100% + 4px); left: 0; right: 0;
+    margin: 0; padding: 4px; background: var(--bg-elev); border: 1px solid var(--border-active);
+    border-radius: var(--radius); z-index: 50; max-height: 180px; overflow-y: auto; box-shadow: var(--shadow);
+  }
+  .tag-suggest[hidden] { display: none; }
+  .tag-suggest-item {
+    font-family: var(--font-mono); font-size: 13px; padding: 7px 10px;
+    border-radius: var(--radius); color: var(--text-dim); cursor: pointer;
+  }
+  .tag-suggest-item:hover, .tag-suggest-item.active { background: var(--bg-hover); color: var(--purple); }
+  .tag-suggest-item .new-hint { color: var(--text-faint); font-size: 11px; margin-left: 6px; }
+
   .export-warning {
     font-family: var(--font-sans); font-size: 13.5px; line-height: 1.5; color: var(--text-dim);
     padding: 12px 14px; margin-bottom: 16px;
@@ -943,8 +984,15 @@
       <div class="form-row full">
         <div class="form-group">
           <label class="form-label">Tags</label>
-          <input type="text" class="form-input" id="fTags" placeholder="e.g. media, prod, experimental">
-          <span class="form-hint">Comma-separated. Lowercased and de-duplicated on save.</span>
+          <div class="tag-wrap">
+            <div class="tag-field" id="tagField" onclick="if(event.target===this||event.target.id==='tagChips')document.getElementById('tagEntry').focus()">
+              <span class="tag-chips" id="tagChips"></span>
+              <input type="text" class="tag-entry" id="tagEntry" placeholder="add a tag…" autocomplete="off"
+                oninput="onTagEntryInput()" onkeydown="onTagEntryKey(event)" onfocus="renderTagSuggest()" onblur="onTagEntryBlur()">
+            </div>
+            <ul class="tag-suggest" id="tagSuggest" role="listbox" hidden></ul>
+          </div>
+          <span class="form-hint">Type and press Enter (or comma). Existing tags are suggested and reused; tags are lowercased.</span>
         </div>
       </div>
 
@@ -1707,6 +1755,108 @@ function removeStorageRow(i) {
   renderStorageRows();
 }
 
+// --- Tag picker (form) ---
+// formTags holds the canonical (normalized, lowercased, unique) tags for the
+// entry being edited. Existing tags across all entries are offered as
+// suggestions so the same tag is reused instead of duplicated.
+let formTags = [];
+let tagSuggestActive = -1;
+
+function allKnownTags() {
+  const set = new Set();
+  loadDevices().forEach(d => (d.tags || []).forEach(t => set.add(t)));
+  return Array.from(set).sort();
+}
+
+function setFormTags(tags) {
+  formTags = normalizeTags(tags);
+  const entry = document.getElementById('tagEntry');
+  if (entry) entry.value = '';
+  renderTagChips();
+  renderTagSuggest();
+}
+
+function renderTagChips() {
+  const wrap = document.getElementById('tagChips');
+  if (!wrap) return;
+  wrap.innerHTML = formTags.map((t, i) =>
+    `<span class="tag-chip">#${esc(t)}<button type="button" onclick="removeFormTag(${i})" aria-label="Remove ${esc(t)}">✕</button></span>`
+  ).join('');
+}
+
+// Add one or more tags (accepts a comma-separated string or array). Existing
+// tags are matched case-insensitively via normalizeTags, so duplicates and
+// case variants collapse onto the canonical lowercase tag.
+function addFormTags(raw) {
+  normalizeTags(raw).forEach(t => { if (!formTags.includes(t)) formTags.push(t); });
+  renderTagChips();
+}
+
+function removeFormTag(i) {
+  formTags.splice(i, 1);
+  renderTagChips();
+  renderTagSuggest();
+  const entry = document.getElementById('tagEntry');
+  if (entry) entry.focus();
+}
+
+function pickTag(t) {
+  addFormTags(t);
+  const entry = document.getElementById('tagEntry');
+  if (entry) { entry.value = ''; entry.focus(); }
+  renderTagSuggest();
+}
+
+function renderTagSuggest() {
+  const menu = document.getElementById('tagSuggest');
+  const entry = document.getElementById('tagEntry');
+  if (!menu || !entry) return;
+  const q = entry.value.toLowerCase().trim();
+  let matches = allKnownTags().filter(t => !formTags.includes(t) && (!q || t.includes(q)));
+  matches = matches.slice(0, 8);
+  tagSuggestActive = -1;
+  if (!matches.length) { menu.hidden = true; menu.innerHTML = ''; return; }
+  menu.innerHTML = matches.map((t, i) =>
+    `<li class="tag-suggest-item" role="option" data-tag="${esc(t)}" onmousedown="event.preventDefault(); pickTag('${esc(t)}')">#${esc(t)}</li>`
+  ).join('');
+  menu.hidden = false;
+}
+
+function onTagEntryInput() { renderTagSuggest(); }
+
+function onTagEntryBlur() {
+  // Delay so a suggestion mousedown can register before hiding.
+  setTimeout(() => { const m = document.getElementById('tagSuggest'); if (m) m.hidden = true; }, 120);
+}
+
+function onTagEntryKey(e) {
+  const entry = e.target;
+  const menu = document.getElementById('tagSuggest');
+  const items = menu && !menu.hidden ? Array.from(menu.querySelectorAll('.tag-suggest-item')) : [];
+  if (e.key === 'Enter' || e.key === ',') {
+    e.preventDefault();
+    if (tagSuggestActive >= 0 && items[tagSuggestActive]) {
+      pickTag(items[tagSuggestActive].getAttribute('data-tag'));
+    } else if (entry.value.trim()) {
+      addFormTags(entry.value);
+      entry.value = '';
+      renderTagSuggest();
+    }
+  } else if (e.key === 'Backspace' && !entry.value && formTags.length) {
+    removeFormTag(formTags.length - 1);
+  } else if (e.key === 'ArrowDown' && items.length) {
+    e.preventDefault();
+    tagSuggestActive = (tagSuggestActive + 1) % items.length;
+    items.forEach((el, i) => el.classList.toggle('active', i === tagSuggestActive));
+  } else if (e.key === 'ArrowUp' && items.length) {
+    e.preventDefault();
+    tagSuggestActive = (tagSuggestActive - 1 + items.length) % items.length;
+    items.forEach((el, i) => el.classList.toggle('active', i === tagSuggestActive));
+  } else if (e.key === 'Escape' && menu && !menu.hidden) {
+    menu.hidden = true;
+  }
+}
+
 // Allowed parent types per child type. `null` means "any non-UPS"; an empty
 // array means "no parent allowed". Kept narrow on purpose — see the rationale
 // in the corresponding form hint.
@@ -1904,7 +2054,7 @@ function openEditModal(id) {
   document.getElementById('fRam').value = d.ram || '';
   document.getElementById('fGpu').value = d.gpu || '';
   document.getElementById('fLocation').value = d.location || '';
-  document.getElementById('fTags').value = (d.tags || []).join(', ');
+  setFormTags(d.tags || []);
   document.getElementById('fNotes').value = d.notes || '';
   document.getElementById('fNotesPrivate').checked = !!d.notesPrivate;
   document.getElementById('fPrivate').checked = !!d.private;
@@ -1939,9 +2089,10 @@ function openEditModal(id) {
 function closeModal() { closeModalEl(document.getElementById('formModal')); }
 
 function clearForm() {
-  ['fName','fIp','fSystem','fOs','fCpu','fRam','fGpu','fLocation','fNotes','fTags'].forEach(id => {
+  ['fName','fIp','fSystem','fOs','fCpu','fRam','fGpu','fLocation','fNotes'].forEach(id => {
     document.getElementById(id).value = '';
   });
+  setFormTags([]);
   setFormSelectValue('fType', 'server');
   setFormSelectValue('fStatus', 'online');
   setFormSelectValue('fParent', '');
@@ -1982,7 +2133,7 @@ function saveDevice() {
     gpu: hidden('fGpuRow') ? '' : document.getElementById('fGpu').value.trim(),
     storage,
     location: document.getElementById('fLocation').value.trim(),
-    tags: normalizeTags(document.getElementById('fTags').value),
+    tags: normalizeTags(formTags.concat(normalizeTags(document.getElementById('tagEntry').value))),
     services,
     notes: document.getElementById('fNotes').value.trim(),
     private: document.getElementById('fPrivate').checked,
