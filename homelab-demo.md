@@ -7,6 +7,7 @@
 # isp-modem
 
 - **Type:** network
+- **Tags:** network, isp, edge
 - **IP Address:** 192.168.100.1
 - **System:** Arris SBG10 Cable Modem
 - **OS / Firmware:** AT_01.06.000
@@ -32,6 +33,7 @@ ISP: 1 Gbit symmetric.
 # edge-router
 
 - **Type:** network
+- **Tags:** network, firewall, router, vpn, critical
 - **IP Address:** 10.0.0.1
 - **System:** Protectli Vault FW6B
 - **OS / Firmware:** pfSense CE 2.7.2
@@ -67,6 +69,7 @@ Inter-VLAN ACLs documented in the internal runbook — see vault-server.
 # core-switch
 
 - **Type:** network
+- **Tags:** network, switch, critical
 - **IP Address:** 10.0.0.2
 - **System:** UniFi USW-Pro-24-PoE
 - **OS / Firmware:** 7.0.66
@@ -98,6 +101,7 @@ LAGG to truenas-01 on ports 23/24.
 # iot-switch
 
 - **Type:** network
+- **Tags:** network, switch, iot
 - **IP Address:** 10.0.0.3
 - **System:** UniFi USW-Lite-8-PoE
 - **OS / Firmware:** 7.0.66
@@ -120,6 +124,7 @@ Trunked to core-switch on port 8. IoT VLAN 20 only; no inter-VLAN routing.
 # unifi-ap
 
 - **Type:** network
+- **Tags:** network, wifi, unifi
 - **IP Address:** 10.0.0.5
 - **System:** UniFi U6-Pro
 - **OS / Firmware:** 6.6.65
@@ -141,6 +146,7 @@ Broadcasts 3 SSIDs: Home (VLAN 10), IoT (VLAN 20), Guest (VLAN 30). PoE+ powered
 # proxmox-01
 
 - **Type:** server
+- **Tags:** server, proxmox, hypervisor, critical
 - **IP Address:** 10.0.1.10
 - **System:** Dell OptiPlex 7080 Micro
 - **OS / Firmware:** Proxmox VE 8.2
@@ -180,6 +186,7 @@ Backups run nightly at 02:00 via PBS to truenas-01.
 # docker-host-vm
 
 - **Type:** vm
+- **Tags:** vm, docker, linux
 - **IP Address:** 10.0.1.20
 - **System:** —
 - **OS / Firmware:** Ubuntu Server 24.04 LTS
@@ -215,6 +222,7 @@ Power source is inherited from proxmox-01 → ups-rack in the Power view.
 # media-vm
 
 - **Type:** vm
+- **Tags:** vm, media, plex, linux
 - **IP Address:** 10.0.1.21
 - **System:** —
 - **OS / Firmware:** Ubuntu Server 24.04 LTS
@@ -247,6 +255,7 @@ The qBittorrent service is marked Private so it does not appear in the public ex
 # nextcloud-lxc
 
 - **Type:** container
+- **Tags:** container, productivity, linux
 - **IP Address:** 10.0.1.22
 - **System:** —
 - **OS / Firmware:** Debian 12
@@ -276,6 +285,7 @@ isp-modem → edge-router → core-switch → proxmox-01 → docker-host-vm → 
 # pihole-lxc
 
 - **Type:** container
+- **Tags:** container, dns, linux
 - **IP Address:** 10.0.1.53
 - **System:** —
 - **OS / Firmware:** Debian 12
@@ -305,6 +315,7 @@ The Admin service is marked Private; only the public-facing Pi-hole service show
 # homeassistant-lxc
 
 - **Type:** container
+- **Tags:** container, smart-home, automation, linux
 - **IP Address:** 10.0.1.40
 - **System:** —
 - **OS / Firmware:** Debian 12
@@ -336,6 +347,7 @@ Because Notes Private is set on this entry, this entire block is omitted from pu
 # truenas-01
 
 - **Type:** storage
+- **Tags:** storage, nas, backup, critical
 - **IP Address:** 10.0.1.50
 - **System:** Custom build — Fractal Node 304
 - **OS / Firmware:** TrueNAS SCALE 24.04
@@ -377,6 +389,7 @@ The encrypted USB drive row is marked Private and will not appear in public expo
 # workstation-01
 
 - **Type:** server
+- **Tags:** server, workstation, ml, gpu
 - **IP Address:** 10.0.1.60
 - **System:** Custom build — Lian Li O11 Mini
 - **OS / Firmware:** Pop!_OS 22.04
@@ -416,6 +429,7 @@ Plugged into its own UPS so a flaky office circuit doesn't take down the rack.
 # vault-server
 
 - **Type:** server
+- **Tags:** server, security, raspberry-pi
 - **IP Address:** 10.0.1.99
 - **System:** Raspberry Pi 5 / 8 GB
 - **OS / Firmware:** Raspberry Pi OS Lite (64-bit)
@@ -451,6 +465,7 @@ at all. Useful for boxes you don't want to advertise externally.
 # ups-rack
 
 - **Type:** ups
+- **Tags:** ups, power, rack
 - **IP Address:** —
 - **System:** APC Back-UPS Pro 1500VA (BR1500MS2)
 - **OS / Firmware:** —
@@ -483,6 +498,7 @@ they don't have a power source of their own.
 # ups-workstation
 
 - **Type:** ups
+- **Tags:** ups, power, office
 - **IP Address:** —
 - **System:** CyberPower CP1500PFCLCD
 - **OS / Firmware:** —
