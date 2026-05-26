@@ -206,7 +206,6 @@
     display: inline-flex; align-items: center; gap: 6px;
   }
   .sidebar-foot a:hover { color: var(--accent); }
-  .sidebar-foot a::before { content: '$'; color: var(--accent); opacity: 0.7; }
 
   .drawer-overlay {
     display: none; position: fixed; inset: 0;
@@ -286,7 +285,6 @@
     border-radius: var(--radius);
     background: rgba(15, 20, 27, 0.6);
     padding: 14px;
-    min-height: 240px;
   }
 
   .device-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(330px, 1fr)); gap: 12px; }
@@ -325,7 +323,7 @@
     display: inline-flex; align-items: center; gap: 5px;
   }
   .device-type-badge svg { flex-shrink: 0; display: block; }
-  .device-type-badge > span { display: block; line-height: 1; }
+  .device-type-badge > span { display: block; line-height: 1; padding-top: 2.5px; }
   .badge-server { background: rgba(57, 197, 187, 0.13); color: var(--accent); }
   .badge-vm { background: var(--blue-bg); color: var(--blue); }
   .badge-container { background: var(--purple-bg); color: var(--purple); }
@@ -348,7 +346,7 @@
   .service-tag {
     font-family: var(--font-mono); font-size: 11px; line-height: 1;
     display: inline-flex; align-items: center;
-    padding: 4px 7px; border-radius: var(--radius);
+    padding: 6px 4px 5px 4px; border-radius: var(--radius);
     background: var(--tag-bg); border: 1px solid var(--tag-border); color: var(--accent);
   }
 
@@ -356,13 +354,13 @@
   .user-tag {
     font-family: var(--font-mono); font-size: 11px; line-height: 1;
     display: inline-flex; align-items: center;
-    padding: 4px 7px; border-radius: var(--radius);
+    padding: 6px 4px 5px 4px; border-radius: var(--radius);
     background: var(--purple-bg); border: 1px solid rgba(189, 134, 237, 0.28); color: var(--purple);
   }
 
   .child-count-badge {
     font-family: var(--font-mono); font-size: 11px;
-    padding: 2px 7px; border-radius: var(--radius);
+    padding: 4px 6px 3px 6px; border-radius: var(--radius);
     background: var(--blue-bg); color: var(--blue);
     margin-top: 8px; display: inline-block;
   }
@@ -689,7 +687,6 @@
   .topology-view.active { display: block; }
   .topology-empty {
     display: flex; flex-direction: column; align-items: center; justify-content: center;
-    min-height: calc(240px - 28px);
     text-align: center; padding: 24px 20px; color: var(--text-faint); font-size: 14px;
   }
   .topology-clusters {
