@@ -59,27 +59,20 @@
 
   body {
     font-family: var(--font-mono);
-    background: var(--bg);
     color: var(--text);
     min-height: 100vh;
     line-height: 1.55;
     font-size: 14px;
     padding-bottom: var(--statusbar-h);
     -webkit-font-smoothing: antialiased;
-  }
-
-  /* faint terminal grid backdrop */
-  body::before {
-    content: '';
-    position: fixed;
-    inset: 0;
+    /* faint terminal grid backdrop, painted as the page background so it
+       never establishes a stacking context that traps the drawer */
+    background-color: var(--bg);
     background-image:
-      linear-gradient(var(--border-soft) 1px, transparent 1px),
-      linear-gradient(90deg, var(--border-soft) 1px, transparent 1px);
+      linear-gradient(rgba(120, 138, 168, 0.05) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(120, 138, 168, 0.05) 1px, transparent 1px);
     background-size: 64px 64px;
-    opacity: 0.18;
-    pointer-events: none;
-    z-index: 0;
+    background-attachment: fixed;
   }
 
   ::-webkit-scrollbar { width: 9px; height: 9px; }
@@ -169,8 +162,6 @@
 
   /* ============================ LAYOUT ============================ */
   .layout {
-    position: relative;
-    z-index: 1;
     display: grid;
     grid-template-columns: var(--sidebar-w) minmax(0, 1fr);
     align-items: start;
@@ -738,8 +729,7 @@
   /* ============================ RESPONSIVE ============================ */
   @media (max-width: 860px) {
     :root { --statusbar-h: 0px; }
-    body { padding-bottom: 54px; }
-    body::before { background-size: 48px 48px; }
+    body { padding-bottom: 54px; background-size: 48px 48px; }
 
     .menu-toggle { display: inline-flex; }
     .title-path { display: none; }
