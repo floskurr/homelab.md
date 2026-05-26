@@ -1242,11 +1242,23 @@ function navIcon(t) {
   return getTypeIcon(t);
 }
 
+// Canonical type order, read straight from the Type dropdown in the entry
+// modal so the sidebar menu and the dropdown can never drift apart. Reorder
+// the dropdown <li>s and the menu follows automatically.
+function getTypeOrder() {
+  return Array.from(document.querySelectorAll('#fTypeMenu .form-select-option'))
+    .map(o => o.getAttribute('data-value') || '');
+}
+
 function renderFilters() {
   const devices = loadDevices();
   const counts = {};
   devices.forEach(d => { counts[d.type] = (counts[d.type] || 0) + 1; });
-  const types = ['all', ...Array.from(new Set(devices.map(d => d.type)))];
+  const order = getTypeOrder();
+  const present = Array.from(new Set(devices.map(d => d.type)));
+  const known = present.filter(t => order.includes(t)).sort((a, b) => order.indexOf(a) - order.indexOf(b));
+  const unknown = present.filter(t => !order.includes(t));
+  const types = ['all', ...known, ...unknown];
   const active = currentFilter || 'all';
   document.getElementById('filterGroup').innerHTML = types.map(t => {
     const n = t === 'all' ? devices.length : (counts[t] || 0);
@@ -2770,6 +2782,7 @@ function buildSharedRenderSource() {
   };
   return [
     `const TYPE_ICON_PATHS = ${JSON.stringify(TYPE_ICON_PATHS)};`,
+    `const TYPE_ORDER = ${JSON.stringify(getTypeOrder())};`,
     fnSrc('sortByName', sortByName),
     fnSrc('isUps', isUps),
     fnSrc('isNetworkType', isNetworkType),
@@ -2853,7 +2866,10 @@ const PUBLIC_HTML_TEMPLATE = '<!DOCTYPE html>\n'
 + 'function getChildren(parentId){return DEVICES.filter(function(d){return d.parentId===parentId;}).sort(sortByName);}\n'
 + 'function renderFilters(){\n'
 + '  var counts={};DEVICES.forEach(function(d){counts[d.type]=(counts[d.type]||0)+1;});\n'
-+ '  var seen={},types=["all"];DEVICES.forEach(function(d){if(!seen[d.type]){seen[d.type]=1;types.push(d.type);}});\n'
++ '  var seen={},present=[];DEVICES.forEach(function(d){if(!seen[d.type]){seen[d.type]=1;present.push(d.type);}});\n'
++ '  var known=present.filter(function(t){return TYPE_ORDER.indexOf(t)!==-1;}).sort(function(a,b){return TYPE_ORDER.indexOf(a)-TYPE_ORDER.indexOf(b);});\n'
++ '  var unknown=present.filter(function(t){return TYPE_ORDER.indexOf(t)===-1;});\n'
++ '  var types=["all"].concat(known).concat(unknown);\n'
 + '  document.getElementById("filterGroup").innerHTML=types.map(function(t){\n'
 + '    var n=t==="all"?DEVICES.length:(counts[t]||0);\n'
 + '    return \'<button class="nav-item \'+(t===currentFilter?"active":"")+\'" data-filter="\'+esc(t)+\'" role="tab" aria-selected="\'+(t===currentFilter)+\'"><span class="nav-ico">\'+navIcon(t)+\'</span><span class="nav-label">\'+esc(t)+\'</span><span class="nav-count">\'+n+\'</span></button>\';\n'
