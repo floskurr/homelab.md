@@ -337,11 +337,12 @@
   .device-name { font-family: var(--font-mono); font-size: 15px; font-weight: 600; color: var(--text); word-break: break-word; }
 
   .device-type-badge {
-    font-family: var(--font-mono); font-size: 11px;
+    font-family: var(--font-mono); font-size: 11px; line-height: 1;
     text-transform: uppercase; letter-spacing: 0.6px;
     padding: 2px 7px; border-radius: var(--radius); font-weight: 600; white-space: nowrap;
     display: inline-flex; align-items: center; gap: 5px;
   }
+  .device-type-badge::before, .device-type-badge::after { line-height: 1; }
   .device-type-badge svg { flex-shrink: 0; display: block; }
   .device-type-badge::before { content: '['; opacity: 0.55; }
   .device-type-badge::after { content: ']'; opacity: 0.55; }
