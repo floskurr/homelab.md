@@ -1303,29 +1303,6 @@ function renderTagFilters(devices) {
   ).join('');
 }
 
-function toggleFilterMenu(e) {
-  if (e) e.stopPropagation();
-  const btn = document.getElementById('filterToggle');
-  const menu = document.getElementById('filterMenu');
-  const open = btn.getAttribute('aria-expanded') === 'true';
-  if (!open) closeTagFilterMenu();
-  btn.setAttribute('aria-expanded', open ? 'false' : 'true');
-  menu.hidden = open;
-}
-function closeFilterMenu() {
-  const btn = document.getElementById('filterToggle');
-  const menu = document.getElementById('filterMenu');
-  if (!btn || !menu) return;
-  btn.setAttribute('aria-expanded', 'false');
-  menu.hidden = true;
-}
-function selectFilter(t) { closeFilterMenu(); setFilter(t); }
-document.addEventListener('click', (e) => {
-  const wrap = document.getElementById('filterSelectWrap');
-  if (wrap && !wrap.contains(e.target)) closeFilterMenu();
-});
-document.addEventListener('keydown', (e) => { if (e.key === 'Escape') closeFilterMenu(); });
-
 let currentFilter = 'all';
 function setFilter(f) {
   currentFilter = f;
@@ -1360,34 +1337,24 @@ function updateContext(shown, total) {
     meta.textContent = filtered ? `${shown} of ${total} entries` : `${total} ${total === 1 ? 'entry' : 'entries'}`;
   }
 }
-function toggleTagFilterMenu(e) {
-  if (e) e.stopPropagation();
-  const btn = document.getElementById('tagFilterToggle');
-  const menu = document.getElementById('tagFilterMenu');
-  if (!btn || !menu) return;
-  const open = btn.getAttribute('aria-expanded') === 'true';
-  if (!open) closeFilterMenu();
-  btn.setAttribute('aria-expanded', open ? 'false' : 'true');
-  menu.hidden = open;
+
+// --- Mobile sidebar drawer ---
+function openSidebar() {
+  document.getElementById('sidebar').classList.add('open');
+  document.getElementById('drawerOverlay').classList.add('open');
+  const t = document.getElementById('mbMenu');
+  if (t) t.setAttribute('aria-expanded', 'true');
 }
-function closeTagFilterMenu() {
-  const btn = document.getElementById('tagFilterToggle');
-  const menu = document.getElementById('tagFilterMenu');
-  if (!btn || !menu) return;
-  btn.setAttribute('aria-expanded', 'false');
-  menu.hidden = true;
+function closeSidebar() {
+  document.getElementById('sidebar').classList.remove('open');
+  document.getElementById('drawerOverlay').classList.remove('open');
+  const t = document.getElementById('mbMenu');
+  if (t) t.setAttribute('aria-expanded', 'false');
 }
-document.addEventListener('click', (e) => {
-  if (!e.target.closest) return;
-  const chip = e.target.closest('#tagFilterGroup [data-tag]');
-  if (chip) { setTagFilter(chip.getAttribute('data-tag')); return; }
-  const opt = e.target.closest('#tagFilterMenu [data-tag-option]');
-  if (opt) { closeTagFilterMenu(); applyTagFilter(opt.getAttribute('data-tag-option') || null); return; }
-  const wrap = document.getElementById('tagFilterSelectWrap');
-  if (wrap && !wrap.contains(e.target)) closeTagFilterMenu();
-});
-document.addEventListener('keydown', (e) => { if (e.key === 'Escape') closeTagFilterMenu(); });
-window.addEventListener('scroll', () => { closeFilterMenu(); closeTagFilterMenu(); }, { passive: true });
+function toggleSidebar() {
+  if (document.getElementById('sidebar').classList.contains('open')) closeSidebar();
+  else openSidebar();
+}
 
 let _searchTimer = null;
 function onSearchInput() {
@@ -2947,13 +2914,9 @@ const PUBLIC_HTML_TEMPLATE = '<!DOCTYPE html>\n'
 + '  var meta=document.getElementById("contextMeta");\n'
 + '  if(meta){var q=(document.getElementById("searchBox").value||"").trim();var f=currentFilter!=="all"||currentTagFilter||q;meta.textContent=f?(shown+" of "+total+" entries"):(total+(total===1?" entry":" entries"));}\n'
 + '}\n'
-+ 'function toggleFilterMenu(){var b=document.getElementById("filterToggle"),m=document.getElementById("filterMenu");var open=b.getAttribute("aria-expanded")==="true";if(!open)closeTagFilterMenu();b.setAttribute("aria-expanded",open?"false":"true");m.hidden=open;}\n'
-+ 'function closeFilterMenu(){var b=document.getElementById("filterToggle"),m=document.getElementById("filterMenu");if(!b||!m)return;b.setAttribute("aria-expanded","false");m.hidden=true;}\n'
-+ 'function setFilter(f){currentFilter=f;renderFilters();renderDevices();if(currentView==="topology")renderTopology();}\n'
-+ 'function setTagFilter(t){currentTagFilter=currentTagFilter===t?null:t;renderTagFilters();renderDevices();if(currentView==="topology")renderTopology();}\n'
-+ 'function applyTagFilter(t){currentTagFilter=t||null;renderTagFilters();renderDevices();if(currentView==="topology")renderTopology();}\n'
-+ 'function toggleTagFilterMenu(){var b=document.getElementById("tagFilterToggle"),m=document.getElementById("tagFilterMenu");if(!b||!m)return;var open=b.getAttribute("aria-expanded")==="true";if(!open)closeFilterMenu();b.setAttribute("aria-expanded",open?"false":"true");m.hidden=open;}\n'
-+ 'function closeTagFilterMenu(){var b=document.getElementById("tagFilterToggle"),m=document.getElementById("tagFilterMenu");if(!b||!m)return;b.setAttribute("aria-expanded","false");m.hidden=true;}\n'
++ 'function openSidebar(){document.getElementById("sidebar").classList.add("open");document.getElementById("drawerOverlay").classList.add("open");var t=document.getElementById("mbMenu");if(t)t.setAttribute("aria-expanded","true");}\n'
++ 'function closeSidebar(){document.getElementById("sidebar").classList.remove("open");document.getElementById("drawerOverlay").classList.remove("open");var t=document.getElementById("mbMenu");if(t)t.setAttribute("aria-expanded","false");}\n'
++ 'function toggleSidebar(){if(document.getElementById("sidebar").classList.contains("open"))closeSidebar();else openSidebar();}\n'
 + 'function getFilteredDevices(){\n'
 + '  var query=document.getElementById("searchBox").value.toLowerCase();\n'
 + '  var filtered=DEVICES.filter(function(d){\n'
@@ -3153,14 +3116,8 @@ const PUBLIC_HTML_TEMPLATE = '<!DOCTYPE html>\n'
 + 'document.getElementById("searchClear").addEventListener("click",function(){var b=document.getElementById("searchBox");b.value="";document.getElementById("searchWrap").classList.remove("has-value");b.focus();renderDevices();if(currentView==="topology")renderTopology();});\n'
 + 'document.getElementById("filterGroup").addEventListener("click",function(e){var b=e.target.closest("[data-filter]");if(b)setFilter(b.getAttribute("data-filter"));});\n'
 + 'document.getElementById("tagFilterGroup").addEventListener("click",function(e){var b=e.target.closest("[data-tag]");if(b)setTagFilter(b.getAttribute("data-tag"));});\n'
-+ 'document.getElementById("tagFilterToggle").addEventListener("click",function(e){e.stopPropagation();toggleTagFilterMenu();});\n'
-+ 'document.getElementById("tagFilterMenu").addEventListener("click",function(e){var o=e.target.closest("[data-tag-option]");if(o){closeTagFilterMenu();applyTagFilter(o.getAttribute("data-tag-option")||null);}});\n'
-+ 'document.addEventListener("click",function(e){var w=document.getElementById("tagFilterSelectWrap");if(w&&!w.contains(e.target))closeTagFilterMenu();});\n'
-+ 'document.getElementById("filterToggle").addEventListener("click",function(e){e.stopPropagation();toggleFilterMenu();});\n'
-+ 'document.getElementById("filterMenu").addEventListener("click",function(e){var o=e.target.closest("[data-filter]");if(o){closeFilterMenu();setFilter(o.getAttribute("data-filter"));}});\n'
-+ 'document.addEventListener("click",function(e){var w=document.getElementById("filterSelectWrap");if(w&&!w.contains(e.target))closeFilterMenu();});\n'
-+ 'document.addEventListener("keydown",function(e){if(e.key==="Escape"){closeFilterMenu();closeTagFilterMenu();}});\n'
-+ 'window.addEventListener("scroll",function(){closeFilterMenu();closeTagFilterMenu();},{passive:true});\n'
++ 'document.getElementById("mbMenu").addEventListener("click",toggleSidebar);\n'
++ 'document.getElementById("drawerOverlay").addEventListener("click",closeSidebar);\n'
 + 'document.getElementById("deviceGrid").addEventListener("click",function(e){var c=e.target.closest("[data-id]");if(c)showDetail(c.getAttribute("data-id"));});\n'
 + 'document.getElementById("deviceGrid").addEventListener("keydown",function(e){if(e.key==="Enter"||e.key===" "){var c=e.target.closest("[data-id]");if(c){e.preventDefault();showDetail(c.getAttribute("data-id"));}}});\n'
 + 'document.getElementById("topologyView").addEventListener("click",function(e){var n=e.target.closest("[data-id]");if(n)showDetail(n.getAttribute("data-id"));});\n'
