@@ -118,21 +118,8 @@
     color: var(--accent); letter-spacing: -0.3px; white-space: nowrap;
   }
   .logo span { color: var(--text-faint); font-weight: 400; }
-  .title-path {
-    font-size: 12px; color: var(--text-faint);
-    white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
-  }
-  .title-path::before { content: '~/'; opacity: 0.6; }
 
-  .title-gauges { display: flex; gap: 14px; margin-left: auto; flex-shrink: 0; }
-  .gauge { display: flex; align-items: center; gap: 6px; font-size: 12px; color: var(--text-dim); white-space: nowrap; }
-  .gauge .gdot { width: 7px; height: 7px; border-radius: 50%; display: inline-block; }
-  .gauge .gdot.up { background: var(--success); box-shadow: 0 0 6px rgba(91, 209, 127, 0.5); }
-  .gauge .gdot.down { background: var(--danger); }
-  .gauge .gdot.tot { background: var(--accent); }
-  .gauge b { color: var(--text); font-weight: 600; }
-
-  .title-actions { display: flex; gap: 7px; flex-shrink: 0; }
+  .title-actions { display: flex; gap: 7px; flex-shrink: 0; margin-left: auto; }
 
   /* ============================ BUTTONS ============================ */
   .btn {
@@ -412,10 +399,6 @@
     border-top: 1px solid var(--border);
     font-size: 11.5px; color: var(--text-dim);
   }
-  .status-seg { display: inline-flex; align-items: center; gap: 6px; white-space: nowrap; }
-  .status-seg .sb-accent { color: var(--accent); font-weight: 600; }
-  .status-seg .sb-up { color: var(--success); }
-  .status-seg .sb-down { color: var(--danger); }
   .status-keys { margin-left: auto; display: flex; gap: 14px; overflow: hidden; }
   .status-keys .key { display: inline-flex; align-items: center; gap: 5px; white-space: nowrap; color: var(--text-faint); }
   .status-keys .key b { color: var(--amber); font-weight: 700; }
@@ -732,9 +715,6 @@
     body { padding-bottom: 54px; background-size: 48px 48px; }
 
     .menu-toggle { display: inline-flex; }
-    .title-path { display: none; }
-    .title-gauges { gap: 10px; }
-    .title-gauges .gauge.g-total { display: none; }
     .title-actions { display: none; }
 
     .layout { grid-template-columns: 1fr; }
@@ -772,12 +752,6 @@
   <button class="menu-toggle" id="menuToggle" onclick="toggleSidebar()" aria-label="Toggle menu" aria-expanded="false">☰</button>
   <div class="title-id">
     <div class="logo">homelab<span>.md</span></div>
-    <div class="title-path">homelab</div>
-  </div>
-  <div class="title-gauges" aria-hidden="true">
-    <span class="gauge g-total"><span class="gdot tot"></span><b id="gTotal">0</b> total</span>
-    <span class="gauge"><span class="gdot up"></span><b id="gUp">0</b> up</span>
-    <span class="gauge"><span class="gdot down"></span><b id="gDown">0</b> down</span>
   </div>
   <div class="title-actions">
     <button class="btn btn-sm" onclick="importMarkdown()" title="Import .md files"><span class="kbd">↑</span> Import</button>
@@ -859,13 +833,11 @@
 <div class="drawer-overlay" id="drawerOverlay" onclick="closeSidebar()"></div>
 
 <footer class="statusbar" id="statusbar">
-  <span class="status-seg"><span class="sb-accent" id="sbCount">0</span> entries</span>
-  <span class="status-seg"><span class="sb-up" id="sbUp">0</span> up&nbsp;·&nbsp;<span class="sb-down" id="sbDown">0</span> down</span>
   <span class="status-unsaved" id="sbUnsaved"><span class="udot"></span> unsaved</span>
   <span class="status-keys" aria-hidden="true">
     <span class="key"><b>a</b> add</span>
     <span class="key"><b>/</b> search</span>
-    <span class="key"><b>g</b> cards</span>
+    <span class="key"><b>c</b> cards</span>
     <span class="key"><b>t</b> topo</span>
     <span class="key"><b>i</b> import</span>
     <span class="key"><b>e</b> export</span>
@@ -1328,18 +1300,6 @@ function setTagFilter(t) {
 }
 
 // --- Live stats (title-bar gauges + status bar) ---
-function updateStats() {
-  const devices = loadDevices();
-  const up = devices.filter(d => d.status === 'online').length;
-  const down = devices.filter(d => d.status === 'offline').length;
-  const set = (id, val) => { const el = document.getElementById(id); if (el) el.textContent = val; };
-  set('gTotal', devices.length);
-  set('gUp', up);
-  set('gDown', down);
-  set('sbUp', up);
-  set('sbDown', down);
-}
-
 // --- Context bar (current filter + match count) ---
 function updateContext(shown, total) {
   const name = document.getElementById('contextName');
@@ -1350,8 +1310,6 @@ function updateContext(shown, total) {
     const filtered = currentFilter !== 'all' || currentTagFilter || q;
     meta.textContent = filtered ? `${shown} of ${total} entries` : `${total} ${total === 1 ? 'entry' : 'entries'}`;
   }
-  const sb = document.getElementById('sbCount');
-  if (sb) sb.textContent = shown;
 }
 
 // --- Mobile sidebar drawer ---
@@ -1417,7 +1375,6 @@ function renderDevices() {
   const devices = loadDevices();
   const filtered = getFilteredDevices();
 
-  updateStats();
   updateContext(filtered.length, devices.length);
 
   const grid = document.getElementById('deviceGrid');
@@ -2769,7 +2726,6 @@ const PUBLIC_HTML_TEMPLATE = '<!DOCTYPE html>\n'
 + '  <div class="win-dots" aria-hidden="true"><span class="dot red"></span><span class="dot amber"></span><span class="dot green"></span></div>\n'
 + '  <button class="menu-toggle" id="menuToggle" aria-label="Toggle menu" aria-expanded="false">☰</button>\n'
 + '  <div class="title-id"><div class="logo">__SITE_NAME__</div></div>\n'
-+ '  <div class="title-gauges" aria-hidden="true"><span class="gauge g-total"><span class="gdot tot"></span><b id="gTotal">0</b> total</span><span class="gauge"><span class="gdot up"></span><b id="gUp">0</b> up</span><span class="gauge"><span class="gdot down"></span><b id="gDown">0</b> down</span></div>\n'
 + '</header>\n'
 + '<div class="layout">\n'
 + '  <aside class="sidebar" id="sidebar" aria-label="Filters and navigation">\n'
@@ -2790,7 +2746,7 @@ const PUBLIC_HTML_TEMPLATE = '<!DOCTYPE html>\n'
 + '  </main>\n'
 + '</div>\n'
 + '<div class="drawer-overlay" id="drawerOverlay"></div>\n'
-+ '<footer class="statusbar" id="statusbar"><span class="status-seg"><span class="sb-accent" id="sbCount">0</span> entries</span><span class="status-seg"><span class="sb-up" id="sbUp">0</span> up&nbsp;·&nbsp;<span class="sb-down" id="sbDown">0</span> down</span><span class="status-keys" aria-hidden="true"><span class="key"><b>/</b> search</span><span class="key"><b>g</b> cards</span><span class="key"><b>t</b> topo</span></span></footer>\n'
++ '<footer class="statusbar" id="statusbar"><span class="status-keys" aria-hidden="true"><span class="key"><b>/</b> search</span><span class="key"><b>c</b> cards</span><span class="key"><b>t</b> topo</span></span></footer>\n'
 + '<nav class="mobile-bar" id="mobileBar" aria-label="Primary"><div class="mrow"><button class="mbar-btn" id="mbMenu"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><line x1="4" y1="7" x2="20" y2="7"/><line x1="4" y1="12" x2="20" y2="12"/><line x1="4" y1="17" x2="20" y2="17"/></svg><span>Menu</span></button><button class="mbar-btn active" data-view="grid"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></svg><span>Cards</span></button><button class="mbar-btn" data-view="topology"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"><circle cx="12" cy="5" r="2.5"/><circle cx="5" cy="19" r="2.5"/><circle cx="19" cy="19" r="2.5"/><line x1="12" y1="7.5" x2="12" y2="12"/><line x1="12" y1="12" x2="6.5" y2="17"/><line x1="12" y1="12" x2="17.5" y2="17"/></svg><span>Topo</span></button></div></nav>\n'
 + '<div class="detail-overlay" id="detailOverlay"><div class="detail-panel" id="detailPanel"></div></div>\n'
 + '<script>\n'
@@ -2825,16 +2781,10 @@ const PUBLIC_HTML_TEMPLATE = '<!DOCTYPE html>\n'
 + '}\n'
 + 'function setFilter(f){currentFilter=f;renderFilters();renderDevices();if(currentView==="topology")renderTopology();}\n'
 + 'function setTagFilter(t){currentTagFilter=currentTagFilter===t?null:t;renderFilters();renderDevices();if(currentView==="topology")renderTopology();}\n'
-+ 'function updateStats(){\n'
-+ '  var up=0,down=0;DEVICES.forEach(function(d){if(d.status==="online")up++;else if(d.status==="offline")down++;});\n'
-+ '  var set=function(id,v){var el=document.getElementById(id);if(el)el.textContent=v;};\n'
-+ '  set("gTotal",DEVICES.length);set("gUp",up);set("gDown",down);set("sbUp",up);set("sbDown",down);\n'
-+ '}\n'
 + 'function updateContext(shown,total){\n'
 + '  var name=document.getElementById("contextName");if(name)name.textContent=currentTagFilter?"#"+currentTagFilter:(currentFilter||"all");\n'
 + '  var meta=document.getElementById("contextMeta");\n'
 + '  if(meta){var q=(document.getElementById("searchBox").value||"").trim();var f=currentFilter!=="all"||currentTagFilter||q;meta.textContent=f?(shown+" of "+total+" entries"):(total+(total===1?" entry":" entries"));}\n'
-+ '  var sb=document.getElementById("sbCount");if(sb)sb.textContent=shown;\n'
 + '}\n'
 + 'function openSidebar(){document.getElementById("sidebar").classList.add("open");document.getElementById("drawerOverlay").classList.add("open");var t=document.getElementById("menuToggle");if(t)t.setAttribute("aria-expanded","true");}\n'
 + 'function closeSidebar(){document.getElementById("sidebar").classList.remove("open");document.getElementById("drawerOverlay").classList.remove("open");var t=document.getElementById("menuToggle");if(t)t.setAttribute("aria-expanded","false");}\n'
@@ -2858,7 +2808,7 @@ const PUBLIC_HTML_TEMPLATE = '<!DOCTYPE html>\n'
 + '}\n'
 + 'function renderDevices(){\n'
 + '  var filtered=getFilteredDevices();\n'
-+ '  updateStats();updateContext(filtered.length,DEVICES.length);\n'
++ '  updateContext(filtered.length,DEVICES.length);\n'
 + '  var grid=document.getElementById("deviceGrid");\n'
 + '  if(!filtered.length){\n'
 + '    grid.innerHTML=\'<div class="empty-state" style="grid-column:1/-1;"><div class="empty-icon">\\u29E1</div><div class="empty-title">\'+(DEVICES.length===0?"No entries":"No matches")+\'</div><div class="empty-text">\'+(DEVICES.length===0?"":"Try adjusting your search or filter.")+\'</div></div>\';\n'
@@ -3048,7 +2998,7 @@ const PUBLIC_HTML_TEMPLATE = '<!DOCTYPE html>\n'
 + 'document.getElementById("detailPanel").addEventListener("click",function(e){var n=e.target.closest("[data-detail-id]");if(n){showDetail(n.getAttribute("data-detail-id"));return;}if(e.target.closest("[data-action=close-detail]"))closeDetail();});\n'
 + 'document.getElementById("detailOverlay").addEventListener("click",function(e){if(e.target.id==="detailOverlay")closeDetail();});\n'
 + 'document.addEventListener("keydown",function(e){if(e.key==="Escape")closeDetail();});\n'
-+ 'document.addEventListener("keydown",function(e){if(e.metaKey||e.ctrlKey||e.altKey)return;var tag=(e.target.tagName||"").toLowerCase();var typing=tag==="input"||tag==="textarea"||tag==="select";if(e.key==="Escape"&&document.getElementById("sidebar").classList.contains("open")){closeSidebar();return;}if(typing)return;if(e.key==="/"){e.preventDefault();document.getElementById("searchBox").focus();}else if(e.key==="g"||e.key==="G")setView("grid");else if(e.key==="t"||e.key==="T")setView("topology");});\n'
++ 'document.addEventListener("keydown",function(e){if(e.metaKey||e.ctrlKey||e.altKey)return;var tag=(e.target.tagName||"").toLowerCase();var typing=tag==="input"||tag==="textarea"||tag==="select";if(e.key==="Escape"&&document.getElementById("sidebar").classList.contains("open")){closeSidebar();return;}if(typing)return;if(e.key==="/"){e.preventDefault();document.getElementById("searchBox").focus();}else if(e.key==="c"||e.key==="C")setView("grid");else if(e.key==="t"||e.key==="T")setView("topology");});\n'
 + 'applyViewUI();renderFilters();renderDevices();if(currentView==="topology")renderTopology();\n'
 + '<\/script>\n'
 + '</body>\n'
@@ -3345,7 +3295,7 @@ document.addEventListener('keydown', (e) => {
   switch (e.key) {
     case '/': e.preventDefault(); document.getElementById('searchBox').focus(); break;
     case 'a': case 'A': e.preventDefault(); openAddModal(); break;
-    case 'g': case 'G': setView('grid'); break;
+    case 'c': case 'C': setView('grid'); break;
     case 't': case 'T': setView('topology'); break;
     case 'i': case 'I': importMarkdown(); break;
     case 'e': case 'E': toggleExportMenu(e); break;
