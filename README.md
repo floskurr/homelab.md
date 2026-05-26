@@ -4,7 +4,7 @@ A single-file, offline-first web app for documenting your homelab infrastructure
 
 ## Screenshot
 
-![homelab.md screenshot](screenshot-new-design.png)
+![homelab.md screenshot](screenshot-fixed.png)
 
 ## What It Does
 
