@@ -365,11 +365,6 @@
     margin-top: 8px; display: inline-block;
   }
 
-  .device-status { width: 8px; height: 8px; border-radius: 50%; display: inline-block; vertical-align: middle; }
-  .status-online { background: var(--success); box-shadow: 0 0 6px rgba(91, 199, 122, 0.45); }
-  .status-offline { background: var(--danger); }
-  .status-unknown { background: var(--text-faint); }
-
   /* ============================ STATUS BAR ============================ */
   .statusbar {
     position: fixed; left: 0; right: 0; bottom: 0; z-index: 80;
@@ -705,10 +700,6 @@
   .topo-cluster .topo-text-type { font-family: var(--font-mono); font-size: 10px; fill: var(--text-faint); letter-spacing: 0.5px; pointer-events: none; }
   .topo-cluster .topo-edge { stroke: var(--border-active); stroke-width: 1; fill: none; }
   .topo-cluster .topo-edge-power { stroke: #a6e25a; stroke-width: 1.25; stroke-dasharray: 4 3; fill: none; opacity: 0.85; }
-  .topo-cluster .topo-status { stroke: none; pointer-events: none; }
-  .topo-status.status-online { fill: var(--success); }
-  .topo-status.status-offline { fill: var(--danger); }
-  .topo-status.status-unknown { fill: var(--text-faint); }
   .topo-cluster .topo-accent { pointer-events: none; }
   .topo-accent-server { fill: var(--accent); }
   .topo-accent-vm { fill: var(--blue); }
@@ -963,21 +954,6 @@
       </div>
 
       <div class="form-row">
-        <div class="form-group">
-          <label class="form-label">Status</label>
-          <div class="form-select-wrap" id="fStatusWrap">
-            <button type="button" class="form-select-toggle" id="fStatusToggle" aria-haspopup="listbox" aria-expanded="false" onclick="toggleFormSelect('fStatus', event)">
-              <span class="form-select-value" id="fStatusLabel">Online</span>
-              <svg class="form-select-chevron" width="12" height="12" viewBox="0 0 12 12" aria-hidden="true"><path fill="none" stroke="currentColor" stroke-width="1.5" d="M2 4l4 4 4-4"/></svg>
-            </button>
-            <ul class="form-select-menu" id="fStatusMenu" role="listbox" hidden>
-              <li class="form-select-option active" role="option" aria-selected="true" data-value="online" onclick="selectFormSelect('fStatus', this)">Online</li>
-              <li class="form-select-option" role="option" aria-selected="false" data-value="offline" onclick="selectFormSelect('fStatus', this)">Offline</li>
-              <li class="form-select-option" role="option" aria-selected="false" data-value="unknown" onclick="selectFormSelect('fStatus', this)">Unknown</li>
-            </ul>
-            <input type="hidden" id="fStatus" value="online">
-          </div>
-        </div>
         <div class="form-group">
           <label class="form-label">Location</label>
           <input type="text" class="form-input" id="fLocation" placeholder="e.g. Rack 1, Shelf 2">
@@ -1428,7 +1404,6 @@ function renderDevices() {
       <div class="device-card-header">
         <div>
           <div class="device-name">
-            <span class="device-status status-${d.status || 'unknown'}"></span>
             ${esc(d.name)}
             ${d.private ? '<span class="private-badge" title="Excluded from public exports">Private</span>' : ''}
           </div>
@@ -1520,11 +1495,7 @@ function truncateLabel(s, n) {
 }
 
 function topoBoxSvg(d, x, y, w, h, isParent, opts) {
-  const showStatus = opts && opts.showStatus !== false;
-  const status = d.status || 'unknown';
-  const dotX = x + 14;
-  const dotY = y + h / 2;
-  const textX = showStatus ? x + 26 : x + 14;
+  const textX = x + 14;
   const nameY = y + h / 2 - 3;
   const typeY = y + h / 2 + 13;
   const iconSize = 12;
@@ -1541,7 +1512,6 @@ function topoBoxSvg(d, x, y, w, h, isParent, opts) {
     <defs><clipPath id="${clipId}"><rect x="${x}" y="${y}" width="${w}" height="${h}" rx="6"/></clipPath></defs>
     <rect x="${x}" y="${y}" width="${w}" height="${h}" rx="6" class="topo-box"/>
     <rect x="${x}" y="${y}" width="3" height="${h}" class="topo-accent topo-accent-${t}" clip-path="url(#${clipId})"/>
-    ${showStatus ? `<circle cx="${dotX}" cy="${dotY}" r="4" class="topo-status status-${status}"/>` : ''}
     <text x="${textX}" y="${nameY}" class="topo-text-name">${esc(truncateLabel(d.name, nameMax))}</text>
     ${getTopoTypeIcon(t, iconX, iconY, iconSize)}
     <text x="${typeTextX}" y="${typeY}" class="topo-text-type">${esc(t.toUpperCase())}</text>
@@ -1666,8 +1636,8 @@ function renderTopology() {
 
   const trees = topoMode === 'power' ? powerTrees : networkTrees;
   const opts = topoMode === 'power'
-    ? { showStatus: true, edgeType: 'power' }
-    : { showStatus: true };
+    ? { edgeType: 'power' }
+    : {};
 
   if (!trees.length) {
     let msg;
@@ -2052,7 +2022,6 @@ function openEditModal(id) {
   document.getElementById('fIp').value = d.ip || '';
   document.getElementById('fSystem').value = d.system || '';
   document.getElementById('fOs').value = d.os || '';
-  setFormSelectValue('fStatus', d.status || 'unknown');
   document.getElementById('fCpu').value = d.cpu || '';
   document.getElementById('fRam').value = d.ram || '';
   document.getElementById('fGpu').value = d.gpu || '';
@@ -2097,7 +2066,6 @@ function clearForm() {
   });
   setFormTags([]);
   setFormSelectValue('fType', 'server');
-  setFormSelectValue('fStatus', 'online');
   setFormSelectValue('fParent', '');
   setFormSelectValue('fPower', '');
   document.getElementById('fNotesPrivate').checked = false;
@@ -2130,7 +2098,6 @@ function saveDevice() {
     poweredById: hidden('fPowerRow') ? null : (document.getElementById('fPower').value || null),
     system: document.getElementById('fSystem').value.trim(),
     os: hidden('fOsGroup') ? '' : document.getElementById('fOs').value.trim(),
-    status: document.getElementById('fStatus').value,
     cpu: hidden('fCpuRamRow') ? '' : document.getElementById('fCpu').value.trim(),
     ram: hidden('fCpuRamRow') ? '' : document.getElementById('fRam').value.trim(),
     gpu: hidden('fGpuRow') ? '' : document.getElementById('fGpu').value.trim(),
@@ -2182,7 +2149,6 @@ function showDetail(id) {
     <div class="detail-header">
       <div>
         <div style="font-family:'JetBrains Mono',monospace;font-size:22px;font-weight:700;margin-bottom:4px;">
-          <span class="device-status status-${d.status || 'unknown'}"></span>
           ${esc(d.name)}
           ${d.private ? '<span class="private-badge" title="Excluded from public exports">Private</span>' : ''}
         </div>
@@ -2206,7 +2172,6 @@ function showDetail(id) {
           field('IP Address', d.ip),
           field('System', d.system),
           field('OS / Firmware', d.os),
-          field('Status', d.status ? d.status.charAt(0).toUpperCase() + d.status.slice(1) : ''),
         ].filter(Boolean).join('');
         const hardware = [
           field('CPU', d.cpu),
@@ -2270,7 +2235,7 @@ function showDetail(id) {
           <div class="detail-section-title">Running on this Host / Parent (${children.length})</div>
           ${children.map(c => `
             <div class="child-device" onclick="event.stopPropagation(); showDetail('${c.id}')">
-              <div class="child-device-name"><span class="device-status status-${c.status || 'unknown'}"></span>${esc(c.name)}</div>
+              <div class="child-device-name">${esc(c.name)}</div>
               ${typeBadge(c.type)}
             </div>
           `).join('')}
@@ -2280,7 +2245,7 @@ function showDetail(id) {
         <div class="detail-section">
           <div class="detail-section-title">Host / Parent</div>
           <div class="child-device" onclick="event.stopPropagation(); showDetail('${parent.id}')">
-            <div class="child-device-name"><span class="device-status status-${parent.status || 'unknown'}"></span>${esc(parent.name)}</div>
+            <div class="child-device-name">${esc(parent.name)}</div>
             ${typeBadge(parent.type)}
           </div>
         </div>
@@ -2289,7 +2254,7 @@ function showDetail(id) {
         <div class="detail-section">
           <div class="detail-section-title">Power Source</div>
           <div class="child-device" onclick="event.stopPropagation(); showDetail('${powerSource.id}')">
-            <div class="child-device-name"><span class="device-status status-${powerSource.status || 'unknown'}"></span>${esc(powerSource.name)}</div>
+            <div class="child-device-name">${esc(powerSource.name)}</div>
             ${typeBadge(powerSource.type)}
           </div>
         </div>
@@ -2299,7 +2264,7 @@ function showDetail(id) {
           <div class="detail-section-title">Powered devices (${poweredDevices.length})</div>
           ${poweredDevices.map(c => `
             <div class="child-device" onclick="event.stopPropagation(); showDetail('${c.id}')">
-              <div class="child-device-name"><span class="device-status status-${c.status || 'unknown'}"></span>${esc(c.name)}</div>
+              <div class="child-device-name">${esc(c.name)}</div>
               ${typeBadge(c.type)}
             </div>
           `).join('')}
@@ -2395,7 +2360,6 @@ function deviceToMarkdown(d, allDevices) {
   const powerSource = d.poweredById ? allDevices.find(x => x.id === d.poweredById) : null;
 
   md += `- **Type:** ${d.type || '—'}\n`;
-  md += `- **Status:** ${d.status || '—'}\n`;
   md += `- **Tags:** ${(d.tags || []).length ? d.tags.join(', ') : '—'}\n`;
   md += `- **IP Address:** ${d.ip || '—'}\n`;
   md += `- **System:** ${d.system || '—'}\n`;
@@ -2460,7 +2424,7 @@ function markdownToDevice(md) {
   if (nameMatch) device.name = nameMatch[1].trim();
 
   const fieldMap = {
-    'Type': 'type', 'Status': 'status', 'IP Address': 'ip', 'System': 'system',
+    'Type': 'type', 'IP Address': 'ip', 'System': 'system',
     'OS / Firmware': 'os', 'OS': 'os', 'CPU': 'cpu', 'RAM': 'ram', 'GPU': 'gpu', 'Location': 'location',
     'Host': '_parentName', 'Power Source': '_powerName'
   };
@@ -3006,7 +2970,7 @@ const PUBLIC_HTML_TEMPLATE = '<!DOCTYPE html>\n'
 + '  var powerTrees=powerRoots.concat(powerOrphans).map(function(d){return buildPowerTree(d);})\n'
 + '    .sort(function(a,b){return sortByName(a.device,b.device);});\n'
 + '  var trees=topoMode==="power"?powerTrees:networkTrees;\n'
-+ '  var opts=topoMode==="power"?{edgeType:"power",showStatus:false}:{showStatus:false};\n'
++ '  var opts=topoMode==="power"?{edgeType:"power"}:{};\n'
 + '  if(!trees.length){\n'
 + '    var msg;\n'
 + '    if(topoMode==="power"&&isVirtualType(currentFilter))msg=(currentFilter==="vm"?"VMs":"Containers")+" inherit power from their host, so they don\\u2019t appear here on their own.";\n'
@@ -3258,7 +3222,7 @@ function exportCsv() {
   const devices = loadDevices();
   if (!devices.length) { toast('No entries to export', 'error'); return; }
 
-  const headers = ['Name', 'Type', 'Status', 'IP', 'System', 'OS', 'CPU', 'RAM', 'GPU', 'Storage', 'Location', 'Tags', 'Services', 'Notes', 'Parent', 'PowerSource', 'Private', 'NotesPrivate', 'ID'];
+  const headers = ['Name', 'Type', 'IP', 'System', 'OS', 'CPU', 'RAM', 'GPU', 'Storage', 'Location', 'Tags', 'Services', 'Notes', 'Parent', 'PowerSource', 'Private', 'NotesPrivate', 'ID'];
   const csvEscape = v => {
     if (v === undefined || v === null) return '';
     const s = String(v);
@@ -3276,7 +3240,7 @@ function exportCsv() {
       return s.name + (s.port ? ':' + s.port : '');
     }).join('; ');
     return [
-      d.name, d.type, d.status, d.ip, d.system, d.os, d.cpu, d.ram, d.gpu,
+      d.name, d.type, d.ip, d.system, d.os, d.cpu, d.ram, d.gpu,
       storage, d.location, (d.tags || []).join('; '), services, d.notes, parent ? parent.name : '', powerSource ? powerSource.name : '', d.private ? 'true' : 'false', d.notesPrivate ? 'true' : 'false', d.id,
     ].map(csvEscape).join(',');
   });
