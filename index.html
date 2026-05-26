@@ -734,6 +734,13 @@
 
     .content { padding: 14px; }
     .context-bar .primary-view { display: none; }
+    /* Keep the context bar one fixed-height row so toggling Cards/Topo
+       (which shows the Network/Power switch) doesn't shift the layout. */
+    .context-bar { flex-wrap: nowrap; min-height: 30px; }
+    .context-title { min-width: 0; flex-shrink: 1; overflow: hidden; }
+    .context-title .ctx-name { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .context-meta { display: none; }
+    .topo-mode-toggle-wrap { flex-shrink: 0; }
     .side-actions { display: flex; }
     .device-grid { grid-template-columns: 1fr; }
     .form-row { grid-template-columns: 1fr; }
