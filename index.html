@@ -1264,6 +1264,7 @@ function toggleFilterMenu(e) {
   const btn = document.getElementById('filterToggle');
   const menu = document.getElementById('filterMenu');
   const open = btn.getAttribute('aria-expanded') === 'true';
+  if (!open) closeTagFilterMenu();
   btn.setAttribute('aria-expanded', open ? 'false' : 'true');
   menu.hidden = open;
 }
@@ -1308,6 +1309,7 @@ function toggleTagFilterMenu(e) {
   const menu = document.getElementById('tagFilterMenu');
   if (!btn || !menu) return;
   const open = btn.getAttribute('aria-expanded') === 'true';
+  if (!open) closeFilterMenu();
   btn.setAttribute('aria-expanded', open ? 'false' : 'true');
   menu.hidden = open;
 }
@@ -1328,6 +1330,7 @@ document.addEventListener('click', (e) => {
   if (wrap && !wrap.contains(e.target)) closeTagFilterMenu();
 });
 document.addEventListener('keydown', (e) => { if (e.key === 'Escape') closeTagFilterMenu(); });
+window.addEventListener('scroll', () => { closeFilterMenu(); closeTagFilterMenu(); }, { passive: true });
 
 let _searchTimer = null;
 function onSearchInput() {
@@ -2903,12 +2906,12 @@ const PUBLIC_HTML_TEMPLATE = '<!DOCTYPE html>\n'
 + '  if(!wrap)return;\n'
 + '  wrap.hidden=(!tag||tag.hidden)&&(!topo||topo.hidden);\n'
 + '}\n'
-+ 'function toggleFilterMenu(){var b=document.getElementById("filterToggle"),m=document.getElementById("filterMenu");var open=b.getAttribute("aria-expanded")==="true";b.setAttribute("aria-expanded",open?"false":"true");m.hidden=open;}\n'
++ 'function toggleFilterMenu(){var b=document.getElementById("filterToggle"),m=document.getElementById("filterMenu");var open=b.getAttribute("aria-expanded")==="true";if(!open)closeTagFilterMenu();b.setAttribute("aria-expanded",open?"false":"true");m.hidden=open;}\n'
 + 'function closeFilterMenu(){var b=document.getElementById("filterToggle"),m=document.getElementById("filterMenu");if(!b||!m)return;b.setAttribute("aria-expanded","false");m.hidden=true;}\n'
 + 'function setFilter(f){currentFilter=f;renderFilters();renderDevices();if(currentView==="topology")renderTopology();}\n'
 + 'function setTagFilter(t){currentTagFilter=currentTagFilter===t?null:t;renderTagFilters();renderDevices();if(currentView==="topology")renderTopology();}\n'
 + 'function applyTagFilter(t){currentTagFilter=t||null;renderTagFilters();renderDevices();if(currentView==="topology")renderTopology();}\n'
-+ 'function toggleTagFilterMenu(){var b=document.getElementById("tagFilterToggle"),m=document.getElementById("tagFilterMenu");if(!b||!m)return;var open=b.getAttribute("aria-expanded")==="true";b.setAttribute("aria-expanded",open?"false":"true");m.hidden=open;}\n'
++ 'function toggleTagFilterMenu(){var b=document.getElementById("tagFilterToggle"),m=document.getElementById("tagFilterMenu");if(!b||!m)return;var open=b.getAttribute("aria-expanded")==="true";if(!open)closeFilterMenu();b.setAttribute("aria-expanded",open?"false":"true");m.hidden=open;}\n'
 + 'function closeTagFilterMenu(){var b=document.getElementById("tagFilterToggle"),m=document.getElementById("tagFilterMenu");if(!b||!m)return;b.setAttribute("aria-expanded","false");m.hidden=true;}\n'
 + 'function getFilteredDevices(){\n'
 + '  var query=document.getElementById("searchBox").value.toLowerCase();\n'
@@ -3125,6 +3128,7 @@ const PUBLIC_HTML_TEMPLATE = '<!DOCTYPE html>\n'
 + 'document.getElementById("filterMenu").addEventListener("click",function(e){var o=e.target.closest("[data-filter]");if(o){closeFilterMenu();setFilter(o.getAttribute("data-filter"));}});\n'
 + 'document.addEventListener("click",function(e){var w=document.getElementById("filterSelectWrap");if(w&&!w.contains(e.target))closeFilterMenu();});\n'
 + 'document.addEventListener("keydown",function(e){if(e.key==="Escape"){closeFilterMenu();closeTagFilterMenu();}});\n'
++ 'window.addEventListener("scroll",function(){closeFilterMenu();closeTagFilterMenu();},{passive:true});\n'
 + 'document.getElementById("deviceGrid").addEventListener("click",function(e){var c=e.target.closest("[data-id]");if(c)showDetail(c.getAttribute("data-id"));});\n'
 + 'document.getElementById("deviceGrid").addEventListener("keydown",function(e){if(e.key==="Enter"||e.key===" "){var c=e.target.closest("[data-id]");if(c){e.preventDefault();showDetail(c.getAttribute("data-id"));}}});\n'
 + 'document.getElementById("topologyView").addEventListener("click",function(e){var n=e.target.closest("[data-id]");if(n)showDetail(n.getAttribute("data-id"));});\n'
