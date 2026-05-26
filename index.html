@@ -101,16 +101,6 @@
   .dot.amber { background: #e6b04b; }
   .dot.green { background: #5bd17f; }
 
-  .menu-toggle {
-    display: none;
-    align-items: center; justify-content: center;
-    width: 34px; height: 34px;
-    background: transparent; border: 1px solid var(--border);
-    border-radius: var(--radius); color: var(--text-dim);
-    cursor: pointer; font-size: 16px; flex-shrink: 0;
-  }
-  .menu-toggle:hover { color: var(--accent); border-color: var(--border-active); }
-
   .title-id { display: flex; align-items: baseline; gap: 10px; min-width: 0; }
   .logo {
     font-family: var(--font-mono);
@@ -717,7 +707,6 @@
     :root { --statusbar-h: 0px; }
     body { padding-bottom: 54px; background-size: 48px 48px; }
 
-    .menu-toggle { display: inline-flex; }
     .win-dots { display: none; }
     .title-actions { display: none; }
 
@@ -760,7 +749,6 @@
 
 <header class="titlebar">
   <div class="win-dots" aria-hidden="true"><span class="dot red"></span><span class="dot amber"></span><span class="dot green"></span></div>
-  <button class="menu-toggle" id="menuToggle" onclick="toggleSidebar()" aria-label="Toggle menu" aria-expanded="false">☰</button>
   <div class="title-id">
     <div class="logo">homelab<span>.md</span></div>
   </div>
@@ -857,7 +845,7 @@
 
 <nav class="mobile-bar" id="mobileBar" aria-label="Primary">
   <div class="mrow">
-    <button class="mbar-btn" id="mbMenu" onclick="toggleSidebar()">
+    <button class="mbar-btn" id="mbMenu" onclick="toggleSidebar()" aria-label="Open menu" aria-expanded="false">
       <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><line x1="4" y1="7" x2="20" y2="7"/><line x1="4" y1="12" x2="20" y2="12"/><line x1="4" y1="17" x2="20" y2="17"/></svg>
       <span>Menu</span><span class="mdot" id="mbUnsaved"></span>
     </button>
@@ -1331,13 +1319,13 @@ function updateContext(shown, total) {
 function openSidebar() {
   document.getElementById('sidebar').classList.add('open');
   document.getElementById('drawerOverlay').classList.add('open');
-  const t = document.getElementById('menuToggle');
+  const t = document.getElementById('mbMenu');
   if (t) t.setAttribute('aria-expanded', 'true');
 }
 function closeSidebar() {
   document.getElementById('sidebar').classList.remove('open');
   document.getElementById('drawerOverlay').classList.remove('open');
-  const t = document.getElementById('menuToggle');
+  const t = document.getElementById('mbMenu');
   if (t) t.setAttribute('aria-expanded', 'false');
 }
 function toggleSidebar() {
@@ -2739,7 +2727,6 @@ const PUBLIC_HTML_TEMPLATE = '<!DOCTYPE html>\n'
 + '<body>\n'
 + '<header class="titlebar">\n'
 + '  <div class="win-dots" aria-hidden="true"><span class="dot red"></span><span class="dot amber"></span><span class="dot green"></span></div>\n'
-+ '  <button class="menu-toggle" id="menuToggle" aria-label="Toggle menu" aria-expanded="false">☰</button>\n'
 + '  <div class="title-id"><div class="logo">__SITE_NAME__</div></div>\n'
 + '</header>\n'
 + '<div class="layout">\n'
@@ -2762,7 +2749,7 @@ const PUBLIC_HTML_TEMPLATE = '<!DOCTYPE html>\n'
 + '</div>\n'
 + '<div class="drawer-overlay" id="drawerOverlay"></div>\n'
 + '<footer class="statusbar" id="statusbar"><span class="status-keys" aria-hidden="true"><span class="key"><b>/</b> search</span><span class="key"><b>c</b> cards</span><span class="key"><b>t</b> topo</span></span></footer>\n'
-+ '<nav class="mobile-bar" id="mobileBar" aria-label="Primary"><div class="mrow"><button class="mbar-btn" id="mbMenu"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><line x1="4" y1="7" x2="20" y2="7"/><line x1="4" y1="12" x2="20" y2="12"/><line x1="4" y1="17" x2="20" y2="17"/></svg><span>Menu</span></button><button class="mbar-btn active" data-view="grid"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></svg><span>Cards</span></button><button class="mbar-btn" data-view="topology"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"><circle cx="12" cy="5" r="2.5"/><circle cx="5" cy="19" r="2.5"/><circle cx="19" cy="19" r="2.5"/><line x1="12" y1="7.5" x2="12" y2="12"/><line x1="12" y1="12" x2="6.5" y2="17"/><line x1="12" y1="12" x2="17.5" y2="17"/></svg><span>Topo</span></button></div></nav>\n'
++ '<nav class="mobile-bar" id="mobileBar" aria-label="Primary"><div class="mrow"><button class="mbar-btn" id="mbMenu" aria-label="Open menu" aria-expanded="false"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><line x1="4" y1="7" x2="20" y2="7"/><line x1="4" y1="12" x2="20" y2="12"/><line x1="4" y1="17" x2="20" y2="17"/></svg><span>Menu</span></button><button class="mbar-btn active" data-view="grid"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></svg><span>Cards</span></button><button class="mbar-btn" data-view="topology"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"><circle cx="12" cy="5" r="2.5"/><circle cx="5" cy="19" r="2.5"/><circle cx="19" cy="19" r="2.5"/><line x1="12" y1="7.5" x2="12" y2="12"/><line x1="12" y1="12" x2="6.5" y2="17"/><line x1="12" y1="12" x2="17.5" y2="17"/></svg><span>Topo</span></button></div></nav>\n'
 + '<div class="detail-overlay" id="detailOverlay"><div class="detail-panel" id="detailPanel"></div></div>\n'
 + '<script>\n'
 + '"use strict";\n'
@@ -2801,8 +2788,8 @@ const PUBLIC_HTML_TEMPLATE = '<!DOCTYPE html>\n'
 + '  var meta=document.getElementById("contextMeta");\n'
 + '  if(meta){var q=(document.getElementById("searchBox").value||"").trim();var f=currentFilter!=="all"||currentTagFilter||q;meta.textContent=f?(shown+" of "+total+" entries"):(total+(total===1?" entry":" entries"));}\n'
 + '}\n'
-+ 'function openSidebar(){document.getElementById("sidebar").classList.add("open");document.getElementById("drawerOverlay").classList.add("open");var t=document.getElementById("menuToggle");if(t)t.setAttribute("aria-expanded","true");}\n'
-+ 'function closeSidebar(){document.getElementById("sidebar").classList.remove("open");document.getElementById("drawerOverlay").classList.remove("open");var t=document.getElementById("menuToggle");if(t)t.setAttribute("aria-expanded","false");}\n'
++ 'function openSidebar(){document.getElementById("sidebar").classList.add("open");document.getElementById("drawerOverlay").classList.add("open");var t=document.getElementById("mbMenu");if(t)t.setAttribute("aria-expanded","true");}\n'
++ 'function closeSidebar(){document.getElementById("sidebar").classList.remove("open");document.getElementById("drawerOverlay").classList.remove("open");var t=document.getElementById("mbMenu");if(t)t.setAttribute("aria-expanded","false");}\n'
 + 'function toggleSidebar(){if(document.getElementById("sidebar").classList.contains("open"))closeSidebar();else openSidebar();}\n'
 + 'function getFilteredDevices(){\n'
 + '  var query=document.getElementById("searchBox").value.toLowerCase();\n'
@@ -3003,7 +2990,7 @@ const PUBLIC_HTML_TEMPLATE = '<!DOCTYPE html>\n'
 + 'document.getElementById("searchClear").addEventListener("click",function(){var b=document.getElementById("searchBox");b.value="";document.getElementById("searchWrap").classList.remove("has-value");b.focus();renderDevices();if(currentView==="topology")renderTopology();});\n'
 + 'document.getElementById("filterGroup").addEventListener("click",function(e){var b=e.target.closest("[data-filter]");if(b)setFilter(b.getAttribute("data-filter"));});\n'
 + 'document.getElementById("tagFilterGroup").addEventListener("click",function(e){var b=e.target.closest("[data-tag]");if(b)setTagFilter(b.getAttribute("data-tag"));});\n'
-+ 'document.getElementById("menuToggle").addEventListener("click",toggleSidebar);\n'
++ 'document.getElementById("mbMenu").addEventListener("click",toggleSidebar);\n'
 + 'document.getElementById("drawerOverlay").addEventListener("click",closeSidebar);\n'
 + 'document.getElementById("deviceGrid").addEventListener("click",function(e){var c=e.target.closest("[data-id]");if(c)showDetail(c.getAttribute("data-id"));});\n'
 + 'document.getElementById("deviceGrid").addEventListener("keydown",function(e){if(e.key==="Enter"||e.key===" "){var c=e.target.closest("[data-id]");if(c){e.preventDefault();showDetail(c.getAttribute("data-id"));}}});\n'
