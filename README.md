@@ -6,6 +6,10 @@ A single-file, offline-first web app for documenting your homelab infrastructure
 
 ![homelab.md screenshot](screenshot-improved-fixed.png)
 
+## Demo
+
+https://github.com/user-attachments/assets/7690673b-cdd2-41db-b2a0-9a0c960a093c
+
 ## What It Does
 
 homelab.md gives you a clean interface to catalog every device in your homelab: servers, VMs, LXC containers, network gear, storage, and anything else you're running. It saves everything to a single `homelab.md` Markdown file that you can version with Git, edit in any text editor, or back up however you like.
