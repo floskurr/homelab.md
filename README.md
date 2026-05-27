@@ -20,12 +20,12 @@ homelab.md gives you a clean interface to catalog every device in your homelab: 
 - **Structured storage** — Track multiple drives per entry with type, size, notes, and an optional per-row Private flag
 - **Per-type field visibility** — The edit form hides fields that don't apply to the selected type, so a UPS doesn't ask for an OS, a network switch doesn't ask for storage drives, and so on
 - **Private flag** — Mark a whole entry, just its Notes block, or individual service/storage rows as Private to keep them out of the public exports
-- **Markdown import/export** — The `homelab.md` file is the source of truth. Import to load, export to save. The round-trip is lossless: every field, including timestamps and Notes that contain Markdown like `---` rules, survives an export → import cycle
+- **Markdown import/save** — The `homelab.md` file is the source of truth. Import to load, **Save** (Ctrl/⌘+S) to write it back. The round-trip is lossless: every field, including timestamps and Notes that contain Markdown like `---` rules, survives a save → import cycle
 - **One-click save (Ctrl/⌘+S)** — On supporting browsers, the first save lets you pick where `homelab.md` lives; after that the **Save** button and Ctrl/⌘+S write straight back to that file with no download prompt (the file is remembered across reloads). Browsers without the File System Access API fall back to a normal download
 - **CSV export** — Export your full inventory as `homelab.csv` for spreadsheet use, audits, or one-off scripts (includes every entry, Private flag included)
 - **JSON import/export** — Export your full inventory as `homelab.json`, a lossless dump of every entry (Private included) for backups or feeding into other tools. The same **↑ Import** button accepts `homelab.json` and restores it exactly
 - **Public HTML export** — Export a sanitized, self-contained `homelab.html` that renders an interactive read-only version of the dashboard, ideal for hosting publicly
-- **Unsaved-changes indicator** — A small dot appears on the **↓ Export** button whenever the in-browser data is newer than your last full export, so you don't forget to save changes back to the file
+- **Unsaved-changes indicator** — A small dot appears on the **Save** and **↓ Export** buttons whenever the in-browser data is newer than your last full save, so you don't forget to write changes back to the file
 - **Undo on delete** — Deleting an entry shows a toast with an **Undo** button (~6 seconds) that fully restores the entry and any parent / power-source links
 - **Safe import** — Importing prompts before replacing existing data and refuses to import a file with no parseable entries, so you can't accidentally wipe your inventory
 - **Topology view** — Toggle between Cards and Topology to see a tree-style SVG graph of your homelab. The Topology view has its own **Network / Power** mode switch: Network shows parent → child relationships (solid lines), Power shows UPS → powered-devices relationships (dashed lines, with VMs and containers inherited from their host's power source). Multi-level chains (e.g. Modem → Router → Switch 1 → Switch 2 → Server) render fully. Type filter and search apply to both modes. Available in the main app and the public HTML export
@@ -54,7 +54,7 @@ The `homelab.md` file is the source of truth. Anytime you make changes through t
 
 The **Save** button (or **Ctrl/⌘+S**) writes your inventory back to `homelab.md`. On browsers that support the [File System Access API](https://developer.mozilla.org/en-US/docs/Web/API/Window/showSaveFilePicker) (Chromium-based: Chrome, Edge, Brave, etc.), the first save prompts you for where to put the file, and every save after that — including Ctrl/⌘+S — writes straight to that file with **no download prompt**. The chosen file is remembered across page reloads (you'll be asked once per session to re-grant write access, a browser security requirement). Use **Ctrl/⌘+Shift+S** ("Save As") to pick a different file.
 
-On browsers without that API (Firefox, Safari), **Save** falls back to downloading `homelab.md` the usual way — exactly like the **↓ Export → homelab.md** option.
+On browsers without that API (Firefox, Safari), **Save** falls back to downloading `homelab.md` to your browser's downloads folder the usual way.
 
 ### Workflow
 
@@ -73,7 +73,7 @@ Pipe characters (`|`) and newlines inside service or storage notes are escaped o
 
 ### CSV Export
 
-The **↓ Export → homelab.csv** option (under **Full export**) produces a flat `homelab.csv` with one row per entry. Multi-value fields (services, storage) are joined with `;` inside a cell, and the `Private` / `NotesPrivate` flags are included as columns. This is a full export, so Private entries and rows are **not** filtered out — it's intended for spreadsheets, ad-hoc reporting, or feeding the inventory into other tools. It is **not** round-trippable; the `homelab.md` Full export remains the canonical save format.
+The **↓ Export → homelab.csv** option (under **Full export**) produces a flat `homelab.csv` with one row per entry. Multi-value fields (services, storage) are joined with `;` inside a cell, and the `Private` / `NotesPrivate` flags are included as columns. This is a full export, so Private entries and rows are **not** filtered out — it's intended for spreadsheets, ad-hoc reporting, or feeding the inventory into other tools. It is **not** round-trippable; `homelab.md` (written with **Save**) remains the canonical format.
 
 ### JSON Import / Export
 

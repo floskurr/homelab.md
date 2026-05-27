@@ -777,7 +777,6 @@
       <button class="btn btn-sm" id="exportBtn" onclick="toggleExportMenu(event)" title="Export options"><span class="kbd">↓</span> Export ▾</button>
       <div class="export-menu" id="exportMenu">
         <div class="export-menu-label" title="Includes every entry, including ones marked Private">Full export</div>
-        <button onclick="exportAll(); closeExportMenu()">homelab.md</button>
         <button onclick="exportCsv(); closeExportMenu()">homelab.csv</button>
         <button onclick="exportJson(); closeExportMenu()">homelab.json</button>
         <hr>
@@ -3003,16 +3002,6 @@ function buildFullMarkdown(devices) {
   md += `> Exported ${new Date().toLocaleString()} — ${devices.length} ${devices.length === 1 ? 'entry' : 'entries'}\n\n---\n\n`;
   devices.forEach(d => { md += deviceToMarkdown(d, devices) + '\n'; });
   return md;
-}
-
-function exportAll() {
-  const devices = loadDevices();
-  if (!devices.length) { toast('No entries to export', 'error'); return; }
-
-  downloadFile('homelab.md', buildFullMarkdown(devices), () => {
-    markExported();
-    toast(`Exported ${devices.length} ${devices.length === 1 ? 'entry' : 'entries'}`);
-  });
 }
 
 function importMarkdown() { document.getElementById('fileInput').click(); }
