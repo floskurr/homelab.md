@@ -30,7 +30,7 @@ homelab.md gives you a clean interface to catalog every device in your homelab: 
 - **Safe import** — Importing prompts before replacing existing data and refuses to import a file with no parseable entries, so you can't accidentally wipe your inventory
 - **Topology view** — Toggle between Cards and Topology to see a tree-style SVG graph of your homelab. The Topology view has its own **Network / Power** mode switch: Network shows parent → child relationships (solid lines), Power shows UPS → powered-devices relationships (dashed lines, with VMs and containers inherited from their host's power source). Multi-level chains (e.g. Modem → Router → Switch 1 → Switch 2 → Server) render fully. Type filter and search apply to both modes. Available in the main app and the public HTML export
 - **Search and filter** — Filter by entry type or search across names, IPs, OS / firmware, system, CPU / RAM / GPU, location, services, storage, and notes
-- **Completely offline** — No server, no API calls, no CDN. Just one HTML file
+- **Completely offline** — No server, no API calls, no CDN, no external requests of any kind (fonts are bundled into the file). Just one HTML file
 
 ## How To Use
 
@@ -91,7 +91,7 @@ When you choose this export, you'll be prompted for a **Site Name** that replace
 - Supports search, type filters, the Cards / Topology view toggle (Network and Power modes), and the entry detail modal
 - Has no add/edit/delete/import/export controls — it's strictly read-only
 - Applies **Private filtering and sanitization** before writing (Private entries/rows are omitted; IPs, MAC addresses, URLs, ports, IDs, and timestamps are removed). Sanitization isn't a guarantee — review the exported file before hosting it, especially free-form Notes
-- Is fully offline — no server, no API calls, just one HTML file
+- Is fully offline and self-contained — the bundled fonts travel with it, so it makes no external requests either
 
 ## Entry Types
 
@@ -107,7 +107,7 @@ When you choose this export, you'll be prompted for a **Site Name** that replace
 
 A web browser. That's it.
 
-The app uses Google Fonts for typography (JetBrains Mono and IBM Plex Sans). These will load if you're online, but the app works fine without them — your browser will fall back to system monospace and sans-serif fonts.
+The app uses JetBrains Mono and IBM Plex Sans for typography. Both are **bundled inside `index.html`** — embedded as latin-subset variable-font woff2 files (data URIs), so they render without any network access. The app makes **zero external requests**: no fonts, no CDN, no analytics, nothing leaves your browser. That makes it safe to use on a fully offline or air-gapped machine.
 
 ## AI Disclosure
 
