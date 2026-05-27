@@ -21,6 +21,7 @@ homelab.md gives you a clean interface to catalog every device in your homelab: 
 - **Per-type field visibility** — The edit form hides fields that don't apply to the selected type, so a UPS doesn't ask for an OS, a network switch doesn't ask for storage drives, and so on
 - **Private flag** — Mark a whole entry, just its Notes block, or individual service/storage rows as Private to keep them out of the public exports
 - **Markdown import/export** — The `homelab.md` file is the source of truth. Import to load, export to save. The round-trip is lossless: every field, including timestamps and Notes that contain Markdown like `---` rules, survives an export → import cycle
+- **One-click save (Ctrl/⌘+S)** — On supporting browsers, the first save lets you pick where `homelab.md` lives; after that the **Save** button and Ctrl/⌘+S write straight back to that file with no download prompt (the file is remembered across reloads). Browsers without the File System Access API fall back to a normal download
 - **CSV export** — Export your full inventory as `homelab.csv` for spreadsheet use, audits, or one-off scripts (includes every entry, Private flag included)
 - **JSON import/export** — Export your full inventory as `homelab.json`, a lossless dump of every entry (Private included) for backups or feeding into other tools. The same **↑ Import** button accepts `homelab.json` and restores it exactly
 - **Public HTML export** — Export a sanitized, self-contained `homelab.html` that renders an interactive read-only version of the dashboard, ideal for hosting publicly
@@ -41,13 +42,19 @@ homelab.md gives you a clean interface to catalog every device in your homelab: 
 6. For VMs, containers, or anything that runs on top of another entry, use the **Host / Parent** dropdown to link it to its host. The dropdown only offers types that make sense for the child type you picked
 7. For entries plugged into a UPS, use the **Power Source** dropdown — only UPS entries are eligible. This is independent of the network parent so a single entry can have both (e.g. a Server hosted on a Switch, powered by a UPS). VMs and containers don't get a Power Source of their own — they inherit it from their host
 8. Tick **Private** on an entry, row, or the Notes block to keep it out of the public exports
-9. Click **↓ Export** and choose **homelab.md** under **Full export** to save your data as `homelab.md`
+9. Click **Save** (or press **Ctrl/⌘+S**) to write your data to `homelab.md` — or use **↓ Export** for the other formats (`homelab.csv`, `homelab.json`, public `homelab.html`)
 
 ### How Data Is Stored
 
 While you're working, your data lives in the browser's `localStorage`. This means your changes persist between page refreshes and browser restarts without needing to do anything. However, `localStorage` is tied to your browser and can be cleared at any time, so it should not be treated as permanent storage.
 
-The `homelab.md` file is the source of truth. Anytime you make changes through the UI, you should export to save those changes back to the file. A small orange dot appears on the **↓ Export** button whenever the data in your browser is newer than your last full export — a visual nudge so you don't forget. If you ever need to ensure your current session matches the file (for example, after editing the `.md` file directly in a text editor, or opening the app in a different browser), click **↑ Import** and select your `homelab.md` (or `homelab.json`) file — the format is detected automatically. Importing fully replaces whatever is in `localStorage` with the contents of the file — when existing data is present, you'll be asked to confirm before it's overwritten, and a file with no parseable entries is rejected so a wrong selection can't wipe your inventory.
+The `homelab.md` file is the source of truth. Anytime you make changes through the UI, you should save those changes back to the file. A small orange dot appears on the **Save** and **↓ Export** buttons whenever the data in your browser is newer than your last full save — a visual nudge so you don't forget. If you ever need to ensure your current session matches the file (for example, after editing the `.md` file directly in a text editor, or opening the app in a different browser), click **↑ Import** and select your `homelab.md` (or `homelab.json`) file — the format is detected automatically. Importing fully replaces whatever is in `localStorage` with the contents of the file — when existing data is present, you'll be asked to confirm before it's overwritten, and a file with no parseable entries is rejected so a wrong selection can't wipe your inventory.
+
+### Saving
+
+The **Save** button (or **Ctrl/⌘+S**) writes your inventory back to `homelab.md`. On browsers that support the [File System Access API](https://developer.mozilla.org/en-US/docs/Web/API/Window/showSaveFilePicker) (Chromium-based: Chrome, Edge, Brave, etc.), the first save prompts you for where to put the file, and every save after that — including Ctrl/⌘+S — writes straight to that file with **no download prompt**. The chosen file is remembered across page reloads (you'll be asked once per session to re-grant write access, a browser security requirement). Use **Ctrl/⌘+Shift+S** ("Save As") to pick a different file.
+
+On browsers without that API (Firefox, Safari), **Save** falls back to downloading `homelab.md` the usual way — exactly like the **↓ Export → homelab.md** option.
 
 ### Workflow
 
@@ -55,7 +62,7 @@ The intended workflow is:
 
 1. **Import** your `homelab.md` if you need to sync the UI with the file
 2. **Make changes** — add entries, update services, etc.
-3. **Export** to save everything back to `homelab.md`
+3. **Save** (Ctrl/⌘+S) to write everything back to `homelab.md`
 4. **Commit** the file to Git if you want version history
 
 ### The Markdown File
