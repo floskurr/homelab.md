@@ -771,12 +771,12 @@
     <div class="logo">homelab<span>.md</span></div>
   </div>
   <div class="title-actions">
-    <button class="btn btn-sm" onclick="importMarkdown()" title="Import .md files"><span class="kbd">↑</span> Import</button>
+    <button class="btn btn-sm" id="saveBtn" onclick="saveToFile()" title="Save homelab.md (Ctrl/Cmd+S)">Save</button>
+    <button class="btn btn-sm" onclick="importMarkdown()" title="Import a .md or .json file"><span class="kbd">↑</span> Import</button>
     <div class="export-wrap">
       <button class="btn btn-sm" id="exportBtn" onclick="toggleExportMenu(event)" title="Export options"><span class="kbd">↓</span> Export ▾</button>
       <div class="export-menu" id="exportMenu">
         <div class="export-menu-label" title="Includes every entry, including ones marked Private">Full export</div>
-        <button onclick="exportAll(); closeExportMenu()">homelab.md</button>
         <button onclick="exportCsv(); closeExportMenu()">homelab.csv</button>
         <button onclick="exportJson(); closeExportMenu()">homelab.json</button>
         <hr>
@@ -2997,18 +2997,11 @@ const PUBLIC_HTML_TEMPLATE = '<!DOCTYPE html>\n'
 + '</body>\n'
 + '</html>\n';
 
-function exportAll() {
-  const devices = loadDevices();
-  if (!devices.length) { toast('No entries to export', 'error'); return; }
-
-  let combined = `# Homelab Inventory\n\n`;
-  combined += `> Exported ${new Date().toLocaleString()} — ${devices.length} ${devices.length === 1 ? 'entry' : 'entries'}\n\n---\n\n`;
-  devices.forEach(d => { combined += deviceToMarkdown(d, devices) + '\n'; });
-
-  downloadFile('homelab.md', combined, () => {
-    markExported();
-    toast(`Exported ${devices.length} ${devices.length === 1 ? 'entry' : 'entries'}`);
-  });
+function buildFullMarkdown(devices) {
+  let md = `# Homelab Inventory\n\n`;
+  md += `> Exported ${new Date().toLocaleString()} — ${devices.length} ${devices.length === 1 ? 'entry' : 'entries'}\n\n---\n\n`;
+  devices.forEach(d => { md += deviceToMarkdown(d, devices) + '\n'; });
+  return md;
 }
 
 function importMarkdown() { document.getElementById('fileInput').click(); }
@@ -3163,8 +3156,111 @@ function updateExportIndicator() {
       ? 'Export options — unsaved changes since last full export'
       : 'Export options';
   }
+  const save = document.getElementById('saveBtn');
+  if (save) save.classList.toggle('has-unsaved', unsaved);
   const sb = document.getElementById('sbUnsaved');
   if (sb) sb.classList.toggle('show', unsaved);
+}
+
+// --- One-click save to disk (File System Access API, download fallback) ---
+// When supported, the first save asks where to put homelab.md and remembers
+// that file (persisted in IndexedDB across reloads); later saves — and Ctrl/⌘+S
+// — write straight back with no dialog. Browsers without the API just download.
+const fsaSupported = typeof window.showSaveFilePicker === 'function';
+let fileHandle = null;
+
+const HANDLE_DB = 'homelab.md', HANDLE_STORE = 'handles', HANDLE_KEY = 'fileHandle';
+function handleDb() {
+  return new Promise((res, rej) => {
+    const r = indexedDB.open(HANDLE_DB, 1);
+    r.onupgradeneeded = () => r.result.createObjectStore(HANDLE_STORE);
+    r.onsuccess = () => res(r.result);
+    r.onerror = () => rej(r.error);
+  });
+}
+async function idbGetHandle() {
+  try {
+    const db = await handleDb();
+    return await new Promise((res, rej) => {
+      const req = db.transaction(HANDLE_STORE, 'readonly').objectStore(HANDLE_STORE).get(HANDLE_KEY);
+      req.onsuccess = () => res(req.result || null);
+      req.onerror = () => rej(req.error);
+    });
+  } catch (_) { return null; }
+}
+async function idbSetHandle(h) {
+  try {
+    const db = await handleDb();
+    await new Promise((res, rej) => {
+      const tx = db.transaction(HANDLE_STORE, 'readwrite');
+      tx.objectStore(HANDLE_STORE).put(h, HANDLE_KEY);
+      tx.oncomplete = () => res();
+      tx.onerror = () => rej(tx.error);
+    });
+  } catch (_) {}
+}
+
+const MD_PICKER_OPTS = { types: [{ description: 'Markdown', accept: { 'text/markdown': ['.md', '.markdown'] } }] };
+
+async function verifyWritePermission(handle) {
+  const opts = { mode: 'readwrite' };
+  if ((await handle.queryPermission(opts)) === 'granted') return true;
+  if ((await handle.requestPermission(opts)) === 'granted') return true;
+  return false;
+}
+
+function updateSaveButton() {
+  const btn = document.getElementById('saveBtn');
+  if (!btn) return;
+  if (!fsaSupported) {
+    btn.title = 'Save homelab.md (Ctrl/⌘+S) — downloads the file in this browser';
+  } else if (fileHandle) {
+    btn.title = `Save to ${fileHandle.name} (Ctrl/⌘+S)  ·  Save As: Ctrl/⌘+Shift+S`;
+  } else {
+    btn.title = 'Save to a file (Ctrl/⌘+S) — you choose where; saves go straight there afterward';
+  }
+}
+
+// forcePicker => "Save As": always prompt for a (new) file and rebind to it.
+async function saveToFile(forcePicker) {
+  const devices = loadDevices();
+  if (!devices.length) { toast('No entries to save', 'error'); return; }
+  const content = buildFullMarkdown(devices);
+
+  if (!fsaSupported) {
+    downloadFile('homelab.md', content, () => {
+      markExported();
+      toast(`Saved ${devices.length} ${devices.length === 1 ? 'entry' : 'entries'}`);
+    });
+    return;
+  }
+
+  try {
+    let handle = forcePicker ? null : fileHandle;
+    if (!handle) {
+      handle = await window.showSaveFilePicker({ ...MD_PICKER_OPTS, suggestedName: (fileHandle && fileHandle.name) || 'homelab.md' });
+    } else if (!(await verifyWritePermission(handle))) {
+      toast('Permission to write the file was denied', 'error');
+      return;
+    }
+    const writable = await handle.createWritable();
+    await writable.write(content);
+    await writable.close();
+    fileHandle = handle;
+    await idbSetHandle(fileHandle);
+    markExported();
+    updateSaveButton();
+    toast(`Saved to ${fileHandle.name}`);
+  } catch (err) {
+    if (err && err.name === 'AbortError') return; // user dismissed the picker
+    toast('Save failed — ' + ((err && err.message) || 'unknown error'), 'error');
+  }
+}
+
+function restoreFileHandle() {
+  updateSaveButton();
+  if (!fsaSupported) return;
+  idbGetHandle().then(h => { if (h) { fileHandle = h; updateSaveButton(); } });
 }
 
 // --- JSON export ---
@@ -3337,6 +3433,15 @@ document.addEventListener('keydown', (e) => {
   if (document.getElementById('detailOverlay').classList.contains('open')) { closeDetail(); return; }
 });
 
+// Ctrl/⌘+S saves to the bound file (Shift = Save As). Works everywhere,
+// including while typing, so it overrides the browser's own save dialog.
+document.addEventListener('keydown', (e) => {
+  if ((e.ctrlKey || e.metaKey) && (e.key === 's' || e.key === 'S')) {
+    e.preventDefault();
+    saveToFile(e.shiftKey);
+  }
+});
+
 // --- Keyboard shortcuts (TUI-style) ---
 document.addEventListener('keydown', (e) => {
   if (e.metaKey || e.ctrlKey || e.altKey) return;
@@ -3364,6 +3469,7 @@ document.addEventListener('keydown', (e) => {
 
 applyViewUI();
 refresh();
+restoreFileHandle();
 </script>
 </body>
 </html>
