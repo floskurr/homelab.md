@@ -20,8 +20,8 @@ homelab.md gives you a clean interface to catalog every device in your homelab: 
 - **Structured storage** — Track multiple drives per entry with type, size, notes, and an optional per-row Private flag
 - **Per-type field visibility** — The edit form hides fields that don't apply to the selected type, so a UPS doesn't ask for an OS, a network switch doesn't ask for storage drives, and so on
 - **Private flag** — Mark a whole entry, just its Notes block, or individual service/storage rows as Private to keep them out of the public exports
-- **Markdown import/export** — The `homelab.md` file is the source of truth. Import to load, export to save
-- **JSON export** — Export your full inventory as `homelab.json`, a lossless dump of every entry (Private included) for backups or feeding into other tools
+- **Markdown import/export** — The `homelab.md` file is the source of truth. Import to load, export to save. The round-trip is lossless: every field, including timestamps and Notes that contain Markdown like `---` rules, survives an export → import cycle
+- **JSON import/export** — Export your full inventory as `homelab.json`, a lossless dump of every entry (Private included) for backups or feeding into other tools. The same **↑ Import** button accepts `homelab.json` and restores it exactly
 - **CSV export** — Export your full inventory as `homelab.csv` for spreadsheet use, audits, or one-off scripts (includes every entry, Private flag included)
 - **Public HTML export** — Export a sanitized, self-contained `homelab.html` that renders an interactive read-only version of the dashboard, ideal for hosting publicly
 - **Unsaved-changes indicator** — A small dot appears on the **↓ Export** button whenever the in-browser data is newer than your last full export, so you don't forget to save changes back to the file
@@ -68,9 +68,11 @@ Pipe characters (`|`) and newlines inside service or storage notes are escaped o
 
 The **↓ Export → homelab.csv** option (under **Full export**) produces a flat `homelab.csv` with one row per entry. Multi-value fields (services, storage) are joined with `;` inside a cell, and the `Private` / `NotesPrivate` flags are included as columns. This is a full export, so Private entries and rows are **not** filtered out — it's intended for spreadsheets, ad-hoc reporting, or feeding the inventory into other tools. It is **not** round-trippable; the `homelab.md` Full export remains the canonical save format.
 
-### JSON Export
+### JSON Import / Export
 
-The **↓ Export → homelab.json** option (under **Full export**) writes a `homelab.json` file: a complete, lossless dump of every entry exactly as stored, wrapped with a small header (`format`, `version`, `exportedAt`) plus an `entries` array. Like the other full exports it includes **Private** entries and rows, so keep it as private as your `homelab.md`. It's intended for backups and for feeding your inventory into other tools — the `homelab.md` Full export remains the canonical save/import format.
+The **↓ Export → homelab.json** option (under **Full export**) writes a `homelab.json` file: a complete, lossless dump of every entry exactly as stored, wrapped with a small header (`format`, `version`, `exportedAt`) plus an `entries` array. Like the other full exports it includes **Private** entries and rows, so keep it as private as your `homelab.md`.
+
+The **↑ Import** button accepts `homelab.json` too (alongside `homelab.md`) — it detects the format automatically and restores every entry exactly, IDs, relationships, and timestamps included. Because JSON escapes everything, it's the most faithful backup/restore path; `homelab.md` remains the canonical, human-readable, Git-friendly format.
 
 ### Public HTML Export
 

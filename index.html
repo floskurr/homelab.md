@@ -1104,7 +1104,7 @@
 </div>
 
 <div class="toast-container" id="toastContainer"></div>
-<input type="file" class="hidden" id="fileInput" accept=".md,.markdown" multiple onchange="handleImport(event)">
+<input type="file" class="hidden" id="fileInput" accept=".md,.markdown,.json" multiple onchange="handleImport(event)">
 
 <script>
 const STORAGE_KEY = 'homelab_devices';
@@ -2433,7 +2433,21 @@ function deviceToMarkdown(d, allDevices) {
 function markdownToDevice(md) {
   const device = { id: generateId(), createdAt: new Date().toISOString(), updatedAt: new Date().toISOString(), services: [], storage: [] };
 
-  const nameMatch = md.match(/^#\s+(.+)$/m);
+  // Split the trailing metadata footer ("*Created: … | Updated: … | ID: …*",
+  // preceded by a "---" separator) off the body before parsing. Removing it
+  // first means a horizontal rule ("---") written inside Notes can't be
+  // mistaken for the footer separator and truncate the notes.
+  let body = md, footer = '';
+  const footerSplit = md.match(/\n---\n(\*Created:[^\n]*\*)\s*$/);
+  if (footerSplit) {
+    footer = footerSplit[1];
+    body = md.slice(0, footerSplit.index);
+  } else {
+    const f = md.match(/\*Created:[^\n]*\*/);
+    if (f) footer = f[0];
+  }
+
+  const nameMatch = body.match(/^#\s+(.+)$/m);
   if (nameMatch) device.name = nameMatch[1].trim();
 
   const fieldMap = {
@@ -2444,22 +2458,22 @@ function markdownToDevice(md) {
 
   for (const [label, key] of Object.entries(fieldMap)) {
     const regex = new RegExp(`-\\s+\\*\\*${label}:\\*\\*\\s*(.+)`, 'i');
-    const match = md.match(regex);
+    const match = body.match(regex);
     if (match && match[1].trim() !== '—') device[key] = match[1].trim();
   }
 
-  const tagsMatch = md.match(/-\s+\*\*Tags:\*\*\s*(.+)/i);
+  const tagsMatch = body.match(/-\s+\*\*Tags:\*\*\s*(.+)/i);
   device.tags = (tagsMatch && tagsMatch[1].trim() !== '—') ? normalizeTags(tagsMatch[1]) : [];
 
-  const privateMatch = md.match(/-\s+\*\*Private:\*\*\s*(true|false)/i);
+  const privateMatch = body.match(/-\s+\*\*Private:\*\*\s*(true|false)/i);
   device.private = !!(privateMatch && /true/i.test(privateMatch[1]));
-  const notesPrivMatch = md.match(/-\s+\*\*Notes Private:\*\*\s*(true|false)/i);
+  const notesPrivMatch = body.match(/-\s+\*\*Notes Private:\*\*\s*(true|false)/i);
   device.notesPrivate = !!(notesPrivMatch && /true/i.test(notesPrivMatch[1]));
 
   const parseBool = v => /true/i.test((v || '').trim());
 
   // Storage rows may have either 3 cells (legacy) or 4 cells (with Private).
-  const storageTableMatch = md.match(/## Storage\s*\n[\s\S]*?\n\|[-\s|]+\|\n([\s\S]*?)(?=\n##|\n---|\n*$)/);
+  const storageTableMatch = body.match(/## Storage\s*\n[\s\S]*?\n\|[-\s|]+\|\n([\s\S]*?)(?=\n##|\n---|\n*$)/);
   if (storageTableMatch) {
     device.storage = storageTableMatch[1].split('\n').filter(l => l.trim().startsWith('|')).map(l => {
       const cells = splitMdRow(l).map(c => unmdCell(c.trim())).filter((c, i, arr) => i !== 0 && i !== arr.length - 1);
@@ -2472,7 +2486,7 @@ function markdownToDevice(md) {
     }).filter(s => s.type && s.type !== '—');
   } else {
     // Fallback: old single-line storage field
-    const oldStorageMatch = md.match(/-\s+\*\*Storage:\*\*\s*(.+)/i);
+    const oldStorageMatch = body.match(/-\s+\*\*Storage:\*\*\s*(.+)/i);
     if (oldStorageMatch && oldStorageMatch[1].trim() !== '—') {
       device.storage = [{ type: oldStorageMatch[1].trim(), size: '', notes: '', private: false }];
     } else {
@@ -2480,7 +2494,7 @@ function markdownToDevice(md) {
     }
   }
 
-  const tableMatch = md.match(/## Services\s*\n[\s\S]*?\n\|[-\s|]+\|\n([\s\S]*?)(?=\n##|\n---|\n*$)/);
+  const tableMatch = body.match(/## Services\s*\n[\s\S]*?\n\|[-\s|]+\|\n([\s\S]*?)(?=\n##|\n---|\n*$)/);
   if (tableMatch) {
     device.services = tableMatch[1].split('\n').filter(l => l.trim().startsWith('|')).map(l => {
       const cells = splitMdRow(l).map(c => unmdCell(c.trim())).filter((c, i, arr) => i !== 0 && i !== arr.length - 1);
@@ -2495,7 +2509,7 @@ function markdownToDevice(md) {
   }
 
   if (!device.services.length) {
-    const oldMatch = md.match(/## Services\s*\n([\s\S]*?)(?=\n##|\n---|\n*$)/);
+    const oldMatch = body.match(/## Services\s*\n([\s\S]*?)(?=\n##|\n---|\n*$)/);
     if (oldMatch) {
       device.services = oldMatch[1].split('\n')
         .map(l => l.replace(/^-\s*/, '').trim()).filter(Boolean).filter(l => !l.startsWith('|'))
@@ -2503,17 +2517,25 @@ function markdownToDevice(md) {
     }
   }
 
-  const notesMatch = md.match(/## Notes\s*\n([\s\S]*?)(?=\n---|\n*$)/);
+  // Notes run from "## Notes" to the end of the body (the footer is already
+  // stripped), so a "---" rule inside the notes is preserved intact.
+  const notesMatch = body.match(/## Notes\s*\n([\s\S]*)$/);
   if (notesMatch) device.notes = notesMatch[1].trim();
 
-  const idMatch = md.match(/ID:\s*([a-z0-9]+)/);
+  const meta = footer || md;
+  const idMatch = meta.match(/ID:\s*([a-z0-9]+)/);
   if (idMatch) device.id = idMatch[1];
 
-  const parentIdMatch = md.match(/ParentID:\s*([a-z0-9]+)/);
+  const parentIdMatch = meta.match(/ParentID:\s*([a-z0-9]+)/);
   if (parentIdMatch) device.parentId = parentIdMatch[1];
 
-  const powerIdMatch = md.match(/PowerID:\s*([a-z0-9]+)/);
+  const powerIdMatch = meta.match(/PowerID:\s*([a-z0-9]+)/);
   if (powerIdMatch) device.poweredById = powerIdMatch[1];
+
+  const createdMatch = meta.match(/Created:\s*([^|*]+?)\s*(?:\||$)/);
+  if (createdMatch && createdMatch[1].trim() !== '—') device.createdAt = createdMatch[1].trim();
+  const updatedMatch = meta.match(/Updated:\s*([^|*]+?)\s*(?:\||$)/);
+  if (updatedMatch && updatedMatch[1].trim() !== '—') device.updatedAt = updatedMatch[1].trim();
 
   return device;
 }
@@ -2991,13 +3013,46 @@ function exportAll() {
 
 function importMarkdown() { document.getElementById('fileInput').click(); }
 
+// Coerce an entry from a homelab.json export into a well-formed device,
+// tolerating missing/old fields so a hand-edited file still imports cleanly.
+function normalizeImportedDevice(e) {
+  return {
+    id: (typeof e.id === 'string' && e.id) ? e.id : generateId(),
+    name: String(e.name || '').trim(),
+    type: e.type || 'other',
+    ip: e.ip || '',
+    parentId: e.parentId || null,
+    poweredById: e.poweredById || null,
+    system: e.system || '',
+    os: e.os || '',
+    cpu: e.cpu || '',
+    ram: e.ram || '',
+    gpu: e.gpu || '',
+    storage: Array.isArray(e.storage)
+      ? e.storage.map(s => ({ type: s.type || '', size: s.size || '', notes: s.notes || '', private: !!s.private }))
+      : [],
+    location: e.location || '',
+    tags: normalizeTags(Array.isArray(e.tags) ? e.tags : []),
+    services: Array.isArray(e.services)
+      ? e.services.map(s => typeof s === 'string'
+          ? { name: s, port: '', notes: '', url: '', private: false }
+          : { name: s.name || '', port: s.port || '', notes: s.notes || '', url: s.url || '', private: !!s.private })
+      : [],
+    notes: e.notes || '',
+    private: !!e.private,
+    notesPrivate: !!e.notesPrivate,
+    createdAt: e.createdAt || new Date().toISOString(),
+    updatedAt: e.updatedAt || new Date().toISOString(),
+  };
+}
+
 function handleImport(event) {
   const files = event.target.files;
   if (!files.length) return;
 
   const filePromises = Array.from(files).map(file => new Promise((resolve, reject) => {
     const reader = new FileReader();
-    reader.onload = (e) => resolve(e.target.result);
+    reader.onload = (e) => resolve({ name: file.name, text: e.target.result });
     reader.onerror = () => reject(reader.error);
     reader.readAsText(file);
   }));
@@ -3005,7 +3060,23 @@ function handleImport(event) {
   Promise.all(filePromises).then(results => {
     const devices = [];
 
-    results.forEach(text => {
+    results.forEach(({ name, text }) => {
+      const trimmed = text.trim();
+      const looksJson = /\.json$/i.test(name) || trimmed.startsWith('{') || trimmed.startsWith('[');
+      let handledAsJson = false;
+      if (looksJson) {
+        try {
+          const parsed = JSON.parse(trimmed);
+          const entries = Array.isArray(parsed) ? parsed
+            : (parsed && Array.isArray(parsed.entries) ? parsed.entries : null);
+          if (entries) {
+            entries.forEach(e => { if (e && e.name) devices.push(normalizeImportedDevice(e)); });
+            handledAsJson = true;
+          }
+        } catch (_) { /* not valid JSON — fall through to markdown parsing */ }
+      }
+      if (handledAsJson) return;
+
       const sections = text.split(/(?=^# [^#])/m).filter(s => s.trim());
       sections.forEach(section => {
         if (section.startsWith('# Homelab Inventory')) return;
