@@ -21,8 +21,8 @@ homelab.md gives you a clean interface to catalog every device in your homelab: 
 - **Per-type field visibility** — The edit form hides fields that don't apply to the selected type, so a UPS doesn't ask for an OS, a network switch doesn't ask for storage drives, and so on
 - **Private flag** — Mark a whole entry, just its Notes block, or individual service/storage rows as Private to keep them out of the public exports
 - **Markdown import/export** — The `homelab.md` file is the source of truth. Import to load, export to save. The round-trip is lossless: every field, including timestamps and Notes that contain Markdown like `---` rules, survives an export → import cycle
-- **JSON import/export** — Export your full inventory as `homelab.json`, a lossless dump of every entry (Private included) for backups or feeding into other tools. The same **↑ Import** button accepts `homelab.json` and restores it exactly
 - **CSV export** — Export your full inventory as `homelab.csv` for spreadsheet use, audits, or one-off scripts (includes every entry, Private flag included)
+- **JSON import/export** — Export your full inventory as `homelab.json`, a lossless dump of every entry (Private included) for backups or feeding into other tools. The same **↑ Import** button accepts `homelab.json` and restores it exactly
 - **Public HTML export** — Export a sanitized, self-contained `homelab.html` that renders an interactive read-only version of the dashboard, ideal for hosting publicly
 - **Unsaved-changes indicator** — A small dot appears on the **↓ Export** button whenever the in-browser data is newer than your last full export, so you don't forget to save changes back to the file
 - **Undo on delete** — Deleting an entry shows a toast with an **Undo** button (~6 seconds) that fully restores the entry and any parent / power-source links
@@ -47,7 +47,7 @@ homelab.md gives you a clean interface to catalog every device in your homelab: 
 
 While you're working, your data lives in the browser's `localStorage`. This means your changes persist between page refreshes and browser restarts without needing to do anything. However, `localStorage` is tied to your browser and can be cleared at any time, so it should not be treated as permanent storage.
 
-The `homelab.md` file is the source of truth. Anytime you make changes through the UI, you should export to save those changes back to the file. A small orange dot appears on the **↓ Export** button whenever the data in your browser is newer than your last full export — a visual nudge so you don't forget. If you ever need to ensure your current session matches the file (for example, after editing the `.md` file directly in a text editor, or opening the app in a different browser), click **↑ Import** and select your `homelab.md` file. Importing fully replaces whatever is in `localStorage` with the contents of the file — when existing data is present, you'll be asked to confirm before it's overwritten, and a file with no parseable entries is rejected so a wrong selection can't wipe your inventory.
+The `homelab.md` file is the source of truth. Anytime you make changes through the UI, you should export to save those changes back to the file. A small orange dot appears on the **↓ Export** button whenever the data in your browser is newer than your last full export — a visual nudge so you don't forget. If you ever need to ensure your current session matches the file (for example, after editing the `.md` file directly in a text editor, or opening the app in a different browser), click **↑ Import** and select your `homelab.md` (or `homelab.json`) file — the format is detected automatically. Importing fully replaces whatever is in `localStorage` with the contents of the file — when existing data is present, you'll be asked to confirm before it's overwritten, and a file with no parseable entries is rejected so a wrong selection can't wipe your inventory.
 
 ### Workflow
 
@@ -60,9 +60,9 @@ The intended workflow is:
 
 ### The Markdown File
 
-The exported `homelab.md` is human-readable Markdown. Each entry is an `h1` section with metadata as a bullet list, and services/storage as Markdown tables. The Private and Notes-Private flags are serialized as bullet fields so they round-trip cleanly. You can read it, edit it in any text editor, or render it on GitHub. Parent-child and power-source relationships are preserved via IDs in the footer of each section (`ParentID` and `PowerID`).
+The exported `homelab.md` is human-readable Markdown. Each entry is an `h1` section with metadata as a bullet list, and services/storage as Markdown tables. The Private and Notes-Private flags are serialized as bullet fields so they round-trip cleanly. You can read it, edit it in any text editor, or render it on GitHub. Parent-child and power-source relationships, the entry ID, and the created/updated timestamps are all preserved in the italic footer of each section (`ID`, `ParentID`, `PowerID`, `Created`, `Updated`) and parsed back on import.
 
-Pipe characters (`|`) and newlines inside service or storage notes are escaped on export (`\|`) and unescaped on import, so a note containing `|` won't break the table or get truncated on re-import.
+Pipe characters (`|`) and newlines inside service or storage notes are escaped on export (`\|`) and unescaped on import, so a note containing `|` won't break the table. The footer is split off before the body is parsed, so a `---` horizontal rule written inside a Notes field is kept intact rather than being mistaken for a section break. The result is a lossless round-trip: export then re-import returns exactly what you had.
 
 ### CSV Export
 
