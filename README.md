@@ -21,8 +21,8 @@ homelab.md gives you a clean interface to catalog every device in your homelab: 
 - **Per-type field visibility** — The edit form hides fields that don't apply to the selected type, so a UPS doesn't ask for an OS, a network switch doesn't ask for storage drives, and so on
 - **Private flag** — Mark a whole entry, just its Notes block, or individual service/storage rows as Private to keep them out of the public exports
 - **Markdown import/export** — The `homelab.md` file is the source of truth. Import to load, export to save
+- **JSON export** — Export your full inventory as `homelab.json`, a lossless dump of every entry (Private included) for backups or feeding into other tools
 - **CSV export** — Export your full inventory as `homelab.csv` for spreadsheet use, audits, or one-off scripts (includes every entry, Private flag included)
-- **Public Markdown export** — Export a sanitized `homelab-public.md` suitable for sharing publicly, such as on a public-facing website
 - **Public HTML export** — Export a sanitized, self-contained `homelab.html` that renders an interactive read-only version of the dashboard, ideal for hosting publicly
 - **Unsaved-changes indicator** — A small dot appears on the **↓ Export** button whenever the in-browser data is newer than your last full export, so you don't forget to save changes back to the file
 - **Undo on delete** — Deleting an entry shows a toast with an **Undo** button (~6 seconds) that fully restores the entry and any parent / power-source links
@@ -68,22 +68,9 @@ Pipe characters (`|`) and newlines inside service or storage notes are escaped o
 
 The **↓ Export → homelab.csv** option (under **Full export**) produces a flat `homelab.csv` with one row per entry. Multi-value fields (services, storage) are joined with `;` inside a cell, and the `Private` / `NotesPrivate` flags are included as columns. This is a full export, so Private entries and rows are **not** filtered out — it's intended for spreadsheets, ad-hoc reporting, or feeding the inventory into other tools. It is **not** round-trippable; the `homelab.md` Full export remains the canonical save format.
 
-### Public Export
+### JSON Export
 
-The **↓ Export → homelab.md** option (under **Public export**) generates a `homelab-public.md` file intended for public use cases such as displaying your homelab on a public-facing website that supports Markdown. It produces a clean, readable summary of your homelab grouped by entry type.
-
-Anything you marked **Private** is dropped first: a Private entry disappears entirely; Private service or storage rows are removed from their tables; a Private-marked Notes block is omitted while the rest of the entry stays.
-
-Before writing the file, the export then automatically scrubs anything else you wouldn't want to share publicly. Removed values are blanked rather than substituted with a placeholder, and surrounding whitespace and dangling separators are tidied so the output stays readable:
-
-- **IPv4 and IPv6 addresses** — removed (full and compressed IPv6 forms like `2001:db8::1` and `::1` are matched)
-- **MAC addresses** — removed
-- **Internal/local hostnames** — anything ending in `.lan`, `.local`, `.home.arpa`, `.internal`, `.lab`, or `.home` is removed
-- **All URLs and links** — removed (service URLs and anything embedded in notes)
-- **Port numbers** — omitted entirely from the services list; mentions like `port 8080` in free-text notes are removed, as are stray `:8080`-style ports left after an IP/URL has been scrubbed
-- **Internal metadata** — device IDs, parent IDs, and timestamps are not included
-
-What remains is the hardware and software story of your homelab: entry names, types, specs, storage, service names, and any non-Private notes you've written — all stripped of anything that could expose your internal network. Sanitization isn't a guarantee — before you actually share the file, a confirmation dialog reminds you to open the exported file and skim it (especially the free-form Notes fields, which can carry through anything you typed there).
+The **↓ Export → homelab.json** option (under **Full export**) writes a `homelab.json` file: a complete, lossless dump of every entry exactly as stored, wrapped with a small header (`format`, `version`, `exportedAt`) plus an `entries` array. Like the other full exports it includes **Private** entries and rows, so keep it as private as your `homelab.md`. It's intended for backups and for feeding your inventory into other tools — the `homelab.md` Full export remains the canonical save/import format.
 
 ### Public HTML Export
 
@@ -94,7 +81,7 @@ When you choose this export, you'll be prompted for a **Site Name** that replace
 - Uses the same theme and layout as the main app
 - Supports search, type filters, the Cards / Topology view toggle (Network and Power modes), and the entry detail modal
 - Has no add/edit/delete/import/export controls — it's strictly read-only
-- Applies the **same Private filtering and sanitization** as the public Markdown export (Private entries/rows are omitted; IPs, MAC addresses, URLs, ports, IDs, and timestamps are removed)
+- Applies **Private filtering and sanitization** before writing (Private entries/rows are omitted; IPs, MAC addresses, URLs, ports, IDs, and timestamps are removed). Sanitization isn't a guarantee — review the exported file before hosting it, especially free-form Notes
 - Is fully offline — no server, no API calls, just one HTML file
 
 ## Entry Types
