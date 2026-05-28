@@ -1272,7 +1272,7 @@ function renderFilters() {
   const active = currentFilter || 'all';
   document.getElementById('filterGroup').innerHTML = types.map(t => {
     const n = t === 'all' ? devices.length : (counts[t] || 0);
-    return `<button class="nav-item ${t === active ? 'active' : ''}" onclick="setFilter('${t}')" role="tab" aria-selected="${t === active}">`
+    return `<button class="nav-item ${t === active ? 'active' : ''}" data-filter="${esc(t)}" role="tab" aria-selected="${t === active}">`
       + `<span class="nav-ico">${navIcon(t)}</span>`
       + `<span class="nav-label">${esc(t)}</span>`
       + `<span class="nav-count">${n}</span></button>`;
@@ -1296,7 +1296,7 @@ function renderTagFilters(devices) {
   if (currentTagFilter && !allTags.has(currentTagFilter)) currentTagFilter = null;
   row.hidden = false;
   group.innerHTML = tags.map(t =>
-    `<button class="nav-item tag ${t === currentTagFilter ? 'active' : ''}" onclick="setTagFilter('${esc(t)}')">`
+    `<button class="nav-item tag ${t === currentTagFilter ? 'active' : ''}" data-tag="${esc(t)}">`
     + `<span class="nav-ico">#</span>`
     + `<span class="nav-label">${esc(t)}</span></button>`
   ).join('');
@@ -1423,7 +1423,7 @@ function renderDevices() {
     const storage = sortedStorage(d.storage);
 
     return `
-    <div class="device-card t-${esc(d.type || 'other')}" tabindex="0" role="button" onclick="showDetail('${d.id}')" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();showDetail('${d.id}');}">
+    <div class="device-card t-${esc(d.type || 'other')}" tabindex="0" role="button" data-id="${esc(d.id)}">
       <div class="device-card-header">
         <div>
           <div class="device-name">
@@ -2257,7 +2257,7 @@ function showDetail(id) {
         <div class="detail-section">
           <div class="detail-section-title">Running on this Host / Parent (${children.length})</div>
           ${children.map(c => `
-            <div class="child-device" onclick="event.stopPropagation(); showDetail('${c.id}')">
+            <div class="child-device" data-detail-id="${esc(c.id)}">
               <div class="child-device-name">${esc(c.name)}</div>
               ${typeBadge(c.type)}
             </div>
@@ -2267,7 +2267,7 @@ function showDetail(id) {
       ${parent ? `
         <div class="detail-section">
           <div class="detail-section-title">Host / Parent</div>
-          <div class="child-device" onclick="event.stopPropagation(); showDetail('${parent.id}')">
+          <div class="child-device" data-detail-id="${esc(parent.id)}">
             <div class="child-device-name">${esc(parent.name)}</div>
             ${typeBadge(parent.type)}
           </div>
@@ -2276,7 +2276,7 @@ function showDetail(id) {
       ${powerSource ? `
         <div class="detail-section">
           <div class="detail-section-title">Power Source</div>
-          <div class="child-device" onclick="event.stopPropagation(); showDetail('${powerSource.id}')">
+          <div class="child-device" data-detail-id="${esc(powerSource.id)}">
             <div class="child-device-name">${esc(powerSource.name)}</div>
             ${typeBadge(powerSource.type)}
           </div>
@@ -2286,7 +2286,7 @@ function showDetail(id) {
         <div class="detail-section">
           <div class="detail-section-title">Powered devices (${poweredDevices.length})</div>
           ${poweredDevices.map(c => `
-            <div class="child-device" onclick="event.stopPropagation(); showDetail('${c.id}')">
+            <div class="child-device" data-detail-id="${esc(c.id)}">
               <div class="child-device-name">${esc(c.name)}</div>
               ${typeBadge(c.type)}
             </div>
@@ -2305,10 +2305,10 @@ function showDetail(id) {
       </div>
     </div>
     <div class="detail-actions">
-      <button class="btn btn-danger" onclick="confirmDelete('${d.id}')">Delete</button>
+      <button class="btn btn-danger" data-action="confirm-delete" data-id="${esc(d.id)}">Delete</button>
       <div style="flex:1;"></div>
       <button class="btn" onclick="closeDetail()">Cancel</button>
-      <button class="btn btn-primary" onclick="closeDetail(); openEditModal('${d.id}')">Edit Entry</button>
+      <button class="btn btn-primary" data-action="edit" data-id="${esc(d.id)}">Edit Entry</button>
     </div>
   `;
   openModalEl(document.getElementById('detailOverlay'));
@@ -2337,7 +2337,7 @@ function confirmDelete(id) {
         <p>Delete <strong>${esc(d.name)}</strong>?${children.length ? ` This will unlink ${children.length} child ${children.length === 1 ? 'entry' : 'entries'}.` : ''}</p>
         <div class="btn-group">
           <button class="btn" onclick="closeDetail()">Cancel</button>
-          <button class="btn btn-danger" onclick="deleteDevice('${id}')">Delete</button>
+          <button class="btn btn-danger" data-action="delete" data-id="${esc(id)}">Delete</button>
         </div>
       </div>
     </div>
@@ -2717,6 +2717,7 @@ const PUBLIC_HTML_TEMPLATE = '<!DOCTYPE html>\n'
 + '<html lang="en">\n'
 + '<head>\n'
 + '<meta charset="UTF-8">\n'
++ '<meta http-equiv="Content-Security-Policy" content="default-src \'none\'; img-src data:; font-src data:; style-src \'unsafe-inline\'; script-src \'unsafe-inline\'; base-uri \'none\'; form-action \'none\'">\n'
 + '<meta name="viewport" content="width=device-width, initial-scale=1.0">\n'
 + '<title>__SITE_NAME__</title>\n'
 + '<link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns=\'http://www.w3.org/2000/svg\' viewBox=\'0 0 32 32\'%3E%3Crect width=\'32\' height=\'32\' rx=\'6\' fill=\'%230a0e14\'/%3E%3Crect x=\'4\' y=\'6\' width=\'24\' height=\'8\' rx=\'2\' fill=\'%23141b24\' stroke=\'%2339c5bb\' stroke-width=\'1.5\'/%3E%3Ccircle cx=\'8.5\' cy=\'10\' r=\'1.5\' fill=\'%234bc77a\'/%3E%3Ccircle cx=\'13\' cy=\'10\' r=\'1.5\' fill=\'%2339c5bb\'/%3E%3Crect x=\'18\' y=\'9\' width=\'7\' height=\'2\' rx=\'1\' fill=\'%233d4f63\'/%3E%3Crect x=\'4\' y=\'18\' width=\'24\' height=\'8\' rx=\'2\' fill=\'%23141b24\' stroke=\'%2339c5bb\' stroke-width=\'1.5\'/%3E%3Ccircle cx=\'8.5\' cy=\'22\' r=\'1.5\' fill=\'%234bc77a\'/%3E%3Ccircle cx=\'13\' cy=\'22\' r=\'1.5\' fill=\'%2339c5bb\'/%3E%3Crect x=\'18\' y=\'21\' width=\'7\' height=\'2\' rx=\'1\' fill=\'%233d4f63\'/%3E%3C/svg%3E">\n'
@@ -3139,6 +3140,45 @@ function refresh() {
 document.getElementById('topologyView').addEventListener('click', (e) => {
   const node = e.target.closest('[data-id]');
   if (node) showDetail(node.getAttribute('data-id'));
+});
+
+// Card grid delegation: open detail on click or Enter/Space. Using data-id +
+// delegation (rather than inline handlers) keeps untrusted entry IDs out of
+// inline on* attributes, so an imported file can never inject markup here.
+document.getElementById('deviceGrid').addEventListener('click', (e) => {
+  const card = e.target.closest('[data-id]');
+  if (card) showDetail(card.getAttribute('data-id'));
+});
+document.getElementById('deviceGrid').addEventListener('keydown', (e) => {
+  if (e.key !== 'Enter' && e.key !== ' ') return;
+  const card = e.target.closest('[data-id]');
+  if (card) { e.preventDefault(); showDetail(card.getAttribute('data-id')); }
+});
+
+// Type-filter and tag-filter delegation.
+document.getElementById('filterGroup').addEventListener('click', (e) => {
+  const btn = e.target.closest('[data-filter]');
+  if (btn) setFilter(btn.getAttribute('data-filter'));
+});
+document.getElementById('tagFilterGroup').addEventListener('click', (e) => {
+  const btn = e.target.closest('[data-tag]');
+  if (btn) setTagFilter(btn.getAttribute('data-tag'));
+});
+
+// Detail panel delegation: navigate to linked entries (data-detail-id) and
+// handle the panel's own actions (data-action). Keeps entry IDs out of inline
+// handlers without changing any behaviour.
+document.getElementById('detailPanel').addEventListener('click', (e) => {
+  const nav = e.target.closest('[data-detail-id]');
+  if (nav) { showDetail(nav.getAttribute('data-detail-id')); return; }
+  const act = e.target.closest('[data-action]');
+  if (!act) return;
+  const id = act.getAttribute('data-id');
+  switch (act.getAttribute('data-action')) {
+    case 'confirm-delete': confirmDelete(id); break;
+    case 'edit': closeDetail(); openEditModal(id); break;
+    case 'delete': deleteDevice(id); break;
+  }
 });
 
 // --- Unsaved-since-last-export indicator ---
