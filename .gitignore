@@ -3,3 +3,6 @@ homelab.html
 homelab.csv
 homelab.json
 CLAUDE.md
+backend/node_modules/
+backend/data/*.db
+backend/.env

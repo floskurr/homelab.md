@@ -2,13 +2,43 @@
 
 A single-file, offline-first web app for documenting your homelab infrastructure. Open `index.html` in any browser — no server, no dependencies, no internet required.
 
+## Optional Backend (Express + SQLite)
+
+This repository now also includes an optional backend in `backend/` for users who want API-driven storage and multi-client access.
+
+### Backend Features
+
+- **Express API** with structured routing and middleware
+- **SQLite persistence** via `better-sqlite3`
+- **Automatic migrations** on startup
+- **Security and ops middleware** (`helmet`, `cors`, `morgan`)
+- **CRUD API** for inventory entries
+
+### Run The Backend
+
+1. `cd backend`
+2. `npm install`
+3. Optional: copy `.env.example` to `.env` and adjust values
+4. `npm run dev`
+
+The API runs on `http://localhost:3001` by default.
+
+### API Endpoints
+
+- `GET /api/health`
+- `GET /api/entries`
+- `GET /api/entries/:id`
+- `POST /api/entries`
+- `PUT /api/entries/:id`
+- `DELETE /api/entries/:id`
+
 ## Screenshot
 
 ![homelab.md screenshot](screenshot-improved-fixed.png)
 
 ## Demo
 
-https://github.com/user-attachments/assets/7690673b-cdd2-41db-b2a0-9a0c960a093c
+<https://github.com/user-attachments/assets/7690673b-cdd2-41db-b2a0-9a0c960a093c>
 
 ## What It Does
 
