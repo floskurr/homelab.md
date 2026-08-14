@@ -1,0 +1,30 @@
+services:
+  backend:
+    container_name: homelab-backend
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    environment:
+      NODE_ENV: production
+      PORT: 3001
+      DB_PATH: ./data/homelab.db
+      CORS_ORIGIN: "*"
+    ports:
+      - "3001:3001"
+    volumes:
+      - homelab_data:/usr/src/app/data
+    restart: unless-stopped
+
+  frontend:
+    container_name: homelab-frontend
+    image: nginx:1.27-alpine
+    depends_on:
+      - backend
+    ports:
+      - "8081:80"
+    volumes:
+      - ./:/usr/share/nginx/html:ro
+    restart: unless-stopped
+
+volumes:
+  homelab_data:

@@ -19,6 +19,22 @@ Server defaults to `http://localhost:3001`.
 - `npm run db:migrate` - create/update SQLite schema
 - `npm run db:reset` - delete DB file and recreate schema
 
+## Docker
+
+Build only the backend image:
+
+- `docker build -t homelab-backend .`
+
+Run backend container directly:
+
+- `docker run --rm -p 3001:3001 -v homelab_data:/usr/src/app/data homelab-backend`
+
+Run full stack (frontend + backend) from repository root:
+
+- `docker-compose up --build -d`
+
+The backend stores SQLite data under `/usr/src/app/data` inside the container.
+
 ## API
 
 - `GET /api/health`

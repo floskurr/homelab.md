@@ -23,6 +23,21 @@ This repository now also includes an optional backend in `backend/` for users wh
 
 The API runs on `http://localhost:3001` by default.
 
+### Run With Docker Compose
+
+From the repository root:
+
+1. `docker-compose up --build -d`
+2. Open `http://localhost:8080` for the UI
+3. Backend API is available at `http://localhost:3001`
+
+Useful commands:
+
+- `docker-compose logs -f`
+- `docker-compose down`
+
+SQLite data persists in the named volume `homelab_data`.
+
 ### API Endpoints
 
 - `GET /api/health`
